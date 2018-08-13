@@ -40,7 +40,7 @@ public class SchemaDescriptor {
 
         out.print("\tpublic static java.lang.Object read(java.io.InputStream in)\n" +
                 "\t\tthrows org.xmlpull.v1.XmlPullParserException, java.io.IOException, javax.xml.datatype.DatatypeConfigurationException {\n" +
-                "\t\torg.xmlpull.v1.XmlPullParser parser = new org.kxml2.io.KXmlParser();\n" +
+                "\t\tcom.android.org.xmlpull.v1.XmlPullParser parser = new com.android.org.kxml2.io.KXmlParser();\n" +
                 "\t\tparser.setFeature(org.xmlpull.v1.XmlPullParser.FEATURE_PROCESS_NAMESPACES, true);\n" +
                 "\t\tparser.setInput(in, null);\n" +
                 "\t\tparser.nextTag();\n" +
