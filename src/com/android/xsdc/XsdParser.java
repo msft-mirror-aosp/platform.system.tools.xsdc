@@ -1,7 +1,7 @@
 package com.android.xsdc;
 
 import com.android.xsdc.tag.*;
-import org.kxml2.io.KXmlParser;
+import com.android.org.kxml2.io.KXmlParser;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
