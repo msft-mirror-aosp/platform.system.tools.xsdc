@@ -1,14 +1,13 @@
 java_binary_host {
 	name: "xsdc",
 	srcs: ["src/**/*.java"],
-	static_libs: ["core-all"],
 	manifest: "MANIFEST.MF"
 }
 
 java_test_host {
 	name: "xsdc-tests",
 	srcs: ["tests/src/**/*.java"],
-	static_libs: ["xsdc", "junit"],
+	libs: ["xsdc"],
 	java_resource_dirs: ["tests/resources"]
 }
 
