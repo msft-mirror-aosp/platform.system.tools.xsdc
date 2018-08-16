@@ -1,3 +1,3 @@
 package com.android.xsdc.tag;
 
-abstract class XsdTag {}
+public abstract class XsdTag {}
