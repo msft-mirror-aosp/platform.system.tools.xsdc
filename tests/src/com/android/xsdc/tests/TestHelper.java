@@ -1,13 +1,14 @@
 package com.android.xsdc.tests;
 
 import com.android.xsdc.XmlSchema;
-import com.android.xsdc.XsdParser;
-import com.android.xsdc.XsdParserException;
+import com.android.xsdc.XsdHandler;
 import com.android.xsdc.descriptor.ClassDescriptor;
 import com.android.xsdc.descriptor.SchemaDescriptor;
-import org.xmlpull.v1.XmlPullParserException;
 
 import javax.tools.*;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
 import java.io.*;
 import java.net.URI;
 import java.util.ArrayList;
@@ -77,8 +78,13 @@ class TestHelper {
 
     final static String packageName = "test";
 
-    static TestCompilationResult parseXsdAndCompile(InputStream in) throws IOException, XmlPullParserException, XsdParserException, ClassNotFoundException {
-        XmlSchema schema = XsdParser.parse(in);
+    static TestCompilationResult parseXsdAndCompile(InputStream in) throws Exception {
+        SAXParserFactory factory = SAXParserFactory.newInstance();
+        factory.setNamespaceAware(true);
+        SAXParser parser = factory.newSAXParser();
+        XsdHandler xsdHandler = new XsdHandler();
+        parser.parse(in, xsdHandler);
+        XmlSchema schema = xsdHandler.getSchema();
         List<JavaFileObject> javaFileObjects = new ArrayList<>();
         SchemaDescriptor schemaDescriptor = schema.explain();
         for (ClassDescriptor descriptor : schemaDescriptor.getClassDescriptorMap().values()) {
