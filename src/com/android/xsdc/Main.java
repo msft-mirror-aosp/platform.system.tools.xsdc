@@ -16,7 +16,9 @@ import javax.xml.parsers.SAXParserFactory;
 public class Main {
     public static void main(String[] args) {
         if (args.length != 3) {
-            System.out.println("Failed: it should have three arguments: path of an input xsd file, package name, and output directory");
+            System.err.println(
+                    "Failed - it should have three arguments: path of an input xsd file, "
+                            + "package name, and output directory");
             exit(-1);
         }
         String xsdFile = args[0], packageName = args[1], outDir = args[2];
@@ -31,11 +33,13 @@ public class Main {
             File packageDir = new File(Paths.get(outDir, packageName.replace(".", "/")).toString());
             packageDir.mkdirs();
             for (ClassDescriptor cls : descriptor.getClassDescriptorMap().values()) {
-                try (PrintWriter writer = new PrintWriter(new File(packageDir, cls.getName() + ".java"))) {
+                try (CodeWriter writer = new CodeWriter(new PrintWriter(
+                        new File(packageDir, cls.getName() + ".java")))) {
                     cls.print(packageName, writer);
                 }
             }
-            try (PrintWriter writer = new PrintWriter(new File(packageDir, "XmlParser.java").toString())) {
+            try (CodeWriter writer = new CodeWriter(new PrintWriter(
+                    new File(packageDir, "XmlParser.java")))) {
                 descriptor.printXmlParser(packageName, writer);
             }
         } catch (Exception e) {
