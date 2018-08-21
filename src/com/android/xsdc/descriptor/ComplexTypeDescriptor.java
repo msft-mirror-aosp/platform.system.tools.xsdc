@@ -6,7 +6,7 @@ public class ComplexTypeDescriptor extends TypeDescriptor {
     }
 
     String getParsingExpression() {
-        return String.format("%s value = %s.read(parser);", name, name);
+        return String.format("%s value = %s.read(parser);\n", name, name);
     }
 
     boolean isSimple() {

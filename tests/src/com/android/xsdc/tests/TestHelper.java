@@ -1,5 +1,6 @@
 package com.android.xsdc.tests;
 
+import com.android.xsdc.CodeWriter;
 import com.android.xsdc.XmlSchema;
 import com.android.xsdc.XsdHandler;
 import com.android.xsdc.descriptor.ClassDescriptor;
@@ -22,7 +23,8 @@ class TestHelper {
         private final String contents;
 
         InMemoryJavaFileObject(String className, String contents) {
-            super(URI.create("string:///" + className.replace('.', '/') + Kind.SOURCE.extension), Kind.SOURCE);
+            super(URI.create("string:///" + className.replace('.', '/') + Kind.SOURCE.extension),
+                    Kind.SOURCE);
             this.contents = contents;
         }
 
@@ -65,7 +67,8 @@ class TestHelper {
         }
 
         @Override
-        public JavaFileObject getJavaFileForOutput(Location location, String name, JavaFileObject.Kind kind, FileObject sibling) {
+        public JavaFileObject getJavaFileForOutput(Location location, String name,
+                JavaFileObject.Kind kind, FileObject sibling) {
             InMemoryJavaClassObject object = new InMemoryJavaClassObject(name, kind);
             classObjects.add(object);
             return object;
@@ -89,23 +92,27 @@ class TestHelper {
         SchemaDescriptor schemaDescriptor = schema.explain();
         for (ClassDescriptor descriptor : schemaDescriptor.getClassDescriptorMap().values()) {
             StringWriter codeOutput = new StringWriter();
-            descriptor.print(packageName, new PrintWriter(codeOutput));
-            javaFileObjects.add(new InMemoryJavaFileObject(descriptor.getName(), codeOutput.toString()));
+            descriptor.print(packageName, new CodeWriter(new PrintWriter(codeOutput)));
+            javaFileObjects.add(
+                    new InMemoryJavaFileObject(descriptor.getName(), codeOutput.toString()));
         }
         StringWriter codeOutput = new StringWriter();
-        schemaDescriptor.printXmlParser(packageName, new PrintWriter(codeOutput));
+        schemaDescriptor.printXmlParser(packageName, new CodeWriter(new PrintWriter(codeOutput)));
         javaFileObjects.add(new InMemoryJavaFileObject("XmlParser", codeOutput.toString()));
 
         return new TestCompilationResult(compile(javaFileObjects));
     }
 
-    private static List<InMemoryJavaClassObject> compile(List<JavaFileObject> javaFileObjects) throws IOException {
+    private static List<InMemoryJavaClassObject> compile(List<JavaFileObject> javaFileObjects)
+            throws IOException {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
         List<InMemoryJavaClassObject> ret = null;
 
-        try (InMemoryClassManager fileManager = new InMemoryClassManager(compiler.getStandardFileManager(diagnostics,null,null))) {
-            JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diagnostics, null, null, javaFileObjects);
+        try (InMemoryClassManager fileManager = new InMemoryClassManager(
+                compiler.getStandardFileManager(diagnostics, null, null))) {
+            JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diagnostics,
+                    null, null, javaFileObjects);
             boolean success = task.call();
 
             if (!success) {
