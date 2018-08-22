@@ -1,14 +1,19 @@
 package com.android.xsdc.tag;
 
-public class XsdList extends XsdSimpleType {
-    private XsdTypeReferrer itemType;
+import com.android.xsdc.XsdParserException;
 
-    public XsdList(String name, XsdTypeReferrer itemType) {
+public class XsdList extends XsdSimpleType {
+    final private XsdType itemType;
+
+    public XsdList(String name, XsdType itemType) throws XsdParserException {
         super(name);
+        if (itemType == null) {
+            throw new XsdParserException("list itemType should exist in simpleType");
+        }
         this.itemType = itemType;
     }
 
-    public XsdTypeReferrer getItemType() {
+    public XsdType getItemType() {
         return itemType;
     }
 }

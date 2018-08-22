@@ -1,22 +1,19 @@
 package com.android.xsdc.tag;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public abstract class XsdComplexType extends XsdType {
+public class XsdGeneralExtension extends XsdTag {
     final private XsdType base;
     final private List<XsdAttribute> attributes;
     final private List<XsdElement> elements;
 
-    XsdComplexType(String name, XsdType base, List<XsdAttribute> attributes,
+    public XsdGeneralExtension(XsdType base, List<XsdAttribute> attributes,
             List<XsdElement> elements) {
-        super(name, null);
+        super(null, null);
         this.base = base;
-        this.attributes = Collections.unmodifiableList(
-                attributes != null ? attributes : new ArrayList<>());
-        this.elements = Collections.unmodifiableList(
-                elements != null ? elements : new ArrayList<>());
+        this.attributes = Collections.unmodifiableList(attributes);
+        this.elements = Collections.unmodifiableList(elements);
     }
 
     public XsdType getBase() {

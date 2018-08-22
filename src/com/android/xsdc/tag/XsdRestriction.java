@@ -1,14 +1,19 @@
 package com.android.xsdc.tag;
 
-public class XsdRestriction extends XsdSimpleType {
-    private XsdTypeReferrer base;
+import com.android.xsdc.XsdParserException;
 
-    public XsdRestriction(String name, XsdTypeReferrer base) {
+public class XsdRestriction extends XsdSimpleType {
+    final private XsdType base;
+
+    public XsdRestriction(String name, XsdType base) throws XsdParserException {
         super(name);
+        if (base == null) {
+            throw new XsdParserException("restriction base should exist in simpleType");
+        }
         this.base = base;
     }
 
-    public XsdTypeReferrer getBase() {
+    public XsdType getBase() {
         return base;
     }
 }

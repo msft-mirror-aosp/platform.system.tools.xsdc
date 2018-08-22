@@ -1,39 +1,25 @@
 package com.android.xsdc.tag;
 
+import com.android.xsdc.XsdParserException;
+
 import javax.xml.namespace.QName;
 
 public class XsdAttribute extends XsdTag {
-    private String name;
-    private QName ref;
-    private XsdTypeReferrer type;
-    private boolean nullable;
+    final private XsdType type;
 
-    public XsdAttribute(QName ref, boolean nullable) {
-        super();
-        this.ref = ref;
-        this.nullable = nullable;
-    }
-
-    public XsdAttribute(String name, XsdTypeReferrer type, boolean nullable) {
-        super();
-        this.name = name;
+    public XsdAttribute(String name, QName ref, XsdType type)
+            throws XsdParserException {
+        super(name, ref);
+        if (name == null && ref == null) {
+            throw new XsdParserException("name and ref cannot be both null");
+        }
+        if (ref == null && type == null) {
+            throw new XsdParserException("type definition should exist");
+        }
         this.type = type;
-        this.nullable = nullable;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public QName getRef() {
-        return ref;
-    }
-
-    public XsdTypeReferrer getType() {
+    public XsdType getType() {
         return type;
-    }
-
-    public boolean isNullable() {
-        return nullable;
     }
 }
