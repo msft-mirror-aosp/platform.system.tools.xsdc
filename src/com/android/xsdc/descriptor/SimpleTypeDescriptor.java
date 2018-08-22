@@ -29,12 +29,14 @@ abstract class SimpleTypeDescriptor extends TypeDescriptor {
     String getParsingExpression() {
         StringBuilder expression = new StringBuilder();
         if (list) {
-            expression.append(String.format("%s value = new java.util.ArrayList<>();\n", getFullName()));
+            expression.append(
+                    String.format("%s value = new java.util.ArrayList<>();\n", getFullName()));
             expression.append("for (String token : raw.split(\"\\\\s+\")) {\n");
-            expression.append(String.format("\tvalue.add(%s);\n", getRawParsingExpression("token")));
-            expression.append("}");
+            expression.append(String.format("value.add(%s);\n", getRawParsingExpression("token")));
+            expression.append("}\n");
         } else {
-            expression.append(String.format("%s value = %s;\n", this.name, getRawParsingExpression("raw")));
+            expression.append(
+                    String.format("%s value = %s;\n", this.name, getRawParsingExpression("raw")));
         }
         return expression.toString();
     }
