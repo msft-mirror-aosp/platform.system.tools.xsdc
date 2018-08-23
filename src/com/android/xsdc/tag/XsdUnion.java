@@ -1,20 +1,22 @@
 package com.android.xsdc.tag;
 
-import java.util.ArrayList;
+import com.android.xsdc.XsdParserException;
+
+import java.util.Collections;
 import java.util.List;
 
 public class XsdUnion extends XsdSimpleType {
-    private List<XsdTypeReferrer> memberTypes;
+    final private List<XsdType> memberTypes;
 
-    public XsdUnion(String name, List<XsdTypeReferrer> memberTypes) {
+    public XsdUnion(String name, List<XsdType> memberTypes) throws XsdParserException {
         super(name);
-        this.memberTypes = memberTypes;
+        if (memberTypes == null || memberTypes.isEmpty()) {
+            throw new XsdParserException("union memberTypes should exist in simpleType");
+        }
+        this.memberTypes = Collections.unmodifiableList(memberTypes);
     }
 
-    public List<XsdTypeReferrer> getMemberTypes() {
-        if (memberTypes == null) {
-            memberTypes = new ArrayList<>();
-        }
+    public List<XsdType> getMemberTypes() {
         return memberTypes;
     }
 }

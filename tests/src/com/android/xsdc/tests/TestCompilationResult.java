@@ -25,7 +25,8 @@ class TestCompilationResult {
 
     private Map<String, Class<?>> classes;
 
-    TestCompilationResult(List<TestHelper.InMemoryJavaClassObject> objects) throws ClassNotFoundException {
+    TestCompilationResult(List<TestHelper.InMemoryJavaClassObject> objects)
+            throws ClassNotFoundException {
         ByteArrayClassLoader loader = new ByteArrayClassLoader(objects);
         classes = new HashMap<>();
 
