@@ -1,43 +1,29 @@
 package com.android.xsdc.tag;
 
+import com.android.xsdc.XsdParserException;
+
 import javax.xml.namespace.QName;
 
 public class XsdElement extends XsdTag {
-    private String name;
-    private QName ref;
-    private XsdTypeReferrer type;
-    private boolean nullable;
-    private boolean multiple;
+    final private XsdType type;
+    final private boolean multiple;
 
-    public XsdElement(String name, XsdTypeReferrer type, boolean nullable, boolean multiple) {
-        super();
-        this.name = name;
+    public XsdElement(String name, QName ref, XsdType type, boolean multiple)
+            throws XsdParserException {
+        super(name, ref);
+        if (name == null && ref == null) {
+            throw new XsdParserException("name and ref cannot be both null");
+        }
+        if (name != null && type == null) {
+            throw new XsdParserException(
+                    String.format("In element '%s', type definition should exist", name));
+        }
         this.type = type;
-        this.nullable = nullable;
         this.multiple = multiple;
     }
 
-    public XsdElement(QName ref, boolean nullable, boolean multiple) {
-        super();
-        this.ref = ref;
-        this.nullable = nullable;
-        this.multiple = multiple;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public QName getRef() {
-        return ref;
-    }
-
-    public XsdTypeReferrer getType() {
+    public XsdType getType() {
         return type;
-    }
-
-    public boolean isNullable() {
-        return nullable;
     }
 
     public boolean isMultiple() {

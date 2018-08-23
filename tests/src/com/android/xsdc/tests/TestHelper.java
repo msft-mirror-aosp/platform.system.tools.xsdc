@@ -1,10 +1,9 @@
 package com.android.xsdc.tests;
 
-import com.android.xsdc.CodeWriter;
+import com.android.xsdc.FileSystem;
 import com.android.xsdc.XmlSchema;
 import com.android.xsdc.XsdHandler;
-import com.android.xsdc.descriptor.ClassDescriptor;
-import com.android.xsdc.descriptor.SchemaDescriptor;
+import com.android.xsdc.java.JavaCodeGenerator;
 
 import javax.tools.*;
 import javax.xml.parsers.SAXParser;
@@ -13,8 +12,10 @@ import javax.xml.parsers.SAXParserFactory;
 import java.io.*;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static org.junit.Assert.fail;
 
@@ -87,19 +88,17 @@ class TestHelper {
         SAXParser parser = factory.newSAXParser();
         XsdHandler xsdHandler = new XsdHandler();
         parser.parse(in, xsdHandler);
-        XmlSchema schema = xsdHandler.getSchema();
+        XmlSchema xmlSchema = xsdHandler.getSchema();
+        Map<String, StringBuffer> fileOutputMap = new HashMap<>();
+        FileSystem fs = new FileSystem(fileOutputMap);
+        JavaCodeGenerator javaCodeGenerator = new JavaCodeGenerator(xmlSchema, packageName);
+        javaCodeGenerator.print(fs);
         List<JavaFileObject> javaFileObjects = new ArrayList<>();
-        SchemaDescriptor schemaDescriptor = schema.explain();
-        for (ClassDescriptor descriptor : schemaDescriptor.getClassDescriptorMap().values()) {
-            StringWriter codeOutput = new StringWriter();
-            descriptor.print(packageName, new CodeWriter(new PrintWriter(codeOutput)));
+        for (Map.Entry<String, StringBuffer> entry : fileOutputMap.entrySet()) {
+            String className = entry.getKey().split("\\.")[0];
             javaFileObjects.add(
-                    new InMemoryJavaFileObject(descriptor.getName(), codeOutput.toString()));
+                    new InMemoryJavaFileObject(className, entry.getValue().toString()));
         }
-        StringWriter codeOutput = new StringWriter();
-        schemaDescriptor.printXmlParser(packageName, new CodeWriter(new PrintWriter(codeOutput)));
-        javaFileObjects.add(new InMemoryJavaFileObject("XmlParser", codeOutput.toString()));
-
         return new TestCompilationResult(compile(javaFileObjects));
     }
 

@@ -1,10 +1,9 @@
-package com.android.xsdc;
+package com.android.xsdc.java;
 
-import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.HashSet;
 
-public class Utils {
+class Utils {
     private static final String[] keywords = {
             "abstract", "assert", "boolean", "break", "byte", "case",
             "catch", "char", "class", "const", "continue", "default",
@@ -18,7 +17,7 @@ public class Utils {
     };
     private static final HashSet<String> keywordSet = new HashSet<>(Arrays.asList(keywords));
 
-    public static String capitalize(String input) {
+    static String capitalize(String input) {
         return input.substring(0, 1).toUpperCase() + input.substring(1);
     }
 
@@ -26,30 +25,26 @@ public class Utils {
         return input.substring(0, 1).toLowerCase() + input.substring(1);
     }
 
-    static String toVariableName(String name) throws XsdParserException {
+    static String toVariableName(String name) throws JavaCodeGeneratorException {
         // remove non-alphanumeric and non-underscore characters
         String trimmed = name.replaceAll("[^A-Za-z0-9_]", "");
         if (trimmed.isEmpty()) {
-            throw new XsdParserException(String.format("cannot convert to a variable name : %s", name));
+            throw new JavaCodeGeneratorException(
+                    String.format("cannot convert to a variable name : %s", name));
         }
-        String lowered = (trimmed.charAt(0) >= '0' && trimmed.charAt(0) <= '9') ? "_" + trimmed : lowerize(trimmed);
+        String lowered = (trimmed.charAt(0) >= '0' && trimmed.charAt(0) <= '9') ? "_" + trimmed
+                : lowerize(trimmed);
         // always starts with a lowercase or underscore character.
         return (keywordSet.contains(trimmed)) ? "_" + lowered : lowered;
     }
 
-    static String toClassName(String name) throws XsdParserException {
+    static String toClassName(String name) throws JavaCodeGeneratorException {
         // remove non-alphanumeric characters
         String trimmed = name.replaceAll("[^A-Za-z0-9]", "");
         if (trimmed.isEmpty() || (trimmed.charAt(0) >= '0' && trimmed.charAt(0) <= '9')) {
-            throw new XsdParserException(String.format("cannot convert to a class name : %s", name));
+            throw new JavaCodeGeneratorException(
+                    String.format("cannot convert to a class name : %s", name));
         }
         return capitalize(trimmed);
-    }
-
-    public static void printIndentFormat(PrintWriter out, int indent, String str, Object... arguments) {
-        while (indent-- > 0) {
-            out.print("\t");
-        }
-        out.printf(str, arguments);
     }
 }
