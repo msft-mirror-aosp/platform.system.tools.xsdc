@@ -1,18 +1,9 @@
 package com.android.xsdc.tag;
 
-public abstract class XsdType extends XsdTag {
-    private String name;
+import javax.xml.namespace.QName;
 
-    XsdType() {
-        super();
-    }
-
-    XsdType(String name) {
-        super();
-        this.name = name;
-    }
-
-    public String getName() {
-        return name;
+public class XsdType extends XsdTag {
+    public XsdType(String name, QName ref) {
+        super(name, ref);
     }
 }

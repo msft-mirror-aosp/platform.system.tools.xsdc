@@ -16,7 +16,7 @@ public class CodeWriter implements Closeable {
 
     private void printIndent() {
         assert startLine;
-        for (int i=0; i<indent; ++i) {
+        for (int i = 0; i < indent; ++i) {
             out.print("    ");
         }
         startLine = false;
@@ -33,8 +33,9 @@ public class CodeWriter implements Closeable {
 
     public void print(String code) {
         String[] lines = code.split("\n", -1);
-        for (int i=0; i<lines.length; ++i) {
-            String line = lines[i].trim();
+        for (int i = 0; i < lines.length; ++i) {
+            // trim only start of line for more flexibility
+            String line = lines[i].replaceAll("^\\s+", "");
             if (line.startsWith("}")) {
                 --indent;
             }
@@ -45,7 +46,7 @@ public class CodeWriter implements Closeable {
             if (line.endsWith("{")) {
                 ++indent;
             }
-            if (i+1 < lines.length) {
+            if (i + 1 < lines.length) {
                 out.println();
                 startLine = true;
             }
