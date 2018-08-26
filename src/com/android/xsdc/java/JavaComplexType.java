@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-package com.android.xsdc.tag;
+package com.android.xsdc.java;
 
-import com.android.xsdc.XsdParserException;
+class JavaComplexType implements JavaType {
+    final private String name;
 
-public class XsdRestriction extends XsdSimpleType {
-    final private XsdType base;
-
-    public XsdRestriction(String name, XsdType base) throws XsdParserException {
-        super(name);
-        if (base == null) {
-            throw new XsdParserException("restriction base should exist in simpleType");
-        }
-        this.base = base;
+    JavaComplexType(String name) {
+        this.name = name;
     }
 
-    public XsdType getBase() {
-        return base;
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String getParsingExpression() {
+        return String.format("%s value = %s.read(parser);\n", name, name);
     }
 }
