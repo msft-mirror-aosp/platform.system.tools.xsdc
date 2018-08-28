@@ -154,10 +154,11 @@ public class JavaCodeGenerator {
         // print member variables
         for (int i = 0; i < elementTypes.size(); ++i) {
             JavaType type = elementTypes.get(i);
-            XsdElement element = resolveElement(complexType.getElements().get(i));
+            XsdElement element = complexType.getElements().get(i);
+            XsdElement elementValue = resolveElement(element);
             String typeName = element.isMultiple() ? String.format("java.util.List<%s>",
                     type.getName()) : type.getName();
-            out.printf("private %s %s;\n", typeName, Utils.toVariableName(element.getName()));
+            out.printf("private %s %s;\n", typeName, Utils.toVariableName(elementValue.getName()));
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             JavaType type = attributeTypes.get(i);
@@ -172,8 +173,9 @@ public class JavaCodeGenerator {
         // print getters and setters
         for (int i = 0; i < elementTypes.size(); ++i) {
             JavaType type = elementTypes.get(i);
-            XsdElement element = resolveElement(complexType.getElements().get(i));
-            printGetterAndSetter(out, type.getName(), Utils.toVariableName(element.getName()),
+            XsdElement element = complexType.getElements().get(i);
+            XsdElement elementValue = resolveElement(element);
+            printGetterAndSetter(out, type.getName(), Utils.toVariableName(elementValue.getName()),
                     element.isMultiple());
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
@@ -243,9 +245,10 @@ public class JavaCodeGenerator {
                     + "String tagName = parser.getName();\n");
             for (int i = 0; i < allElements.size(); ++i) {
                 JavaType type = allElementTypes.get(i);
-                XsdElement element = resolveElement(allElements.get(i));
-                String variableName = Utils.toVariableName(element.getName());
-                out.printf("if (tagName.equals(\"%s\")) {\n", element.getName());
+                XsdElement element = allElements.get(i);
+                XsdElement elementValue = resolveElement(element);
+                String variableName = Utils.toVariableName(elementValue.getName());
+                out.printf("if (tagName.equals(\"%s\")) {\n", elementValue.getName());
                 if (type instanceof JavaSimpleType) {
                     out.print("raw = XmlParser.readText(parser);\n");
                 }
@@ -304,7 +307,8 @@ public class JavaCodeGenerator {
                 + "true);\n"
                 + "    parser.setInput(in, null);\n"
                 + "    parser.nextTag();\n"
-                + "    String tagName = parser.getName();\n");
+                + "    String tagName = parser.getName();\n"
+                + "    String raw = null;\n");
         for (XsdElement element : xmlSchema.getElementMap().values()) {
             JavaType javaType = parseType(element.getType(), element.getName());
             out.printf("if (tagName.equals(\"%s\")) {\n", element.getName());
