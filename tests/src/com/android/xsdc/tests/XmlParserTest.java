@@ -328,4 +328,26 @@ public class XmlParserTest {
         assertThat(listInt, is(Arrays.asList(1, 2, 3, 4, 5)));
         assertThat(uniontest, is(Arrays.asList("100")));
     }
+
+    @Test
+    public void testReference() throws Exception {
+        TestCompilationResult result;
+        try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(
+                "reference.xsd")) {
+            result = TestHelper.parseXsdAndCompile(in);
+        }
+
+        Class<?> xmlParser = result.loadClass("XmlParser");
+        Class<?> cls = result.loadClass("Class");
+
+        Object instance;
+        try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(
+                "reference.xml")) {
+            instance = xmlParser.getMethod("read", InputStream.class).invoke(null, in);
+        }
+
+        List student = (List) cls.getMethod("getStudent").invoke(instance);
+
+        assertThat(student, is(Arrays.asList("Sam", "Paul", "Peter")));
+    }
 }
