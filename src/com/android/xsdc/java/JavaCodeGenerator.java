@@ -215,7 +215,7 @@ public class JavaCodeGenerator {
             allAttributeTypes.add(parseSimpleType(type, false));
         }
 
-        out.printf("public static %s read(org.xmlpull.v1.XmlPullParser parser) " +
+        out.printf("static %s read(org.xmlpull.v1.XmlPullParser parser) " +
                 "throws org.xmlpull.v1.XmlPullParserException, java.io.IOException, " +
                 "javax.xml.datatype.DatatypeConfigurationException {\n", name);
 
