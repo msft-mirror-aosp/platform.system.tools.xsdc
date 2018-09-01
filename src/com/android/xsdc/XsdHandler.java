@@ -150,11 +150,32 @@ public class XsdHandler extends DefaultHandler {
                 case "sequence":
                     stateStack.peek().tags.addAll(makeSequence(state.attributeMap, state.tags));
                     break;
+                case "fractionDigits":
+                case "enumeration":
+                case "length":
+                case "maxExclusive":
+                case "maxInclusive":
+                case "maxLength":
+                case "minExclusive":
+                case "minInclusive":
+                case "minLength":
+                case "pattern":
+                case "totalDigits":
+                case "whiteSpace":
+                    // Tags under simpleType <restriction>. They are ignored.
+                    break;
+                case "annotation":
+                case "documentation":
+                case "appinfo":
+                    // They function like comments, so are ignored.
+                    break;
+                default:
+                    throw new XsdParserException(String.format("unsupported tag : %s", state.name));
             }
         } catch (XsdParserException e) {
             throw new SAXException(
-                    String.format("Line %d, Column %d",
-                            locator.getLineNumber(), locator.getColumnNumber()), e);
+                    String.format("Line %d, Column %d - %s",
+                            locator.getLineNumber(), locator.getColumnNumber(), e.getMessage()));
         }
     }
 
@@ -182,7 +203,20 @@ public class XsdHandler extends DefaultHandler {
         String name = attributeMap.get("name");
         QName typename = parseQName(attributeMap.get("type"));
         QName ref = parseQName(attributeMap.get("ref"));
+        String isAbstract = attributeMap.get("abstract");
+        String defVal = attributeMap.get("default");
+        String substitutionGroup = attributeMap.get("substitutionGroup");
         String maxOccurs = attributeMap.get("maxOccurs");
+
+        if ("true".equals(isAbstract)) {
+            throw new XsdParserException("abstract element is not supported.");
+        }
+        if (defVal != null) {
+            throw new XsdParserException("default value of an element is not supported.");
+        }
+        if (substitutionGroup != null) {
+            throw new XsdParserException("substitution group of an element is not supported.");
+        }
 
         boolean multiple = false;
         if (maxOccurs != null) {
@@ -209,7 +243,12 @@ public class XsdHandler extends DefaultHandler {
         String name = attributeMap.get("name");
         QName typename = parseQName(attributeMap.get("type"));
         QName ref = parseQName(attributeMap.get("ref"));
+        String defVal = attributeMap.get("default");
         String use = attributeMap.get("use");
+
+        if (defVal != null) {
+            throw new XsdParserException("default value of an attribute is not supported.");
+        }
 
         if (use != null && use.equals("prohibited")) return null;
 
@@ -227,8 +266,18 @@ public class XsdHandler extends DefaultHandler {
         return new XsdAttribute(name, ref, type);
     }
 
-    private XsdComplexType makeComplexType(Map<String, String> attributeMap, List<XsdTag> tags) {
+    private XsdComplexType makeComplexType(Map<String, String> attributeMap, List<XsdTag> tags)
+            throws XsdParserException {
         String name = attributeMap.get("name");
+        String isAbstract = attributeMap.get("abstract");
+        String mixed = attributeMap.get("mixed");
+
+        if ("true".equals(isAbstract)) {
+            throw new XsdParserException("abstract complex type is not supported.");
+        }
+        if ("true".equals(mixed)) {
+            throw new XsdParserException("mixed option of a complex type is not supported.");
+        }
 
         List<XsdAttribute> attributes = new ArrayList<>();
         List<XsdElement> elements = new ArrayList<>();
@@ -254,9 +303,13 @@ public class XsdHandler extends DefaultHandler {
     }
 
     private XsdComplexContent makeComplexContent(Map<String, String> attributeMap,
-            List<XsdTag> tags) {
-        XsdComplexContent content = null;
+            List<XsdTag> tags) throws XsdParserException {
+        String mixed = attributeMap.get("mixed");
+        if ("true".equals(mixed)) {
+            throw new XsdParserException("mixed option of a complex content is not supported.");
+        }
 
+        XsdComplexContent content = null;
         for (XsdTag tag : tags) {
             if (tag == null) continue;
             if (tag instanceof XsdGeneralExtension) {
@@ -391,7 +444,15 @@ public class XsdHandler extends DefaultHandler {
     }
 
     private static List<XsdElement> makeSequence(Map<String, String> attributeMap,
-            List<XsdTag> tags) {
+            List<XsdTag> tags) throws XsdParserException {
+        String minOccurs = attributeMap.get("minOccurs");
+        String maxOccurs = attributeMap.get("maxOccurs");
+
+        if (minOccurs != null || maxOccurs != null) {
+            throw new XsdParserException(
+                    "minOccurs, maxOccurs options of a sequence is not supported");
+        }
+
         List<XsdElement> elements = new ArrayList<>();
         for (XsdTag tag : tags) {
             if (tag == null) continue;
