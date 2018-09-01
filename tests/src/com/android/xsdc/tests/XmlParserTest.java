@@ -19,7 +19,10 @@ package com.android.xsdc.tests;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.xml.sax.SAXException;
 
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.Duration;
@@ -349,5 +352,30 @@ public class XmlParserTest {
         List student = (List) cls.getMethod("getStudent").invoke(instance);
 
         assertThat(student, is(Arrays.asList("Sam", "Paul", "Peter")));
+    }
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    @Test
+    public void testUnsupportedTag() throws Exception {
+        thrown.expect(SAXException.class);
+        thrown.expectMessage("unsupported tag : import");
+
+        try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(
+                "unsupported_tag.xsd")) {
+            TestHelper.parseXsdAndCompile(in);
+        }
+    }
+
+    @Test
+    public void testUnsupportedAttribute() throws Exception {
+        thrown.expect(SAXException.class);
+        thrown.expectMessage("substitution group of an element is not supported.");
+
+        try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(
+                "unsupported_attribute.xsd")) {
+            TestHelper.parseXsdAndCompile(in);
+        }
     }
 }
