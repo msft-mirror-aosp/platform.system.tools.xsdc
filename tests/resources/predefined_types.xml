@@ -52,4 +52,13 @@
         <IDREFS>abcd abcd</IDREFS>
         <anyType>abcd</anyType>
     </miscTypes>
+    <listPrimitiveTypes>
+        <listLong>-9223372036854775808 9223372036854775807</listLong>
+        <listInt>-2147483648 2147483647</listInt>
+        <listShort>-32768 32767</listShort>
+        <listByte>-128 127</listByte>
+        <listDouble>1234.5678 5678.1234</listDouble>
+        <listFloat>123.456 456.123</listFloat>
+        <listBoolean>true false</listBoolean>
+    </listPrimitiveTypes>
 </types>
