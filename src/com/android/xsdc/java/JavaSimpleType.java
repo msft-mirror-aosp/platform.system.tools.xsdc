@@ -18,13 +18,23 @@ package com.android.xsdc.java;
 
 class JavaSimpleType implements JavaType {
     final private String name;
+    final private String nullableName;
     final private String rawParsingExpression;
     final private boolean list;
+    final private String fullName;
+    final private String nullableFullName;
 
-    JavaSimpleType(String name, String rawParsingExpression, boolean list) {
+    JavaSimpleType(String name, String nullableName, String rawParsingExpression, boolean list) {
         this.name = name;
+        this.nullableName = nullableName;
         this.rawParsingExpression = rawParsingExpression;
         this.list = list;
+        fullName = list ? String.format("java.util.List<%s>", nullableName) : name;
+        nullableFullName = list ? String.format("java.util.List<%s>", nullableName) : nullableName;
+    }
+
+    JavaSimpleType(String name, String rawParsingExpression, boolean list) {
+        this(name, name, rawParsingExpression, list);
     }
 
     boolean isList() {
@@ -33,12 +43,17 @@ class JavaSimpleType implements JavaType {
 
     JavaSimpleType newListType() throws JavaCodeGeneratorException {
         if (list) throw new JavaCodeGeneratorException("list of list is not supported");
-        return new JavaSimpleType(name, rawParsingExpression, true);
+        return new JavaSimpleType(name, nullableName, rawParsingExpression, true);
     }
 
     @Override
     public String getName() {
-        return list ? String.format("java.util.List<%s>", name) : name;
+        return fullName;
+    }
+
+    @Override
+    public String getNullableName() {
+        return nullableFullName;
     }
 
     @Override

@@ -59,6 +59,45 @@
             <xs:element name="anyType" type="xs:anyType"/>
         </xs:sequence>
     </xs:complexType>
+    <xs:complexType name="listPrimitiveTypes">
+        <xs:sequence>
+            <xs:element name="listLong">
+                <xs:simpleType>
+                    <xs:list itemType="xs:long"/>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="listInt">
+                <xs:simpleType>
+                    <xs:list itemType="xs:int"/>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="listShort">
+                <xs:simpleType>
+                    <xs:list itemType="xs:short"/>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="listByte">
+                <xs:simpleType>
+                    <xs:list itemType="xs:byte"/>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="listDouble">
+                <xs:simpleType>
+                    <xs:list itemType="xs:double"/>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="listFloat">
+                <xs:simpleType>
+                    <xs:list itemType="xs:float"/>
+                </xs:simpleType>
+            </xs:element>
+            <xs:element name="listBoolean">
+                <xs:simpleType>
+                    <xs:list itemType="xs:boolean"/>
+                </xs:simpleType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
     <xs:element name="types">
         <xs:complexType>
             <xs:sequence>
@@ -66,6 +105,7 @@
                 <xs:element name="dateTypes" type="dateTypes"/>
                 <xs:element name="numericTypes" type="numericTypes"/>
                 <xs:element name="miscTypes" type="miscTypes"/>
+                <xs:element name="listPrimitiveTypes" type="listPrimitiveTypes"/>
             </xs:sequence>
         </xs:complexType>
     </xs:element>

@@ -29,6 +29,11 @@ class JavaComplexType implements JavaType {
     }
 
     @Override
+    public String getNullableName() {
+        return name;
+    }
+
+    @Override
     public String getParsingExpression() {
         return String.format("%s value = %s.read(parser);\n", name, name);
     }
