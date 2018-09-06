@@ -165,6 +165,7 @@ public class XmlParserTest {
         Class<?> dateTypes = result.loadClass("DateTypes");
         Class<?> numericTypes = result.loadClass("NumericTypes");
         Class<?> miscTypes = result.loadClass("MiscTypes");
+        Class<?> listPrimitiveTypes = result.loadClass("ListPrimitiveTypes");
 
         Object instance;
         try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(
@@ -305,6 +306,33 @@ public class XmlParserTest {
             assertThat(iDREF, is("abcd"));
             assertThat(iDREFS, is(Arrays.asList("abcd", "abcd")));
             assertThat(anyType, is("abcd"));
+        }
+
+        {
+            Object listPrimitiveTypesInstance = types.getMethod("getListPrimitiveTypes").invoke(
+                    instance);
+            List listLong = (List) listPrimitiveTypes.getMethod("getListLong").invoke(
+                    listPrimitiveTypesInstance);
+            List listInt = (List) listPrimitiveTypes.getMethod("getListInt").invoke(
+                    listPrimitiveTypesInstance);
+            List listShort = (List) listPrimitiveTypes.getMethod("getListShort").invoke(
+                    listPrimitiveTypesInstance);
+            List listByte = (List) listPrimitiveTypes.getMethod("getListByte").invoke(
+                    listPrimitiveTypesInstance);
+            List listDouble = (List) listPrimitiveTypes.getMethod("getListDouble").invoke(
+                    listPrimitiveTypesInstance);
+            List listFloat = (List) listPrimitiveTypes.getMethod("getListFloat").invoke(
+                    listPrimitiveTypesInstance);
+            List listBoolean = (List) listPrimitiveTypes.getMethod("getListBoolean").invoke(
+                    listPrimitiveTypesInstance);
+
+            assertThat(listLong, is(Arrays.asList(-9223372036854775808L, 9223372036854775807L)));
+            assertThat(listInt, is(Arrays.asList(-2147483648, 2147483647)));
+            assertThat(listShort, is(Arrays.asList((short) -32768, (short) 32767)));
+            assertThat(listByte, is(Arrays.asList((byte) -128, (byte) 127)));
+            assertThat(listDouble, is(Arrays.asList(1234.5678, 5678.1234)));
+            assertThat(listFloat, is(Arrays.asList(123.456f, 456.123f)));
+            assertThat(listBoolean, is(Arrays.asList(true, false)));
         }
     }
 
