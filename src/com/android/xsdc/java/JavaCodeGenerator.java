@@ -157,7 +157,7 @@ public class JavaCodeGenerator {
             XsdElement element = complexType.getElements().get(i);
             XsdElement elementValue = resolveElement(element);
             String typeName = element.isMultiple() ? String.format("java.util.List<%s>",
-                    type.getName()) : type.getName();
+                    type.getNullableName()) : type.getName();
             out.printf("private %s %s;\n", typeName, Utils.toVariableName(elementValue.getName()));
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
@@ -175,17 +175,16 @@ public class JavaCodeGenerator {
             JavaType type = elementTypes.get(i);
             XsdElement element = complexType.getElements().get(i);
             XsdElement elementValue = resolveElement(element);
-            printGetterAndSetter(out, type.getName(), Utils.toVariableName(elementValue.getName()),
+            printGetterAndSetter(out, type, Utils.toVariableName(elementValue.getName()),
                     element.isMultiple());
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             JavaType type = attributeTypes.get(i);
             XsdAttribute attribute = resolveAttribute(complexType.getAttributes().get(i));
-            printGetterAndSetter(out, type.getName(), Utils.toVariableName(attribute.getName()),
-                    false);
+            printGetterAndSetter(out, type, Utils.toVariableName(attribute.getName()), false);
         }
         if (valueType != null) {
-            printGetterAndSetter(out, valueType.getName(), "value", false);
+            printGetterAndSetter(out, valueType, "value", false);
         }
 
         out.println();
@@ -271,10 +270,10 @@ public class JavaCodeGenerator {
                 + "}\n");
     }
 
-    private void printGetterAndSetter(CodeWriter out, String singleTypeName, String variableName,
+    private void printGetterAndSetter(CodeWriter out, JavaType type, String variableName,
             boolean isMultiple) {
-        String typeName = isMultiple ? String.format("java.util.List<%s>", singleTypeName)
-                : singleTypeName;
+        String typeName = isMultiple ? String.format("java.util.List<%s>", type.getNullableName())
+                : type.getName();
         out.println();
         out.printf("public %s get%s() {\n", typeName, Utils.capitalize(variableName));
         if (isMultiple) {
@@ -562,21 +561,26 @@ public class JavaCodeGenerator {
                         false);
             case "long":
             case "unsignedInt":
-                return new JavaSimpleType("java.lang.Long", "Long.valueOf(%s)", false);
+                return new JavaSimpleType("long", "java.lang.Long", "Long.parseLong(%s)", false);
             case "int":
             case "unsignedShort":
-                return new JavaSimpleType("java.lang.Integer", "Integer.valueOf(%s)", false);
+                return new JavaSimpleType("int", "java.lang.Integer", "Integer.parseInt(%s)",
+                        false);
             case "short":
             case "unsignedByte":
-                return new JavaSimpleType("java.lang.Short", "Short.valueOf(%s)", false);
+                return new JavaSimpleType("short", "java.lang.Short", "Short.parseShort(%s)",
+                        false);
             case "byte":
-                return new JavaSimpleType("java.lang.Byte", "Byte.valueOf(%s)", false);
+                return new JavaSimpleType("byte", "java.lang.Byte", "Byte.parseByte(%s)", false);
             case "boolean":
-                return new JavaSimpleType("java.lang.Boolean", "Boolean.valueOf(%s)", false);
+                return new JavaSimpleType("boolean", "java.lang.Boolean",
+                        "Boolean.parseBoolean(%s)", false);
             case "double":
-                return new JavaSimpleType("java.lang.Double", "Double.valueOf(%s)", false);
+                return new JavaSimpleType("double", "java.lang.Double", "Double.parseDouble(%s)",
+                        false);
             case "float":
-                return new JavaSimpleType("java.lang.Float", "Float.valueOf(%s)", false);
+                return new JavaSimpleType("float", "java.lang.Float", "Float.parseFloat(%s)",
+                        false);
             case "base64Binary":
                 return new JavaSimpleType("byte[]", "java.util.Base64.getDecoder().decode(%s)",
                         false);

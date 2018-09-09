@@ -19,5 +19,9 @@ package com.android.xsdc.java;
 interface JavaType {
     String getName();
 
+    // It is used to make a list type. (List<?>)
+    // getName() can be a primitive type, but getNullableName() cannot be.
+    String getNullableName();
+
     String getParsingExpression();
 }
