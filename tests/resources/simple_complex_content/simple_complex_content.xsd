@@ -6,7 +6,7 @@
             <xs:element name="city"   type="xs:string"/>
         </xs:sequence>
     </xs:complexType>
-    <xs:complexType name="USAddress">
+    <xs:complexType name="USAddressP">
         <xs:complexContent>
             <xs:extension base="address">
                 <xs:sequence>
@@ -20,9 +20,9 @@
         <xs:complexContent>
             <xs:restriction base="address">
                 <xs:sequence>
-                    <xs:element name="name"   type="xs:string"/>
-                    <xs:element name="street" type="xs:string"/>
-                    <xs:element name="city"   type="xs:string" fixed="Seoul"/>
+                    <xs:element name="name1"   type="xs:string"/>
+                    <xs:element name="street2" type="xs:string"/>
+                    <xs:element name="city3"   type="xs:string" fixed="Seoul"/>
                 </xs:sequence>
             </xs:restriction>
         </xs:complexContent>
@@ -66,7 +66,7 @@
                 <xs:element name="name" type="xs:string"/>
                 <xs:element ref="shoeSize"/>
                 <xs:element ref="generalPrice"/>
-                <xs:element name="USAddress" type="USAddress"/>
+                <xs:element name="USAddressP" type="USAddressP"/>
                 <xs:element name="KRAddress" type="KRAddress"/>
             </xs:sequence>
         </xs:complexType>

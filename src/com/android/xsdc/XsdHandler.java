@@ -26,6 +26,7 @@ import org.xml.sax.helpers.DefaultHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -180,9 +181,9 @@ public class XsdHandler extends DefaultHandler {
     }
 
     private XmlSchema makeSchema(Map<String, String> attributeMap, List<XsdTag> tags) {
-        Map<String, XsdElement> elementMap = new HashMap<>();
-        Map<String, XsdType> typeMap = new HashMap<>();
-        Map<String, XsdAttribute> attrMap = new HashMap<>();
+        Map<String, XsdElement> elementMap = new LinkedHashMap<>();
+        Map<String, XsdType> typeMap = new LinkedHashMap<>();
+        Map<String, XsdAttribute> attrMap = new LinkedHashMap<>();
 
         for (XsdTag tag : tags) {
             if (tag == null) continue;
