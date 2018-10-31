@@ -15,14 +15,13 @@
 package xsdc
 
 import (
+	"android/soong/android"
+	"android/soong/java"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/blueprint"
 	"github.com/google/blueprint/proptools"
-
-	"android/soong/android"
-	"android/soong/java"
-	"path/filepath"
 )
 
 func init() {
@@ -132,7 +131,7 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 	xsdFile := module.properties.Srcs[0]
 	pkgName := *module.properties.Package_name
 
-	module.genOutputs_j = android.PathForModuleGen(ctx, "xsdcgen.srcjar")
+	module.genOutputs_j = android.PathForModuleGen(ctx, "java", "xsdcgen.srcjar")
 
 	ctx.Build(pctx, android.BuildParams{
 		Rule:        xsdcJavaRule,
@@ -146,9 +145,9 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 	})
 
 	pkgName = strings.Replace(pkgName, ".", "_", -1)
-	module.genOutputs_c = android.PathForModuleGen(ctx, pkgName+".cpp")
-	module.genOutputs_h = android.PathForModuleGen(ctx, "include/"+pkgName+".h")
-	module.genOutputDir = android.PathForModuleGen(ctx, "include")
+	module.genOutputs_c = android.PathForModuleGen(ctx, "cpp", pkgName+".cpp")
+	module.genOutputs_h = android.PathForModuleGen(ctx, "cpp", "include/"+pkgName+".h")
+	module.genOutputDir = android.PathForModuleGen(ctx, "cpp", "include")
 
 	ctx.Build(pctx, android.BuildParams{
 		Rule:           xsdcCppRule,
@@ -159,7 +158,7 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		ImplicitOutput: module.genOutputs_h,
 		Args: map[string]string{
 			"pkgName": pkgName,
-			"outDir":  android.PathForModuleGen(ctx, "").String(),
+			"outDir":  android.PathForModuleGen(ctx, "cpp").String(),
 		},
 	})
 }
