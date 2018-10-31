@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<employee xmlns="nested_type">
+<employee>
     <id>1</id>
     <name>Peter</name>
     <address>

@@ -1,0 +1,63 @@
+package simple.complex.content {
+
+  public class Address {
+    ctor public Address();
+    method public java.lang.String getCity();
+    method public java.lang.String getName();
+    method public java.lang.String getStreet();
+    method public void setCity(java.lang.String);
+    method public void setName(java.lang.String);
+    method public void setStreet(java.lang.String);
+  }
+
+  public class GeneralPrice {
+    ctor public GeneralPrice();
+    method public java.lang.String getCurrency();
+    method public java.math.BigDecimal getValue();
+    method public void setCurrency(java.lang.String);
+    method public void setValue(java.math.BigDecimal);
+  }
+
+  public class KRAddress extends simple.complex.content.Address {
+    ctor public KRAddress();
+  }
+
+  public class Person {
+    ctor public Person();
+    method public simple.complex.content.GeneralPrice getGeneralPrice();
+    method public simple.complex.content.KRAddress getKRAddress();
+    method public java.lang.String getName();
+    method public simple.complex.content.ShoeSize getShoeSize();
+    method public simple.complex.content.USAddressP getUSAddressP();
+    method public void setGeneralPrice(simple.complex.content.GeneralPrice);
+    method public void setKRAddress(simple.complex.content.KRAddress);
+    method public void setName(java.lang.String);
+    method public void setShoeSize(simple.complex.content.ShoeSize);
+    method public void setUSAddressP(simple.complex.content.USAddressP);
+  }
+
+  public class ShoeSize {
+    ctor public ShoeSize();
+    method public java.lang.String getSizing();
+    method public java.math.BigDecimal getValue();
+    method public void setSizing(java.lang.String);
+    method public void setValue(java.math.BigDecimal);
+  }
+
+  public class USAddressP extends simple.complex.content.Address {
+    ctor public USAddressP();
+    method public java.lang.String getState();
+    method public java.math.BigInteger getZipcode();
+    method public void setState(java.lang.String);
+    method public void setZipcode(java.math.BigInteger);
+  }
+
+  public class XmlParser {
+    ctor public XmlParser();
+    method public static java.lang.Object read(java.io.InputStream) throws javax.xml.datatype.DatatypeConfigurationException, java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+    method public static java.lang.String readText(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+    method public static void skip(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+  }
+
+}
+
