@@ -15,13 +15,14 @@
 package xsdc
 
 import (
-	"path/filepath"
+	"strings"
 
 	"github.com/google/blueprint"
 	"github.com/google/blueprint/proptools"
 
 	"android/soong/android"
 	"android/soong/java"
+	"path/filepath"
 )
 
 func init() {
@@ -36,10 +37,10 @@ func init() {
 var (
 	pctx = android.NewPackageContext("android/xsdc")
 
-	xsdc = pctx.HostBinToolVariable("xsdcCmd", "xsdc")
-	xsdcRule = pctx.StaticRule("xsdcRule", blueprint.RuleParams{
+	xsdc         = pctx.HostBinToolVariable("xsdcCmd", "xsdc")
+	xsdcJavaRule = pctx.StaticRule("xsdcJavaRule", blueprint.RuleParams{
 		Command: `rm -rf "${out}.temp" && mkdir -p "${out}.temp" && ` +
-			`${xsdcCmd} $in $pkgName ${out}.temp && ` +
+			`${xsdcCmd} $in -p $pkgName -o ${out}.temp -j && ` +
 			`${config.SoongZipCmd} -jar -o ${out} -C ${out}.temp -D ${out}.temp && ` +
 			`rm -rf ${out}.temp`,
 		Depfile:     "${out}.d",
@@ -47,10 +48,19 @@ var (
 		CommandDeps: []string{"${xsdcCmd}", "${config.SoongZipCmd}"},
 		Description: "xsdc Java ${in} => ${out}",
 	}, "pkgName")
+
+	xsdcCppRule = pctx.StaticRule("xsdcCppRule", blueprint.RuleParams{
+		Command: `rm -rf "${outDir}" && ` +
+			`${xsdcCmd} $in -p $pkgName -o ${outDir} -c`,
+		Depfile:     "${out}.d",
+		Deps:        blueprint.DepsGCC,
+		CommandDeps: []string{"${xsdcCmd}", "${config.SoongZipCmd}"},
+		Description: "xsdc Java ${in} => ${out}",
+	}, "pkgName", "outDir")
 )
 
 type xsdConfigProperties struct {
-	Srcs []string
+	Srcs         []string
 	Package_name *string
 }
 
@@ -60,9 +70,11 @@ type xsdConfig struct {
 	properties xsdConfigProperties
 
 	genOutputDir android.Path
-	genOutputs_j android.WritablePaths
-	genOutputs_c android.WritablePaths
-	genOutputs_h android.WritablePaths
+	genOutputs_j android.WritablePath
+	genOutputs_c android.WritablePath
+	genOutputs_h android.WritablePath
+
+	docsPath android.Path
 }
 
 type ApiToCheck struct {
@@ -87,15 +99,15 @@ type DroidstubsProperties struct {
 }
 
 func (module *xsdConfig) GeneratedSourceFiles() android.Paths {
-	return module.genOutputs_c.Paths()
+	return android.Paths{module.genOutputs_c}
 }
 
 func (module *xsdConfig) Srcs() android.Paths {
-	return module.genOutputs_j.Paths()
+	return android.Paths{module.genOutputs_j}
 }
 
 func (module *xsdConfig) GeneratedDeps() android.Paths {
-	return module.genOutputs_h.Paths()
+	return android.Paths{module.genOutputs_h}
 }
 
 func (module *xsdConfig) GeneratedHeaderDirs() android.Paths {
@@ -111,18 +123,43 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		ctx.PropertyErrorf("srcs", "xsd_config must be one src")
 	}
 
+	ctx.VisitDirectDeps(func(to android.Module) {
+		if doc, ok := to.(java.ApiFilePath); ok {
+			module.docsPath = doc.ApiFilePath()
+		}
+	})
+
 	xsdFile := module.properties.Srcs[0]
 	pkgName := *module.properties.Package_name
 
-	module.genOutputs_j = append(module.genOutputs_j, android.PathForModuleGen(ctx, "xsdcgen.srcjar"))
+	module.genOutputs_j = android.PathForModuleGen(ctx, "xsdcgen.srcjar")
 
 	ctx.Build(pctx, android.BuildParams{
-		Rule: xsdcRule,
-		Description:     "xsdc " + xsdFile,
-		Input:           android.PathForModuleSrc(ctx, xsdFile),
-		Output:          module.genOutputs_j[0],
+		Rule:        xsdcJavaRule,
+		Description: "xsdc " + xsdFile,
+		Input:       android.PathForModuleSrc(ctx, xsdFile),
+		Implicit:    module.docsPath,
+		Output:      module.genOutputs_j,
 		Args: map[string]string{
 			"pkgName": pkgName,
+		},
+	})
+
+	pkgName = strings.Replace(pkgName, ".", "_", -1)
+	module.genOutputs_c = android.PathForModuleGen(ctx, pkgName+".cpp")
+	module.genOutputs_h = android.PathForModuleGen(ctx, "include/"+pkgName+".h")
+	module.genOutputDir = android.PathForModuleGen(ctx, "include")
+
+	ctx.Build(pctx, android.BuildParams{
+		Rule:           xsdcCppRule,
+		Description:    "xsdc " + xsdFile,
+		Input:          android.PathForModuleSrc(ctx, xsdFile),
+		Implicit:       module.docsPath,
+		Output:         module.genOutputs_c,
+		ImplicitOutput: module.genOutputs_h,
+		Args: map[string]string{
+			"pkgName": pkgName,
+			"outDir":  android.PathForModuleGen(ctx, "").String(),
 		},
 	})
 }
@@ -149,9 +186,8 @@ func xsdConfigMutator(mctx android.TopDownMutatorContext) {
 		check_api.Last_released.Removed_api_file = proptools.StringPtr(
 			filepath.Join("api", "last_removed.txt"))
 
-
 		mctx.CreateModule(android.ModuleFactoryAdaptor(java.DroidstubsFactory), &DroidstubsProperties{
-			Name:                 proptools.StringPtr(name + "-docs"),
+			Name:                 proptools.StringPtr(name + ".docs"),
 			Srcs:                 []string{":" + name},
 			Args:                 proptools.StringPtr(args),
 			Api_filename:         proptools.StringPtr(currentApiFileName),
@@ -170,4 +206,3 @@ func xsdConfigFactory() android.Module {
 
 	return module
 }
-
