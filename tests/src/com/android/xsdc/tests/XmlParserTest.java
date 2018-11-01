@@ -110,8 +110,6 @@ public class XmlParserTest {
 
         Class<?> xmlParser = result.loadClass("XmlParser");
         Class<?> person = result.loadClass("Person");
-        Class<?> shoeSize = result.loadClass("ShoeSize");
-        Class<?> generalPrice = result.loadClass("GeneralPrice");
         Class<?> usAddress = result.loadClass("USAddressP");
         Class<?> krAddress = result.loadClass("KRAddress");
 
@@ -122,16 +120,6 @@ public class XmlParserTest {
         }
 
         String name = (String) person.getMethod("getName").invoke(instance);
-        Object shoeSizeInstance = person.getMethod("getShoeSize").invoke(instance);
-        String sizing = (String) shoeSize.getMethod("getSizing").invoke(shoeSizeInstance);
-        BigDecimal shoeSizeValue = (BigDecimal) shoeSize.getMethod("getValue").invoke(
-                shoeSizeInstance);
-
-        Object generalPriceInstance = person.getMethod("getGeneralPrice").invoke(instance);
-        String currency = (String) generalPrice.getMethod("getCurrency").invoke(
-                generalPriceInstance);
-        BigDecimal generalPriceValue = (BigDecimal) generalPrice.getMethod("getValue").invoke(
-                generalPriceInstance);
 
         Object usAddressInstance = person.getMethod("getUSAddressP").invoke(instance);
         String usStreet = (String) usAddress.getMethod("getStreet").invoke(usAddressInstance);
@@ -143,9 +131,7 @@ public class XmlParserTest {
 
         assertThat(name, is("Petr"));
         assertThat(sizing, is("Korea"));
-        assertThat(shoeSizeValue, is(new BigDecimal("265")));
         assertThat(currency, is("dollar"));
-        assertThat(generalPriceValue, is(new BigDecimal("1234.5678")));
         assertThat(usStreet, is("street fighter"));
         assertThat(usZipcode, is(new BigInteger("3232323183298523436434")));
         assertThat(krStreet, is("Nokdu Street"));

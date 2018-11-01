@@ -297,19 +297,19 @@ public class JavaCodeGenerator {
         out.println();
         out.println("public class XmlParser {");
 
-        out.print("public static java.lang.Object read(java.io.InputStream in)"
-                + " throws org.xmlpull.v1.XmlPullParserException, java.io.IOException, "
-                + "javax.xml.datatype.DatatypeConfigurationException {\n"
-                + "    org.xmlpull.v1.XmlPullParser parser = org.xmlpull.v1.XmlPullParserFactory"
-                + ".newInstance().newPullParser();\n"
-                + "    parser.setFeature(org.xmlpull.v1.XmlPullParser.FEATURE_PROCESS_NAMESPACES, "
-                + "true);\n"
-                + "    parser.setInput(in, null);\n"
-                + "    parser.nextTag();\n"
-                + "    String tagName = parser.getName();\n"
-                + "    String raw = null;\n");
         for (XsdElement element : xmlSchema.getElementMap().values()) {
             JavaType javaType = parseType(element.getType(), element.getName());
+            out.printf("public static %s read(java.io.InputStream in)"
+                + " throws org.xmlpull.v1.XmlPullParserException, java.io.IOException, "
+                + "javax.xml.datatype.DatatypeConfigurationException {\n"
+                + "org.xmlpull.v1.XmlPullParser parser = org.xmlpull.v1.XmlPullParserFactory"
+                + ".newInstance().newPullParser();\n"
+                + "parser.setFeature(org.xmlpull.v1.XmlPullParser.FEATURE_PROCESS_NAMESPACES, "
+                + "true);\n"
+                + "parser.setInput(in, null);\n"
+                + "parser.nextTag();\n"
+                + "String tagName = parser.getName();\n"
+                + "String raw = null;\n", javaType.getName());
             out.printf("if (tagName.equals(\"%s\")) {\n", element.getName());
             if (javaType instanceof JavaSimpleType) {
                 out.print("raw = XmlParser.readText(parser);\n");
