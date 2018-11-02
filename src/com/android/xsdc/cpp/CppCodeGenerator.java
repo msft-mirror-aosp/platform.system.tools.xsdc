@@ -24,6 +24,7 @@ import com.android.xsdc.tag.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -93,8 +94,8 @@ public class CppCodeGenerator {
         cppFile =  new CodeWriter(fs.getPrintWriter(fileName + ".cpp"));
         headerFile = new CodeWriter(fs.getPrintWriter("include/" + fileName + ".h"));
 
-        headerFile.printf("#ifndef %s_H\n", fileName.toUpperCase().replace(".", "_"));
-        headerFile.printf("#define %s_H\n\n", fileName.toUpperCase().replace(".", "_"));
+        headerFile.printf("#ifndef %s_H\n", fileName.toUpperCase());
+        headerFile.printf("#define %s_H\n\n", fileName.toUpperCase());
         headerFile.printf("#include <libxml/parser.h>\n");
         headerFile.printf("#include <libxml/xinclude.h>\n\n");
         headerFile.printf("#include <string>\n");
@@ -106,6 +107,13 @@ public class CppCodeGenerator {
         cppFile.printf("#include <libxml/parser.h>\n");
         cppFile.printf("#include <libxml/xinclude.h>\n\n");
         cppFile.printf("#include \"%s.h\"\n\n",fileName);
+
+        List<String> namespace = new java.util.ArrayList<>();
+        for (String token : fileName.split("_")) {
+            namespace.add(token);
+            headerFile.printf("namespace %s {\n", token);
+            cppFile.printf("namespace %s {\n", token);
+        }
 
         printPrototype();
         printXmlParser();
@@ -124,6 +132,12 @@ public class CppCodeGenerator {
                 XsdComplexType complexType = (XsdComplexType) type;
                 printClass(name, "", complexType);
             }
+        }
+
+        Collections.reverse(namespace);
+        for (String token : namespace) {
+            headerFile.printf("} // %s\n", token);
+            cppFile.printf("} // %s\n", token);
         }
 
         headerFile.printf("#endif // %s_H\n",fileName.toUpperCase().replace(".", "_"));
@@ -363,59 +377,43 @@ public class CppCodeGenerator {
         }
 
         String className = Utils.toClassName(fileName);
-        headerFile.printf("class %s {\n", className);
-        headerFile.printf("private:\n");
+
         for (XsdElement element : xmlSchema.getElementMap().values()) {
             CppType cppType = parseType(element.getType(), element.getName());
+            String elementName = element.getName();
+            String VariableName = Utils.toVariableName(elementName);
             String typeName = cppType instanceof CppSimpleType ? cppType.getName() :
                     Utils.toClassName(cppType.getName());
-            headerFile.printf("std::vector<%s> %s;\n", typeName,
-                    Utils.toVariableName(element.getName()));
-        }
 
-        cppFile.printf("%s %s::read(const char* configFile) {\n", className, className);
-        cppFile.printf("%s config;\n", className);
-        cppFile.printf("auto doc = make_xmlUnique(xmlParseFile(configFile));\n"
-                + "if (doc == nullptr) {\n"
-                + "return config;\n"
-                + "}\n"
-                + "xmlNodePtr child = xmlDocGetRootElement(doc.get());\n"
-                + "if (child == NULL) {\n"
-                + "return config;\n"
-                + "}\n\n");
+            headerFile.printf("std::vector<%s> read(const char* configFile);\n\n",
+                    typeName);
+            cppFile.printf("std::vector<%s> read(const char* configFile) {\n", typeName);
+            cppFile.printf("std::vector<%s> config;\n"
+                    + "auto doc = make_xmlUnique(xmlParseFile(configFile));\n"
+                    + "if (doc == nullptr) {\n"
+                    + "return config;\n"
+                    + "}\n"
+                    + "xmlNodePtr child = xmlDocGetRootElement(doc.get());\n"
+                    + "if (child == NULL) {\n"
+                    + "return config;\n"
+                    + "}\n\n"
+                    + "if (!xmlStrcmp(child->name, reinterpret_cast<const xmlChar*>"
+                    + "(\"%s\"))) {\n",
+                    typeName, elementName);
 
-        headerFile.printf("public:\n");
-        for (XsdElement element : xmlSchema.getElementMap().values()) {
-            CppType cppType = parseType(element.getType(), element.getName());
-            cppFile.printf("if (!xmlStrcmp(child->name, reinterpret_cast<const xmlChar*>"
-                    + "(\"%s\"))) {\n", element.getName());
             if (cppType instanceof CppSimpleType) {
                 cppFile.printf("%s value = getXmlAttribute(child, \"%s\");\n",
-                        cppType.getName(), element.getName());
+                        elementName, elementName);
             } else {
                 cppFile.printf(cppType.getParsingExpression());
             }
-            cppFile.printf("config.get%s().push_back(std::move(value));\n"
+
+            cppFile.printf("config.push_back(std::move(value));\n"
                     + "}\n",
-                    Utils.capitalize(Utils.toVariableName(element.getName())));
+                    Utils.capitalize(VariableName));
         }
         cppFile.printf("return config;\n");
         cppFile.printf("}\n\n");
-
-        for (XsdElement element : xmlSchema.getElementMap().values()) {
-            CppType cppType = parseType(element.getType(), element.getName());
-            String name = element.getName();
-            String typeName = cppType instanceof CppSimpleType ? cppType.getName() :
-                    Utils.toClassName(cppType.getName());
-            headerFile.printf("std::vector<%s>& get%s();\n", typeName,
-                    Utils.capitalize(Utils.toVariableName(name)));
-
-            cppFile.printf("std::vector<%s>& %s::get%s() {\n"
-                    + "return %s;\n}\n", typeName, className,
-                    Utils.capitalize(Utils.toVariableName(name)),
-                    Utils.toVariableName(name));
-        }
-        headerFile.printf("static %s read(const char* configFile);\n};\n\n", className);
     }
 
     private void stackComponents(XsdComplexType complexType, List<XsdElement> elements,
