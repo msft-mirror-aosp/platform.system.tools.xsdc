@@ -36,9 +36,9 @@ public:
 };
 
 TEST_F(XmlTest, Simpletype) {
+  using namespace simple::type;
   string file_name = "resources/simple_type.xml";
-  Simpletype simpletype = Simpletype::read(file_name.c_str());
-  Simpletypes simple = simpletype.getSimpletypes()[0];
+  Simpletypes simple = read(file_name.c_str())[0];
 
   for (int i = 0; i < simple.getListInt().size(); ++i) {
     EXPECT_EQ(simple.getListInt()[i], i + 1);
@@ -47,8 +47,8 @@ TEST_F(XmlTest, Simpletype) {
 }
 
 TEST_F(XmlTest, Predefinedtypes) {
-  Predefinedtypes pre = Predefinedtypes::read("resources/predefined_types.xml");
-  Types type = pre.getTypes()[0];
+  using namespace predefined::types;
+  Types type = read("resources/predefined_types.xml")[0];
 
   StringTypes stringTypes = type.getStringTypes()[0];
   DateTypes dateTypes = type.getDateTypes()[0];
@@ -125,8 +125,8 @@ TEST_F(XmlTest, Predefinedtypes) {
 }
 
 TEST_F(XmlTest, Nestedtype) {
-  Nestedtype nest = Nestedtype::read("resources/nested_type.xml");
-  Employee employee = nest.getEmployee()[0];
+  using namespace nested::type;
+  Employee employee = read("resources/nested_type.xml")[0];
 
   Employee::Address address = employee.getAddress()[0];
   Employee::Address::Extra extra = address.getExtra()[0];
@@ -141,8 +141,8 @@ TEST_F(XmlTest, Nestedtype) {
 }
 
 TEST_F(XmlTest, Purchasesimple) {
-  Purchasesimple purcharse = Purchasesimple::read("resources/purchase_simple.xml");
-  PurchaseOrderType orderType = purcharse.getPurchaseOrder()[0];
+  using namespace purchase::simple;
+  PurchaseOrderType orderType = read("resources/purchase_simple.xml")[0];
 
   EXPECT_EQ(orderType.getOrderDate(), "1900-01-01");
 
@@ -168,8 +168,8 @@ TEST_F(XmlTest, Purchasesimple) {
 }
 
 TEST_F(XmlTest, Reference) {
-  Reference ref = Reference::read("resources/reference.xml");
-  Class _class = ref.get_class()[0];
+  using namespace reference;
+  Class _class = read("resources/reference.xml")[0];
 
   EXPECT_EQ(_class.getStudent()[0], "Sam");
   EXPECT_EQ(_class.getStudent()[1], "Paul");
@@ -177,20 +177,12 @@ TEST_F(XmlTest, Reference) {
 }
 
 TEST_F(XmlTest, Simplecomplexcontent) {
-  Simplecomplexcontent simple = Simplecomplexcontent::read("resources/simple_complex_content.xml");
-  Person person = simple.getPerson()[0];
-  ShoeSize shoeSize = person.getShoeSize()[0];
-  GeneralPrice generalPrice = person.getGeneralPrice()[0];
+  using namespace simple::complex::content;
+  Person person = read("resources/simple_complex_content.xml")[0];
   USAddressP uSAddressP = person.getUSAddressP()[0];
   KRAddress kRAddress = person.getKRAddress()[0];
 
   EXPECT_EQ(person.getName(), "Petr");
-
-  EXPECT_EQ(shoeSize.getSizing(), "Korea");
-  EXPECT_EQ(shoeSize.getValue(), 265);
-
-  EXPECT_EQ(generalPrice.getCurrency(), "dollar");
-  EXPECT_EQ(generalPrice.getValue(), 1234.56);
 
   EXPECT_EQ(uSAddressP.getName(), "404");
   EXPECT_EQ(uSAddressP.getStreet(), "street fighter");
