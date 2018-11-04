@@ -1,11 +1,10 @@
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="reference"
            xmlns="reference" elementFormDefault="qualified">
-    <xs:element name="student" type="xs:string"/>
     <xs:attribute name="name" type="xs:string"/>
     <xs:element name="class">
         <xs:complexType>
             <xs:sequence>
-                <xs:element ref="student" maxOccurs="unbounded"/>
+                <xs:element name="student" type="xs:string" maxOccurs="unbounded"/>
             </xs:sequence>
             <xs:attribute ref="name"/>
         </xs:complexType>
