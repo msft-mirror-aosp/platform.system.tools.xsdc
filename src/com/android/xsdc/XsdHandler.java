@@ -51,10 +51,12 @@ public class XsdHandler extends DefaultHandler {
     private final Stack<State> stateStack;
     private final Map<String, String> namespaces;
     private Locator locator;
+    private boolean documentationFlag;
 
     public XsdHandler() {
         stateStack = new Stack<>();
         namespaces = new HashMap<>();
+        documentationFlag = false;
     }
 
     public XmlSchema getSchema() {
@@ -105,11 +107,19 @@ public class XsdHandler extends DefaultHandler {
         for (int i = 0; i < attributes.getLength(); ++i) {
             attributeMap.put(attributes.getLocalName(i), attributes.getValue(i));
         }
-        stateStack.push(new State(localName, attributeMap));
+        if (!documentationFlag) {
+            stateStack.push(new State(localName, attributeMap));
+        }
+        if (localName == "documentation") {
+            documentationFlag = true;
+        }
     }
 
     @Override
     public void endElement(String uri, String localName, String qName) throws SAXException {
+        if (documentationFlag && localName != "documentation") {
+            return;
+        }
         try {
             State state = stateStack.pop();
             switch (state.name) {
@@ -166,9 +176,20 @@ public class XsdHandler extends DefaultHandler {
                     // Tags under simpleType <restriction>. They are ignored.
                     break;
                 case "annotation":
-                case "documentation":
                 case "appinfo":
                     // They function like comments, so are ignored.
+                    break;
+                case "documentation":
+                    documentationFlag = false;
+                    break;
+                case "key":
+                case "keyref":
+                case "selector":
+                case "field":
+                case "unique":
+                    // These tags are not related to xml parsing.
+                    // They are using when validating xml files via xsd file.
+                    // So they are ignored.
                     break;
                 default:
                     throw new XsdParserException(String.format("unsupported tag : %s", state.name));
@@ -246,10 +267,6 @@ public class XsdHandler extends DefaultHandler {
         QName ref = parseQName(attributeMap.get("ref"));
         String defVal = attributeMap.get("default");
         String use = attributeMap.get("use");
-
-        if (defVal != null) {
-            throw new XsdParserException("default value of an attribute is not supported.");
-        }
 
         if (use != null && use.equals("prohibited")) return null;
 
