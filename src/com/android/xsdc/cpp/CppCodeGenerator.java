@@ -51,14 +51,15 @@ public class CppCodeGenerator {
             Set<String> nameSet = new HashSet<>();
             nameSet.add("XmlParser");
             for (XsdType type : xmlSchema.getTypeMap().values()) {
-                if (type instanceof XsdComplexType) {
+                if ((type instanceof XsdComplexType) || (type instanceof XsdRestriction &&
+                        ((XsdRestriction)type).getEnums() != null)) {
                     String name = Utils.toClassName(type.getName());
                     if (nameSet.contains(name)) {
                         throw new CppCodeGeneratorException(
                                 String.format("duplicate class name : %s", name));
                     }
                     nameSet.add(name);
-                    if (!hasAttr) {
+                    if (type instanceof XsdComplexType && !hasAttr) {
                         hasAttr = hasAttribute((XsdComplexType)type);
                     }
                 }
@@ -100,6 +101,7 @@ public class CppCodeGenerator {
         headerFile.printf("#include <libxml/xinclude.h>\n\n");
         headerFile.printf("#include <string>\n");
         headerFile.printf("#include <vector>\n\n");
+        headerFile.printf("#include <map>\n\n");
 
         cppFile.printf("#define LOG_TAG \"%s\"\n\n", fileName);
         cppFile.printf("#include <android/log.h>\n");
@@ -123,6 +125,11 @@ public class CppCodeGenerator {
                 String name = Utils.toClassName(type.getName());
                 XsdComplexType complexType = (XsdComplexType) type;
                 printClass(name, "", complexType);
+            } else if (type instanceof XsdRestriction &&
+                  ((XsdRestriction)type).getEnums() != null) {
+                String name = Utils.toClassName(type.getName());
+                XsdRestriction restrictionType = (XsdRestriction) type;
+                printEnum(name, restrictionType);
             }
         }
         for (XsdElement element : xmlSchema.getElementMap().values()) {
@@ -144,6 +151,27 @@ public class CppCodeGenerator {
         cppFile.close();
         headerFile.close();
     }
+
+    private void printEnum(String name, XsdRestriction restrictionType)
+            throws CppCodeGeneratorException {
+        headerFile.printf("enum class %s {\n", name);
+        cppFile.printf("const std::map<std::string, %s> %sString {\n", name, name);
+        List<XsdEnumeration> enums = restrictionType.getEnums();
+
+        for (XsdEnumeration tag : enums) {
+            headerFile.printf("%s,\n", Utils.toEnumName(tag.getValue()));
+            cppFile.printf("{ \"%s\", %s::%s },\n", tag.getValue(), name,
+                    Utils.toEnumName(tag.getValue()));
+        }
+        headerFile.printf("UNKNOWN\n};\n\n");
+        cppFile.printf("};\n\n");
+
+        cppFile.printf("static %s stringTo%s(std::string value) {\n"
+                + "auto enumValue =  %sString.find(value);\n"
+                + "return enumValue == %sString.end() ? %s::UNKNOWN : enumValue->second;\n"
+                + "}\n\n", name, name, name, name, name);
+    }
+
 
     private void printPrototype() throws CppCodeGeneratorException {
         for (XsdType type : xmlSchema.getTypeMap().values()) {
@@ -524,6 +552,10 @@ public class CppCodeGenerator {
         } else if (simpleType instanceof XsdRestriction) {
             // we don't consider any restrictions.
             XsdRestriction restriction = (XsdRestriction) simpleType;
+            if (restriction.getEnums() != null) {
+                String name = Utils.toClassName(restriction.getName());
+                return new CppSimpleType(name, "stringTo" + name + "(%s)", false);
+            }
             return parseSimpleType(restriction.getBase(), traverse);
         } else if (simpleType instanceof XsdUnion) {
             // unions are almost always interpreted as java.lang.String
