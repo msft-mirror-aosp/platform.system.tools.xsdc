@@ -52,11 +52,13 @@ public class XsdHandler extends DefaultHandler {
     private final Map<String, String> namespaces;
     private Locator locator;
     private boolean documentationFlag;
+    private boolean enumerationFlag;
 
     public XsdHandler() {
         stateStack = new Stack<>();
         namespaces = new HashMap<>();
         documentationFlag = false;
+        enumerationFlag = false;
     }
 
     public XmlSchema getSchema() {
@@ -142,8 +144,14 @@ public class XsdHandler extends DefaultHandler {
                     stateStack.peek().tags.add(makeSimpleContent(state.attributeMap, state.tags));
                     break;
                 case "restriction":
-                    stateStack.peek().tags.add(
-                            makeGeneralRestriction(state.attributeMap, state.tags));
+                    if (enumerationFlag) {
+                        stateStack.peek().tags.add(
+                                makeEnumRestriction(state.attributeMap, state.tags));
+                        enumerationFlag = false;
+                    } else {
+                        stateStack.peek().tags.add(
+                                makeGeneralRestriction(state.attributeMap, state.tags));
+                    }
                     break;
                 case "extension":
                     stateStack.peek().tags.add(
@@ -161,8 +169,11 @@ public class XsdHandler extends DefaultHandler {
                 case "sequence":
                     stateStack.peek().tags.addAll(makeSequence(state.attributeMap, state.tags));
                     break;
-                case "fractionDigits":
                 case "enumeration":
+                    stateStack.peek().tags.add(makeEnumeration(state.attributeMap));
+                    enumerationFlag = true;
+                    break;
+                case "fractionDigits":
                 case "length":
                 case "maxExclusive":
                 case "maxInclusive":
@@ -420,7 +431,10 @@ public class XsdHandler extends DefaultHandler {
             if (tag instanceof XsdList) {
                 type = new XsdList(name, ((XsdList) tag).getItemType());
             } else if (tag instanceof XsdGeneralRestriction) {
-                type = new XsdRestriction(name, ((XsdGeneralRestriction) tag).getBase());
+                type = new XsdRestriction(name, ((XsdGeneralRestriction) tag).getBase(), null);
+            } else if (tag instanceof XsdEnumRestriction) {
+                type = new XsdRestriction(name, ((XsdEnumRestriction) tag).getBase(),
+                        ((XsdEnumRestriction) tag).getEnums());
             } else if (tag instanceof XsdUnion) {
                 type = new XsdUnion(name, ((XsdUnion) tag).getMemberTypes());
             }
@@ -480,4 +494,31 @@ public class XsdHandler extends DefaultHandler {
         }
         return elements;
     }
+
+    private XsdEnumeration makeEnumeration(Map<String, String> attributeMap)
+            throws XsdParserException {
+        String value = attributeMap.get("value");
+        return new XsdEnumeration(value);
+    }
+
+    private XsdEnumRestriction makeEnumRestriction(Map<String, String> attributeMap,
+            List<XsdTag> tags) throws XsdParserException {
+        QName base = parseQName(attributeMap.get("base"));
+
+        XsdType type = null;
+        if (base != null) {
+            type = new XsdType(null, base);
+        }
+        List<XsdEnumeration> enums = new ArrayList<>();
+        for (XsdTag tag : tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdEnumeration) {
+                enums.add((XsdEnumeration) tag);
+            }
+        }
+
+        return new XsdEnumRestriction(type, enums);
+    }
+
+
 }

@@ -48,7 +48,7 @@ class Utils {
             throw new JavaCodeGeneratorException(
                     String.format("cannot convert to a variable name : %s", name));
         }
-        String lowered = (trimmed.charAt(0) >= '0' && trimmed.charAt(0) <= '9') ? "_" + trimmed
+        String lowered = Character.isDigit(trimmed.charAt(0)) ? "_" + trimmed
                 : lowerize(trimmed);
         // always starts with a lowercase or underscore character.
         return (keywordSet.contains(trimmed)) ? "_" + lowered : lowered;
@@ -57,10 +57,22 @@ class Utils {
     static String toClassName(String name) throws JavaCodeGeneratorException {
         // remove non-alphanumeric characters
         String trimmed = name.replaceAll("[^A-Za-z0-9]", "");
-        if (trimmed.isEmpty() || (trimmed.charAt(0) >= '0' && trimmed.charAt(0) <= '9')) {
+        if (trimmed.isEmpty() || Character.isDigit(trimmed.charAt(0))) {
             throw new JavaCodeGeneratorException(
                     String.format("cannot convert to a class name : %s", name));
         }
         return capitalize(trimmed);
     }
+
+    static String toEnumName(String name) throws JavaCodeGeneratorException {
+        String trimmed = name.replace(".", "_").replaceAll("[^A-Za-z0-9_]", "");
+        if (trimmed.isEmpty()) {
+            throw new JavaCodeGeneratorException(
+                    String.format("cannot convert to a variable name : %s", name));
+        }
+        String enumName = Character.isDigit(trimmed.charAt(0)) ? "_" + trimmed
+                : trimmed;
+        return (keywordSet.contains(trimmed)) ? "_" + enumName : enumName;
+    }
 }
+

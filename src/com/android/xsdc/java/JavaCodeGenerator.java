@@ -47,7 +47,8 @@ public class JavaCodeGenerator {
             Set<String> nameSet = new HashSet<>();
             nameSet.add("XmlParser");
             for (XsdType type : xmlSchema.getTypeMap().values()) {
-                if (type instanceof XsdComplexType) {
+                if ((type instanceof XsdComplexType) || (type instanceof XsdRestriction &&
+                        ((XsdRestriction)type).getEnums() != null)) {
                     String name = Utils.toClassName(type.getName());
                     if (nameSet.contains(name)) {
                         throw new JavaCodeGeneratorException(
@@ -88,6 +89,14 @@ public class JavaCodeGenerator {
                     out.printf("package %s;\n\n", packageName);
                     printClass(out, name, complexType, "");
                 }
+            } else if (type instanceof XsdRestriction &&
+                    ((XsdRestriction)type).getEnums() != null) {
+                String name = Utils.toClassName(type.getName());
+                XsdRestriction restrictionType = (XsdRestriction) type;
+                try (CodeWriter out = new CodeWriter(fs.getPrintWriter(name + ".java"))) {
+                    out.printf("package %s;\n\n", packageName);
+                    printEnumClass(out, name, restrictionType);
+                }
             }
         }
         for (XsdElement element : xmlSchema.getElementMap().values()) {
@@ -104,6 +113,25 @@ public class JavaCodeGenerator {
         try (CodeWriter out = new CodeWriter(fs.getPrintWriter("XmlParser.java"))) {
             printXmlParser(out);
         }
+    }
+
+    private void printEnumClass(CodeWriter out, String name, XsdRestriction restrictionType)
+            throws JavaCodeGeneratorException {
+        out.printf("public enum %s {", name);
+        List<XsdEnumeration> enums = restrictionType.getEnums();
+
+        for (XsdEnumeration tag : enums) {
+            out.printf("\n%s(\"%s\"),", Utils.toEnumName(tag.getValue()), tag.getValue());
+        }
+        out.printf(";\n\n");
+        out.printf("private final String rawName;\n\n");
+        out.printf("%s(String rawName) {\n"
+                + "this.rawName = rawName;\n"
+                + "}\n\n", name);
+        out.printf("public String getRawName() {\n"
+                + "return rawName;\n"
+                + "}\n");
+        out.println("}");
     }
 
     private void printClass(CodeWriter out, String name, XsdComplexType complexType,
@@ -265,6 +293,8 @@ public class JavaCodeGenerator {
                     + "XmlParser.skip(parser);\n"
                     + "}\n"
                     + "}\n");
+        } else {
+            out.print("XmlParser.skip(parser);\n");
         }
         out.print("return instance;\n"
                 + "}\n");
@@ -465,6 +495,11 @@ public class JavaCodeGenerator {
         } else if (simpleType instanceof XsdRestriction) {
             // we don't consider any restrictions.
             XsdRestriction restriction = (XsdRestriction) simpleType;
+            if (restriction.getEnums() != null) {
+                String name = Utils.toClassName(restriction.getName());
+                return new JavaSimpleType(name, name + ".valueOf(%s.replace(\".\", \"_\")."
+                        + "replaceAll(\"[^A-Za-z0-9_]\", \"\"))", false);
+            }
             return parseSimpleType(restriction.getBase(), traverse);
         } else if (simpleType instanceof XsdUnion) {
             // unions are almost always interpreted as java.lang.String
