@@ -1,3 +1,4 @@
+// Signature format: 2.0
 package purchase.simple {
 
   public class PurchaseOrderType {
@@ -11,24 +12,24 @@ package purchase.simple {
 
   public class USAddress {
     ctor public USAddress();
-    method public java.lang.String getCity();
-    method public java.lang.String getCountry();
-    method public java.lang.String getName();
-    method public java.lang.String getState();
-    method public java.lang.String getStreet();
+    method public String getCity();
+    method public String getCountry();
+    method public String getName();
+    method public String getState();
+    method public String getStreet();
     method public java.math.BigInteger getZip();
-    method public void setCity(java.lang.String);
-    method public void setCountry(java.lang.String);
-    method public void setName(java.lang.String);
-    method public void setState(java.lang.String);
-    method public void setStreet(java.lang.String);
+    method public void setCity(String);
+    method public void setCountry(String);
+    method public void setName(String);
+    method public void setState(String);
+    method public void setStreet(String);
     method public void setZip(java.math.BigInteger);
   }
 
   public class XmlParser {
     ctor public XmlParser();
     method public static purchase.simple.PurchaseOrderType read(java.io.InputStream) throws javax.xml.datatype.DatatypeConfigurationException, java.io.IOException, org.xmlpull.v1.XmlPullParserException;
-    method public static java.lang.String readText(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+    method public static String readText(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
     method public static void skip(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
   }
 
