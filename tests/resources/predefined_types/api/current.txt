@@ -1,3 +1,4 @@
+// Signature format: 2.0
 package predefined.types {
 
   public class DateTypes {
@@ -42,23 +43,23 @@ package predefined.types {
 
   public class MiscTypes {
     ctor public MiscTypes();
-    method public java.lang.String getAnyType();
-    method public java.lang.String getAnyURI();
+    method public String getAnyType();
+    method public String getAnyURI();
     method public byte[] getBase64Binary();
     method public java.math.BigInteger getHexBinary();
-    method public java.lang.String getIDREF();
+    method public String getIDREF();
     method public java.util.List<java.lang.String> getIDREFS();
-    method public java.lang.String getQName();
+    method public String getQName();
     method public boolean get_boolean();
     method public double get_double();
     method public float get_float();
-    method public void setAnyType(java.lang.String);
-    method public void setAnyURI(java.lang.String);
+    method public void setAnyType(String);
+    method public void setAnyURI(String);
     method public void setBase64Binary(byte[]);
     method public void setHexBinary(java.math.BigInteger);
-    method public void setIDREF(java.lang.String);
+    method public void setIDREF(String);
     method public void setIDREFS(java.util.List<java.lang.String>);
-    method public void setQName(java.lang.String);
+    method public void setQName(String);
     method public void set_boolean(boolean);
     method public void set_double(double);
     method public void set_float(float);
@@ -99,27 +100,27 @@ package predefined.types {
   public class StringTypes {
     ctor public StringTypes();
     method public java.util.List<java.lang.String> getEntities();
-    method public java.lang.String getEntity();
-    method public java.lang.String getId();
-    method public java.lang.String getLanguage();
-    method public java.lang.String getName();
-    method public java.lang.String getNcname();
-    method public java.lang.String getNmtoken();
+    method public String getEntity();
+    method public String getId();
+    method public String getLanguage();
+    method public String getName();
+    method public String getNcname();
+    method public String getNmtoken();
     method public java.util.List<java.lang.String> getNmtokens();
-    method public java.lang.String getNormalizedString();
-    method public java.lang.String getString();
-    method public java.lang.String getToken();
+    method public String getNormalizedString();
+    method public String getString();
+    method public String getToken();
     method public void setEntities(java.util.List<java.lang.String>);
-    method public void setEntity(java.lang.String);
-    method public void setId(java.lang.String);
-    method public void setLanguage(java.lang.String);
-    method public void setName(java.lang.String);
-    method public void setNcname(java.lang.String);
-    method public void setNmtoken(java.lang.String);
+    method public void setEntity(String);
+    method public void setId(String);
+    method public void setLanguage(String);
+    method public void setName(String);
+    method public void setNcname(String);
+    method public void setNmtoken(String);
     method public void setNmtokens(java.util.List<java.lang.String>);
-    method public void setNormalizedString(java.lang.String);
-    method public void setString(java.lang.String);
-    method public void setToken(java.lang.String);
+    method public void setNormalizedString(String);
+    method public void setString(String);
+    method public void setToken(String);
   }
 
   public class Types {
@@ -139,7 +140,7 @@ package predefined.types {
   public class XmlParser {
     ctor public XmlParser();
     method public static predefined.types.Types read(java.io.InputStream) throws javax.xml.datatype.DatatypeConfigurationException, java.io.IOException, org.xmlpull.v1.XmlPullParserException;
-    method public static java.lang.String readText(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+    method public static String readText(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
     method public static void skip(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
   }
 
