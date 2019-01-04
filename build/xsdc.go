@@ -42,8 +42,6 @@ var (
 			`${xsdcCmd} $in -p $pkgName -o ${out}.temp -j && ` +
 			`${config.SoongZipCmd} -jar -o ${out} -C ${out}.temp -D ${out}.temp && ` +
 			`rm -rf ${out}.temp`,
-		Depfile:     "${out}.d",
-		Deps:        blueprint.DepsGCC,
 		CommandDeps: []string{"${xsdcCmd}", "${config.SoongZipCmd}"},
 		Description: "xsdc Java ${in} => ${out}",
 	}, "pkgName")
@@ -51,8 +49,6 @@ var (
 	xsdcCppRule = pctx.StaticRule("xsdcCppRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && ` +
 			`${xsdcCmd} $in -p $pkgName -o ${outDir} -c`,
-		Depfile:     "${out}.d",
-		Deps:        blueprint.DepsGCC,
 		CommandDeps: []string{"${xsdcCmd}", "${config.SoongZipCmd}"},
 		Description: "xsdc Java ${in} => ${out}",
 	}, "pkgName", "outDir")
