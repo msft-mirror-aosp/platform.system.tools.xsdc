@@ -15,4 +15,7 @@
         <street>Nokdu Street</street>
         <city>Seoul</city>
     </KRAddress>
+    <subAddress>
+        <choice1>Temp</choice1>
+    </subAddress>
 </person>
