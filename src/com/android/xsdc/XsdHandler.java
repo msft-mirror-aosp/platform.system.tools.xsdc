@@ -169,6 +169,9 @@ public class XsdHandler extends DefaultHandler {
                 case "sequence":
                     stateStack.peek().tags.addAll(makeSequence(state.attributeMap, state.tags));
                     break;
+                case "choice":
+                    stateStack.peek().tags.addAll(makeChoice(state.attributeMap, state.tags));
+                    break;
                 case "enumeration":
                     stateStack.peek().tags.add(makeEnumeration(state.attributeMap));
                     enumerationFlag = true;
@@ -490,6 +493,20 @@ public class XsdHandler extends DefaultHandler {
             if (tag == null) continue;
             if (tag instanceof XsdElement) {
                 elements.add((XsdElement) tag);
+            }
+        }
+        return elements;
+    }
+
+    private static List<XsdElement> makeChoice(Map<String, String> attributeMap,
+            List<XsdTag> tags) throws XsdParserException {
+        List<XsdElement> elements = new ArrayList<>();
+        for (XsdTag tag : tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdElement) {
+                XsdElement element = (XsdElement)tag;
+                elements.add(new XsdChoice(element.getName(), element.getRef(), element.getType(),
+                        element.isMultiple()));
             }
         }
         return elements;
