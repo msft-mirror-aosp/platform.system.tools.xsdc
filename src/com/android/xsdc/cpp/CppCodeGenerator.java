@@ -215,13 +215,13 @@ public class CppCodeGenerator {
                     && element.getType() instanceof XsdComplexType) {
                 // print inner class for anonymous types
                 headerFile.printf("public:\n");
-                String innerName = Utils.toClassName(element.getName());
+                String innerName = Utils.toClassName(getElementName(element));
                 XsdComplexType innerType = (XsdComplexType) element.getType();
                 printClass(innerName, nameScope + name + "::", innerType);
                 headerFile.println();
                 cppType = new CppComplexType(nameScope + name + "::"+ innerName);
             } else {
-                cppType = parseType(elementValue.getType(), elementValue.getName());
+                cppType = parseType(elementValue.getType(), getElementName(elementValue));
             }
             elementTypes.add(cppType);
         }
@@ -241,7 +241,8 @@ public class CppCodeGenerator {
             //String typeName = String.format("std::vector<%s>", type.getName());
             String typeName = element.isMultiple() || type instanceof CppComplexType ?
                     String.format("std::vector<%s>", type.getName()) : type.getName();
-            headerFile.printf("%s %s;\n", typeName, Utils.toVariableName(elementValue.getName()));
+            headerFile.printf("%s %s;\n", typeName,
+                    Utils.toVariableName(getElementName(elementValue)));
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             CppType type = attributeTypes.get(i);
@@ -261,8 +262,8 @@ public class CppCodeGenerator {
             XsdElement element = complexType.getElements().get(i);
             XsdElement elementValue = resolveElement(element);
             printGetterAndSetter(nameScope + name, type,
-                    Utils.toVariableName(elementValue.getName()), type instanceof CppComplexType ?
-                    true : element.isMultiple());
+                    Utils.toVariableName(getElementName(elementValue)),
+                    type instanceof CppComplexType ? true : element.isMultiple());
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             CppType type = attributeTypes.get(i);
@@ -331,7 +332,7 @@ public class CppCodeGenerator {
                 CppType type = allElementTypes.get(i);
                 XsdElement element = allElements.get(i);
                 XsdElement elementValue = resolveElement(element);
-                String variableName = Utils.toVariableName(elementValue.getName());
+                String variableName = Utils.toVariableName(getElementName(elementValue));
                 if (i != 0) cppFile.printf("} else ");
                 cppFile.printf("if (!xmlStrcmp(child->name, reinterpret_cast<const xmlChar*>");
                 cppFile.printf("(\"%s\"))) {\n", elementValue.getName());
@@ -442,6 +443,13 @@ public class CppCodeGenerator {
         }
         cppFile.printf("return config;\n");
         cppFile.printf("}\n\n");
+    }
+
+    private String getElementName(XsdElement element) {
+        if (element instanceof XsdChoice) {
+            return element.getName() + "_optional";
+        }
+        return element.getName();
     }
 
     private void stackComponents(XsdComplexType complexType, List<XsdElement> elements,

@@ -182,6 +182,7 @@ TEST_F(XmlTest, Simplecomplexcontent) {
   Person person = read("resources/simple_complex_content.xml")[0];
   USAddressP uSAddressP = person.getUSAddressP()[0];
   KRAddress kRAddress = person.getKRAddress()[0];
+  SubAddress subAddress = person.getSubAddress()[0];
 
   EXPECT_EQ(person.getName(), "Petr");
 
@@ -194,6 +195,8 @@ TEST_F(XmlTest, Simplecomplexcontent) {
   EXPECT_EQ(kRAddress.getName(), "Donga Studio");
   EXPECT_EQ(kRAddress.getStreet(), "Nokdu Street");
   EXPECT_EQ(kRAddress.getCity(), "Seoul");
+
+  EXPECT_EQ(subAddress.getChoice1_optional(), "Temp");
 }
 
 int main(int argc, char **argv) {
