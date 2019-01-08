@@ -162,14 +162,14 @@ public class JavaCodeGenerator {
             if (element.getRef() == null && element.getType().getRef() == null
                     && element.getType() instanceof XsdComplexType) {
                 // print inner class for anonymous types
-                String innerName = Utils.toClassName(element.getName());
+                String innerName = Utils.toClassName(getElementName(element));
                 XsdComplexType innerType = (XsdComplexType) element.getType();
                 String innerNameScope = nameScope + name + ".";
                 printClass(out, innerName, innerType, innerNameScope);
                 out.println();
                 javaType = new JavaComplexType(innerNameScope + innerName);
             } else {
-                javaType = parseType(elementValue.getType(), elementValue.getName());
+                javaType = parseType(elementValue.getType(), getElementName(elementValue));
             }
             elementTypes.add(javaType);
         }
@@ -186,7 +186,8 @@ public class JavaCodeGenerator {
             XsdElement elementValue = resolveElement(element);
             String typeName = element.isMultiple() ? String.format("java.util.List<%s>",
                     type.getNullableName()) : type.getName();
-            out.printf("private %s %s;\n", typeName, Utils.toVariableName(elementValue.getName()));
+            out.printf("private %s %s;\n", typeName,
+                    Utils.toVariableName(getElementName(elementValue)));
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             JavaType type = attributeTypes.get(i);
@@ -203,7 +204,7 @@ public class JavaCodeGenerator {
             JavaType type = elementTypes.get(i);
             XsdElement element = complexType.getElements().get(i);
             XsdElement elementValue = resolveElement(element);
-            printGetterAndSetter(out, type, Utils.toVariableName(elementValue.getName()),
+            printGetterAndSetter(out, type, Utils.toVariableName(getElementName(elementValue)),
                     element.isMultiple());
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
@@ -274,7 +275,7 @@ public class JavaCodeGenerator {
                 JavaType type = allElementTypes.get(i);
                 XsdElement element = allElements.get(i);
                 XsdElement elementValue = resolveElement(element);
-                String variableName = Utils.toVariableName(elementValue.getName());
+                String variableName = Utils.toVariableName(getElementName(elementValue));
                 out.printf("if (tagName.equals(\"%s\")) {\n", elementValue.getName());
                 if (type instanceof JavaSimpleType) {
                     out.print("raw = XmlParser.readText(parser);\n");
@@ -385,6 +386,13 @@ public class JavaCodeGenerator {
                         + "}\n");
 
         out.println("}");
+    }
+
+    private String getElementName(XsdElement element) {
+        if (element instanceof XsdChoice) {
+            return element.getName() + "_optional";
+        }
+        return element.getName();
     }
 
     private void stackComponents(XsdComplexType complexType, List<XsdElement> elements,
