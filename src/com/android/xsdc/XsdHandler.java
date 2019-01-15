@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2018 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.android.xsdc;
 
 import com.android.xsdc.tag.*;
@@ -10,6 +26,7 @@ import org.xml.sax.helpers.DefaultHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -34,10 +51,14 @@ public class XsdHandler extends DefaultHandler {
     private final Stack<State> stateStack;
     private final Map<String, String> namespaces;
     private Locator locator;
+    private boolean documentationFlag;
+    private boolean enumerationFlag;
 
     public XsdHandler() {
         stateStack = new Stack<>();
         namespaces = new HashMap<>();
+        documentationFlag = false;
+        enumerationFlag = false;
     }
 
     public XmlSchema getSchema() {
@@ -88,11 +109,19 @@ public class XsdHandler extends DefaultHandler {
         for (int i = 0; i < attributes.getLength(); ++i) {
             attributeMap.put(attributes.getLocalName(i), attributes.getValue(i));
         }
-        stateStack.push(new State(localName, attributeMap));
+        if (!documentationFlag) {
+            stateStack.push(new State(localName, attributeMap));
+        }
+        if (localName == "documentation") {
+            documentationFlag = true;
+        }
     }
 
     @Override
     public void endElement(String uri, String localName, String qName) throws SAXException {
+        if (documentationFlag && localName != "documentation") {
+            return;
+        }
         try {
             State state = stateStack.pop();
             switch (state.name) {
@@ -115,8 +144,14 @@ public class XsdHandler extends DefaultHandler {
                     stateStack.peek().tags.add(makeSimpleContent(state.attributeMap, state.tags));
                     break;
                 case "restriction":
-                    stateStack.peek().tags.add(
-                            makeGeneralRestriction(state.attributeMap, state.tags));
+                    if (enumerationFlag) {
+                        stateStack.peek().tags.add(
+                                makeEnumRestriction(state.attributeMap, state.tags));
+                        enumerationFlag = false;
+                    } else {
+                        stateStack.peek().tags.add(
+                                makeGeneralRestriction(state.attributeMap, state.tags));
+                    }
                     break;
                 case "extension":
                     stateStack.peek().tags.add(
@@ -134,29 +169,69 @@ public class XsdHandler extends DefaultHandler {
                 case "sequence":
                     stateStack.peek().tags.addAll(makeSequence(state.attributeMap, state.tags));
                     break;
+                case "choice":
+                    stateStack.peek().tags.addAll(makeChoice(state.attributeMap, state.tags));
+                    break;
+                case "enumeration":
+                    stateStack.peek().tags.add(makeEnumeration(state.attributeMap));
+                    enumerationFlag = true;
+                    break;
+                case "fractionDigits":
+                case "length":
+                case "maxExclusive":
+                case "maxInclusive":
+                case "maxLength":
+                case "minExclusive":
+                case "minInclusive":
+                case "minLength":
+                case "pattern":
+                case "totalDigits":
+                case "whiteSpace":
+                    // Tags under simpleType <restriction>. They are ignored.
+                    break;
+                case "annotation":
+                case "appinfo":
+                    // They function like comments, so are ignored.
+                    break;
+                case "documentation":
+                    documentationFlag = false;
+                    break;
+                case "key":
+                case "keyref":
+                case "selector":
+                case "field":
+                case "unique":
+                    // These tags are not related to xml parsing.
+                    // They are using when validating xml files via xsd file.
+                    // So they are ignored.
+                    break;
+                default:
+                    throw new XsdParserException(String.format("unsupported tag : %s", state.name));
             }
         } catch (XsdParserException e) {
             throw new SAXException(
-                    String.format("Line %d, Column %d",
-                            locator.getLineNumber(), locator.getColumnNumber()), e);
+                    String.format("Line %d, Column %d - %s",
+                            locator.getLineNumber(), locator.getColumnNumber(), e.getMessage()));
         }
     }
 
-    private XmlSchema makeSchema(Map<String, String> attributeMap, List<XsdTag> tags)
-            throws XsdParserException {
-        String targetNameSpace = attributeMap.get("targetNamespace");
-        XmlSchema schema = new XmlSchema(targetNameSpace);
+    private XmlSchema makeSchema(Map<String, String> attributeMap, List<XsdTag> tags) {
+        Map<String, XsdElement> elementMap = new LinkedHashMap<>();
+        Map<String, XsdType> typeMap = new LinkedHashMap<>();
+        Map<String, XsdAttribute> attrMap = new LinkedHashMap<>();
+
         for (XsdTag tag : tags) {
             if (tag == null) continue;
             if (tag instanceof XsdElement) {
-                schema.registerElement((XsdElement) tag);
+                elementMap.put(tag.getName(), (XsdElement) tag);
             } else if (tag instanceof XsdAttribute) {
-                schema.registerAttribute((XsdAttribute) tag);
+                attrMap.put(tag.getName(), (XsdAttribute) tag);
             } else if (tag instanceof XsdType) {
-                schema.registerType((XsdType) tag);
+                typeMap.put(tag.getName(), (XsdType) tag);
             }
         }
-        return schema;
+
+        return new XmlSchema(elementMap, typeMap, attrMap);
     }
 
     private XsdElement makeElement(Map<String, String> attributeMap, List<XsdTag> tags)
@@ -164,34 +239,39 @@ public class XsdHandler extends DefaultHandler {
         String name = attributeMap.get("name");
         QName typename = parseQName(attributeMap.get("type"));
         QName ref = parseQName(attributeMap.get("ref"));
-
-        String minOccurs = attributeMap.get("minOccurs");
+        String isAbstract = attributeMap.get("abstract");
+        String defVal = attributeMap.get("default");
+        String substitutionGroup = attributeMap.get("substitutionGroup");
         String maxOccurs = attributeMap.get("maxOccurs");
-        boolean nullable = false, multiple = false;
+
+        if ("true".equals(isAbstract)) {
+            throw new XsdParserException("abstract element is not supported.");
+        }
+        if (defVal != null) {
+            throw new XsdParserException("default value of an element is not supported.");
+        }
+        if (substitutionGroup != null) {
+            throw new XsdParserException("substitution group of an element is not supported.");
+        }
+
+        boolean multiple = false;
         if (maxOccurs != null) {
             if (maxOccurs.equals("0")) return null;
             if (maxOccurs.equals("unbounded") || Integer.parseInt(maxOccurs) > 1) multiple = true;
         }
-        if (minOccurs != null) {
-            if (minOccurs.equals("0")) nullable = true;
+
+        XsdType type = null;
+        if (typename != null) {
+            type = new XsdType(null, typename);
+        }
+        for (XsdTag tag : tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdType) {
+                type = (XsdType) tag;
+            }
         }
 
-        XsdElement element;
-        if (ref != null) {
-            element = new XsdElement(ref, nullable, multiple);
-        } else if (typename != null) {
-            element = new XsdElement(name, new XsdTypeReferrer(typename), nullable, multiple);
-        } else {
-            XsdType type = null;
-            for (XsdTag tag : tags) {
-                if (tag == null) continue;
-                if (tag instanceof XsdType) {
-                    type = (XsdType) tag;
-                }
-            }
-            element = new XsdElement(name, new XsdTypeReferrer(type), nullable, multiple);
-        }
-        return element;
+        return new XsdElement(name, ref, type, multiple);
     }
 
     private XsdAttribute makeAttribute(Map<String, String> attributeMap, List<XsdTag> tags)
@@ -199,129 +279,150 @@ public class XsdHandler extends DefaultHandler {
         String name = attributeMap.get("name");
         QName typename = parseQName(attributeMap.get("type"));
         QName ref = parseQName(attributeMap.get("ref"));
-
+        String defVal = attributeMap.get("default");
         String use = attributeMap.get("use");
-        boolean nullable = true;
-        if (use != null) {
-            if (use.equals("prohibited")) return null;
-            if (use.equals("required")) nullable = false;
+
+        if (use != null && use.equals("prohibited")) return null;
+
+        XsdType type = null;
+        if (typename != null) {
+            type = new XsdType(null, typename);
+        }
+        for (XsdTag tag : tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdType) {
+                type = (XsdType) tag;
+            }
         }
 
-        XsdAttribute attribute;
-        if (ref != null) {
-            attribute = new XsdAttribute(ref, nullable);
-        } else if (typename != null) {
-            attribute = new XsdAttribute(name, new XsdTypeReferrer(typename), nullable);
-        } else {
-            XsdType type = null;
-            for (XsdTag tag : tags) {
-                if (tag == null) continue;
-                if (tag instanceof XsdType) {
-                    type = (XsdType) tag;
-                }
-            }
-            attribute = new XsdAttribute(name, new XsdTypeReferrer(type), nullable);
-        }
-        return attribute;
+        return new XsdAttribute(name, ref, type);
     }
 
     private XsdComplexType makeComplexType(Map<String, String> attributeMap, List<XsdTag> tags)
             throws XsdParserException {
         String name = attributeMap.get("name");
+        String isAbstract = attributeMap.get("abstract");
+        String mixed = attributeMap.get("mixed");
+
+        if ("true".equals(isAbstract)) {
+            throw new XsdParserException("abstract complex type is not supported.");
+        }
+        if ("true".equals(mixed)) {
+            throw new XsdParserException("mixed option of a complex type is not supported.");
+        }
+
+        List<XsdAttribute> attributes = new ArrayList<>();
+        List<XsdElement> elements = new ArrayList<>();
         XsdComplexType type = null;
-        XsdComplexContent content = new XsdComplexContent(name, null);
+
         for (XsdTag tag : tags) {
             if (tag == null) continue;
             if (tag instanceof XsdAttribute) {
-                content.getAttributes().add((XsdAttribute) tag);
+                attributes.add((XsdAttribute) tag);
             } else if (tag instanceof XsdElement) {
-                content.getElements().add((XsdElement) tag);
+                elements.add((XsdElement) tag);
             } else if (tag instanceof XsdComplexContent) {
                 XsdComplexContent child = (XsdComplexContent) tag;
-                XsdComplexContent complexContent = new XsdComplexContent(name, child.getBase());
-                complexContent.getElements().addAll(child.getElements());
-                complexContent.getAttributes().addAll(child.getAttributes());
-                type = complexContent;
+                type = new XsdComplexContent(name, child.getBase(), child.getAttributes(),
+                        child.getElements());
             } else if (tag instanceof XsdSimpleContent) {
                 XsdSimpleContent child = (XsdSimpleContent) tag;
-                type = new XsdSimpleContent(name, child.getBase());
-                type.getAttributes().addAll(child.getAttributes());
+                type = new XsdSimpleContent(name, child.getBase(), child.getAttributes());
             }
         }
-        return (type != null) ? type : content;
+
+        return (type != null) ? type : new XsdComplexContent(name, null, attributes, elements);
     }
 
     private XsdComplexContent makeComplexContent(Map<String, String> attributeMap,
             List<XsdTag> tags) throws XsdParserException {
+        String mixed = attributeMap.get("mixed");
+        if ("true".equals(mixed)) {
+            throw new XsdParserException("mixed option of a complex content is not supported.");
+        }
+
         XsdComplexContent content = null;
         for (XsdTag tag : tags) {
             if (tag == null) continue;
-            if (tag instanceof XsdExtension) {
-                XsdExtension extension = (XsdExtension) tag;
-                content = new XsdComplexContent(null, extension.getBase());
-                content.getElements().addAll(extension.getElements());
-                content.getAttributes().addAll(extension.getAttributes());
-            } else if (tag instanceof XsdRestriction) {
-                XsdRestriction restriction = (XsdRestriction) tag;
-                content = new XsdComplexContent(null, restriction.getBase());
-            }
-        }
-        return content;
-    }
-
-    private XsdSimpleContent makeSimpleContent(Map<String, String> attributeMap, List<XsdTag> tags)
-            throws XsdParserException {
-        XsdSimpleContent content = null;
-        for (XsdTag tag : tags) {
-            if (tag == null) continue;
-            if (tag instanceof XsdExtension) {
-                XsdExtension extension = (XsdExtension) tag;
-                content = new XsdSimpleContent(null, extension.getBase());
-                content.getAttributes().addAll(extension.getAttributes());
-            } else if (tag instanceof XsdRestriction) {
-                XsdRestriction restriction = (XsdRestriction) tag;
-                content = new XsdSimpleContent(null, restriction.getBase());
-            }
-        }
-        return content;
-    }
-
-    private XsdRestriction makeGeneralRestriction(Map<String, String> attributeMap,
-            List<XsdTag> tags) throws XsdParserException {
-        // although class XsdRestriction is derived from XsdSimpleType, it is also used for
-        // complex types.
-        QName base = parseQName(attributeMap.get("base"));
-
-        XsdRestriction restriction;
-        if (base != null) {
-            restriction = new XsdRestriction(null, new XsdTypeReferrer(base));
-        } else {
-            XsdType type = null;
-            for (XsdTag tag : tags) {
-                if (tag == null) continue;
-                if (tag instanceof XsdType) {
-                    type = (XsdType) tag;
+            if (tag instanceof XsdGeneralExtension) {
+                XsdGeneralExtension extension = (XsdGeneralExtension) tag;
+                content = new XsdComplexContent(null, extension.getBase(),
+                        extension.getAttributes(), extension.getElements());
+            } else if (tag instanceof XsdGeneralRestriction) {
+                XsdGeneralRestriction restriction = (XsdGeneralRestriction) tag;
+                XsdType base = restriction.getBase();
+                if (base.getRef() != null && base.getRef().getNamespaceURI().equals(
+                        XsdConstants.XSD_NAMESPACE)) {
+                    // restriction of base 'xsd:anyType' is equal to complex content definition
+                    content = new XsdComplexContent(null, null, restriction.getAttributes(),
+                            restriction.getElements());
+                } else {
+                    // otherwise ignore restrictions
+                    content = new XsdComplexContent(null, base, null, null);
                 }
             }
-            restriction = new XsdRestriction(null, new XsdTypeReferrer(type));
         }
-        return restriction;
+
+        return content;
     }
 
-    private XsdExtension makeGeneralExtension(Map<String, String> attributeMap, List<XsdTag> tags)
-            throws XsdParserException {
+    private XsdSimpleContent makeSimpleContent(Map<String, String> attributeMap,
+            List<XsdTag> tags) {
+        XsdSimpleContent content = null;
+
+        for (XsdTag tag : tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdGeneralExtension) {
+                XsdGeneralExtension extension = (XsdGeneralExtension) tag;
+                content = new XsdSimpleContent(null, extension.getBase(),
+                        extension.getAttributes());
+            } else if (tag instanceof XsdGeneralRestriction) {
+                XsdGeneralRestriction restriction = (XsdGeneralRestriction) tag;
+                content = new XsdSimpleContent(null, restriction.getBase(), null);
+            }
+        }
+
+        return content;
+    }
+
+    private XsdGeneralRestriction makeGeneralRestriction(Map<String, String> attributeMap,
+            List<XsdTag> tags) throws XsdParserException {
         QName base = parseQName(attributeMap.get("base"));
 
-        XsdExtension extension = new XsdExtension(null, new XsdTypeReferrer(base));
+        XsdType type = null;
+        if (base != null) {
+            type = new XsdType(null, base);
+        }
+        List<XsdAttribute> attributes = new ArrayList<>();
+        List<XsdElement> elements = new ArrayList<>();
         for (XsdTag tag : tags) {
             if (tag == null) continue;
             if (tag instanceof XsdAttribute) {
-                extension.getAttributes().add((XsdAttribute) tag);
+                attributes.add((XsdAttribute) tag);
             } else if (tag instanceof XsdElement) {
-                extension.getElements().add((XsdElement) tag);
+                elements.add((XsdElement) tag);
             }
         }
-        return extension;
+
+        return new XsdGeneralRestriction(type, attributes, elements);
+    }
+
+    private XsdGeneralExtension makeGeneralExtension(Map<String, String> attributeMap,
+            List<XsdTag> tags)
+            throws XsdParserException {
+        QName base = parseQName(attributeMap.get("base"));
+
+        List<XsdAttribute> attributes = new ArrayList<>();
+        List<XsdElement> elements = new ArrayList<>();
+        for (XsdTag tag : tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdAttribute) {
+                attributes.add((XsdAttribute) tag);
+            } else if (tag instanceof XsdElement) {
+                elements.add((XsdElement) tag);
+            }
+        }
+        return new XsdGeneralExtension(new XsdType(null, base), attributes, elements);
     }
 
     private XsdSimpleType makeSimpleType(Map<String, String> attributeMap, List<XsdTag> tags)
@@ -332,8 +433,11 @@ public class XsdHandler extends DefaultHandler {
             if (tag == null) continue;
             if (tag instanceof XsdList) {
                 type = new XsdList(name, ((XsdList) tag).getItemType());
-            } else if (tag instanceof XsdRestriction) {
-                type = new XsdRestriction(name, ((XsdRestriction) tag).getBase());
+            } else if (tag instanceof XsdGeneralRestriction) {
+                type = new XsdRestriction(name, ((XsdGeneralRestriction) tag).getBase(), null);
+            } else if (tag instanceof XsdEnumRestriction) {
+                type = new XsdRestriction(name, ((XsdEnumRestriction) tag).getBase(),
+                        ((XsdEnumRestriction) tag).getEnums());
             } else if (tag instanceof XsdUnion) {
                 type = new XsdUnion(name, ((XsdUnion) tag).getMemberTypes());
             }
@@ -345,39 +449,45 @@ public class XsdHandler extends DefaultHandler {
             throws XsdParserException {
         QName itemTypeName = parseQName(attributeMap.get("itemType"));
 
-        XsdList list;
+        XsdType itemType = null;
         if (itemTypeName != null) {
-            list = new XsdList(null, new XsdTypeReferrer(itemTypeName));
-        } else {
-            XsdType type = null;
-            for (XsdTag tag : tags) {
-                if (tag == null) continue;
-                if (tag instanceof XsdType) {
-                    type = (XsdType) tag;
-                }
-            }
-            list = new XsdList(null, new XsdTypeReferrer(type));
+            itemType = new XsdType(null, itemTypeName);
         }
-        return list;
+        for (XsdTag tag : tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdType) {
+                itemType = (XsdType) tag;
+            }
+        }
+        return new XsdList(null, itemType);
     }
 
     private XsdUnion makeSimpleTypeUnion(Map<String, String> attributeMap, List<XsdTag> tags)
             throws XsdParserException {
         List<QName> memberTypeNames = parseQNames(attributeMap.get("memberTypes"));
-        List<XsdTypeReferrer> memberTypes = memberTypeNames.stream().map(
-                XsdTypeReferrer::new).collect(Collectors.toList());
+        List<XsdType> memberTypes = memberTypeNames.stream().map(
+                ref -> new XsdType(null, ref)).collect(Collectors.toList());
 
         for (XsdTag tag : tags) {
             if (tag == null) continue;
             if (tag instanceof XsdType) {
-                memberTypes.add(new XsdTypeReferrer((XsdType) tag));
+                memberTypes.add((XsdType) tag);
             }
         }
+
         return new XsdUnion(null, memberTypes);
     }
 
     private static List<XsdElement> makeSequence(Map<String, String> attributeMap,
             List<XsdTag> tags) throws XsdParserException {
+        String minOccurs = attributeMap.get("minOccurs");
+        String maxOccurs = attributeMap.get("maxOccurs");
+
+        if (minOccurs != null || maxOccurs != null) {
+            throw new XsdParserException(
+                    "minOccurs, maxOccurs options of a sequence is not supported");
+        }
+
         List<XsdElement> elements = new ArrayList<>();
         for (XsdTag tag : tags) {
             if (tag == null) continue;
@@ -387,4 +497,45 @@ public class XsdHandler extends DefaultHandler {
         }
         return elements;
     }
+
+    private static List<XsdElement> makeChoice(Map<String, String> attributeMap,
+            List<XsdTag> tags) throws XsdParserException {
+        List<XsdElement> elements = new ArrayList<>();
+        for (XsdTag tag : tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdElement) {
+                XsdElement element = (XsdElement)tag;
+                elements.add(new XsdChoice(element.getName(), element.getRef(), element.getType(),
+                        element.isMultiple()));
+            }
+        }
+        return elements;
+    }
+
+    private XsdEnumeration makeEnumeration(Map<String, String> attributeMap)
+            throws XsdParserException {
+        String value = attributeMap.get("value");
+        return new XsdEnumeration(value);
+    }
+
+    private XsdEnumRestriction makeEnumRestriction(Map<String, String> attributeMap,
+            List<XsdTag> tags) throws XsdParserException {
+        QName base = parseQName(attributeMap.get("base"));
+
+        XsdType type = null;
+        if (base != null) {
+            type = new XsdType(null, base);
+        }
+        List<XsdEnumeration> enums = new ArrayList<>();
+        for (XsdTag tag : tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdEnumeration) {
+                enums.add((XsdEnumeration) tag);
+            }
+        }
+
+        return new XsdEnumRestriction(type, enums);
+    }
+
+
 }

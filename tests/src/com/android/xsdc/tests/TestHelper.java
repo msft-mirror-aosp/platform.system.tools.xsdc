@@ -1,9 +1,25 @@
+/*
+ * Copyright (C) 2018 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.android.xsdc.tests;
 
+import com.android.xsdc.FileSystem;
 import com.android.xsdc.XmlSchema;
 import com.android.xsdc.XsdHandler;
-import com.android.xsdc.descriptor.ClassDescriptor;
-import com.android.xsdc.descriptor.SchemaDescriptor;
+import com.android.xsdc.java.JavaCodeGenerator;
 
 import javax.tools.*;
 import javax.xml.parsers.SAXParser;
@@ -12,8 +28,10 @@ import javax.xml.parsers.SAXParserFactory;
 import java.io.*;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static org.junit.Assert.fail;
 
@@ -22,7 +40,8 @@ class TestHelper {
         private final String contents;
 
         InMemoryJavaFileObject(String className, String contents) {
-            super(URI.create("string:///" + className.replace('.', '/') + Kind.SOURCE.extension), Kind.SOURCE);
+            super(URI.create("string:///" + className.replace('.', '/') + Kind.SOURCE.extension),
+                    Kind.SOURCE);
             this.contents = contents;
         }
 
@@ -65,7 +84,8 @@ class TestHelper {
         }
 
         @Override
-        public JavaFileObject getJavaFileForOutput(Location location, String name, JavaFileObject.Kind kind, FileObject sibling) {
+        public JavaFileObject getJavaFileForOutput(Location location, String name,
+                JavaFileObject.Kind kind, FileObject sibling) {
             InMemoryJavaClassObject object = new InMemoryJavaClassObject(name, kind);
             classObjects.add(object);
             return object;
@@ -84,28 +104,30 @@ class TestHelper {
         SAXParser parser = factory.newSAXParser();
         XsdHandler xsdHandler = new XsdHandler();
         parser.parse(in, xsdHandler);
-        XmlSchema schema = xsdHandler.getSchema();
+        XmlSchema xmlSchema = xsdHandler.getSchema();
+        Map<String, StringBuffer> fileOutputMap = new HashMap<>();
+        FileSystem fs = new FileSystem(fileOutputMap);
+        JavaCodeGenerator javaCodeGenerator = new JavaCodeGenerator(xmlSchema, packageName);
+        javaCodeGenerator.print(fs);
         List<JavaFileObject> javaFileObjects = new ArrayList<>();
-        SchemaDescriptor schemaDescriptor = schema.explain();
-        for (ClassDescriptor descriptor : schemaDescriptor.getClassDescriptorMap().values()) {
-            StringWriter codeOutput = new StringWriter();
-            descriptor.print(packageName, new PrintWriter(codeOutput));
-            javaFileObjects.add(new InMemoryJavaFileObject(descriptor.getName(), codeOutput.toString()));
+        for (Map.Entry<String, StringBuffer> entry : fileOutputMap.entrySet()) {
+            String className = entry.getKey().split("\\.")[0];
+            javaFileObjects.add(
+                    new InMemoryJavaFileObject(className, entry.getValue().toString()));
         }
-        StringWriter codeOutput = new StringWriter();
-        schemaDescriptor.printXmlParser(packageName, new PrintWriter(codeOutput));
-        javaFileObjects.add(new InMemoryJavaFileObject("XmlParser", codeOutput.toString()));
-
         return new TestCompilationResult(compile(javaFileObjects));
     }
 
-    private static List<InMemoryJavaClassObject> compile(List<JavaFileObject> javaFileObjects) throws IOException {
+    private static List<InMemoryJavaClassObject> compile(List<JavaFileObject> javaFileObjects)
+            throws IOException {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
         List<InMemoryJavaClassObject> ret = null;
 
-        try (InMemoryClassManager fileManager = new InMemoryClassManager(compiler.getStandardFileManager(diagnostics,null,null))) {
-            JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diagnostics, null, null, javaFileObjects);
+        try (InMemoryClassManager fileManager = new InMemoryClassManager(
+                compiler.getStandardFileManager(diagnostics, null, null))) {
+            JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, diagnostics,
+                    null, null, javaFileObjects);
             boolean success = task.call();
 
             if (!success) {

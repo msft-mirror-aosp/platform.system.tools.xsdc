@@ -1,0 +1,42 @@
+package nested.type {
+
+  public class Employee {
+    ctor public Employee();
+    method public nested.type.Employee.Address getAddress();
+    method public java.util.List<java.lang.String> getAssets();
+    method public byte getId();
+    method public java.lang.String getName();
+    method public void setAddress(nested.type.Employee.Address);
+    method public void setId(byte);
+    method public void setName(java.lang.String);
+  }
+
+  public static class Employee.Address {
+    ctor public Employee.Address();
+    method public java.lang.String getCountry();
+    method public nested.type.Employee.Address.Extra getExtra();
+    method public java.lang.String getState();
+    method public short getZip();
+    method public void setCountry(java.lang.String);
+    method public void setExtra(nested.type.Employee.Address.Extra);
+    method public void setState(java.lang.String);
+    method public void setZip(short);
+  }
+
+  public static class Employee.Address.Extra {
+    ctor public Employee.Address.Extra();
+    method public java.lang.String getLine1();
+    method public java.lang.String getLine2();
+    method public void setLine1(java.lang.String);
+    method public void setLine2(java.lang.String);
+  }
+
+  public class XmlParser {
+    ctor public XmlParser();
+    method public static nested.type.Employee read(java.io.InputStream) throws javax.xml.datatype.DatatypeConfigurationException, java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+    method public static java.lang.String readText(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+    method public static void skip(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+  }
+
+}
+

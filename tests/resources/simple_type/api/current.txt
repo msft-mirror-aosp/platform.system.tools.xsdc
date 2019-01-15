@@ -1,0 +1,29 @@
+package simple.type {
+
+  public final class EnumType extends java.lang.Enum {
+    method public java.lang.String getRawName();
+    method public static simple.type.EnumType valueOf(java.lang.String);
+    method public static final simple.type.EnumType[] values();
+    enum_constant public static final simple.type.EnumType NO;
+    enum_constant public static final simple.type.EnumType YES;
+  }
+
+  public class Simpletypes {
+    ctor public Simpletypes();
+    method public java.util.List<java.lang.Integer> getListInt();
+    method public java.util.List<java.lang.String> getUniontest();
+    method public simple.type.EnumType getYesOrNo();
+    method public void setListInt(java.util.List<java.lang.Integer>);
+    method public void setUniontest(java.util.List<java.lang.String>);
+    method public void setYesOrNo(simple.type.EnumType);
+  }
+
+  public class XmlParser {
+    ctor public XmlParser();
+    method public static simple.type.Simpletypes read(java.io.InputStream) throws javax.xml.datatype.DatatypeConfigurationException, java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+    method public static java.lang.String readText(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+    method public static void skip(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+  }
+
+}
+

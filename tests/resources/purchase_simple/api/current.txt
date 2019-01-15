@@ -1,0 +1,36 @@
+package purchase.simple {
+
+  public class PurchaseOrderType {
+    ctor public PurchaseOrderType();
+    method public purchase.simple.USAddress getBillTo();
+    method public javax.xml.datatype.XMLGregorianCalendar getOrderDate();
+    method public java.util.List<purchase.simple.USAddress> getShipTo();
+    method public void setBillTo(purchase.simple.USAddress);
+    method public void setOrderDate(javax.xml.datatype.XMLGregorianCalendar);
+  }
+
+  public class USAddress {
+    ctor public USAddress();
+    method public java.lang.String getCity();
+    method public java.lang.String getCountry();
+    method public java.lang.String getName();
+    method public java.lang.String getState();
+    method public java.lang.String getStreet();
+    method public java.math.BigInteger getZip();
+    method public void setCity(java.lang.String);
+    method public void setCountry(java.lang.String);
+    method public void setName(java.lang.String);
+    method public void setState(java.lang.String);
+    method public void setStreet(java.lang.String);
+    method public void setZip(java.math.BigInteger);
+  }
+
+  public class XmlParser {
+    ctor public XmlParser();
+    method public static purchase.simple.PurchaseOrderType read(java.io.InputStream) throws javax.xml.datatype.DatatypeConfigurationException, java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+    method public static java.lang.String readText(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+    method public static void skip(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+  }
+
+}
+
