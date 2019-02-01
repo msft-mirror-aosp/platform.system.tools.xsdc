@@ -50,7 +50,7 @@ var (
 		Command: `rm -rf "${outDir}" && ` +
 			`${xsdcCmd} $in -p $pkgName -o ${outDir} -c`,
 		CommandDeps: []string{"${xsdcCmd}", "${config.SoongZipCmd}"},
-		Description: "xsdc Java ${in} => ${out}",
+		Description: "xsdc C++ ${in} => ${out}",
 	}, "pkgName", "outDir")
 )
 
