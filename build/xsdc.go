@@ -110,7 +110,7 @@ func (module *xsdConfig) GeneratedHeaderDirs() android.Paths {
 }
 
 func (module *xsdConfig) DepsMutator(ctx android.BottomUpMutatorContext) {
-	// no need to implement
+	android.ExtractSourcesDeps(ctx, module.properties.Srcs)
 }
 
 func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) {
@@ -124,15 +124,17 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		}
 	})
 
-	xsdFile := module.properties.Srcs[0]
+	srcFiles := ctx.ExpandSources(module.properties.Srcs, nil)
+	xsdFile := srcFiles[0]
+
 	pkgName := *module.properties.Package_name
 
 	module.genOutputs_j = android.PathForModuleGen(ctx, "java", "xsdcgen.srcjar")
 
 	ctx.Build(pctx, android.BuildParams{
 		Rule:        xsdcJavaRule,
-		Description: "xsdc " + xsdFile,
-		Input:       android.PathForModuleSrc(ctx, xsdFile),
+		Description: "xsdc " + xsdFile.String(),
+		Input:       xsdFile,
 		Implicit:    module.docsPath,
 		Output:      module.genOutputs_j,
 		Args: map[string]string{
@@ -147,8 +149,8 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 
 	ctx.Build(pctx, android.BuildParams{
 		Rule:           xsdcCppRule,
-		Description:    "xsdc " + xsdFile,
-		Input:          android.PathForModuleSrc(ctx, xsdFile),
+		Description:    "xsdc " + xsdFile.String(),
+		Input:          xsdFile,
 		Implicit:       module.docsPath,
 		Output:         module.genOutputs_c,
 		ImplicitOutput: module.genOutputs_h,
