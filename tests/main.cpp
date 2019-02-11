@@ -38,12 +38,12 @@ public:
 TEST_F(XmlTest, Simpletype) {
   using namespace simple::type;
   string file_name = "resources/simple_type.xml";
-  Simpletypes simple = read(file_name.c_str())[0];
+  SimpleTypes simple = read(file_name.c_str())[0];
 
   for (int i = 0; i < simple.getListInt().size(); ++i) {
     EXPECT_EQ(simple.getListInt()[i], i + 1);
   }
-  EXPECT_EQ(simple.getUniontest()[0], "100");
+  EXPECT_EQ(simple.getUnionTest()[0], "100");
   EXPECT_EQ(simple.getYesOrNo(), EnumType::YES);
 }
 
