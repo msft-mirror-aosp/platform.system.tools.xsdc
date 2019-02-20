@@ -7,19 +7,19 @@ package simple.type {
     enum_constant public static final simple.type.EnumType YES;
   }
 
-  public class Simpletypes {
-    ctor public Simpletypes();
+  public class SimpleTypes {
+    ctor public SimpleTypes();
     method public java.util.List<java.lang.Integer> getListInt();
-    method public java.util.List<java.lang.String> getUniontest();
+    method public java.util.List<java.lang.String> getUnionTest();
     method public simple.type.EnumType getYesOrNo();
     method public void setListInt(java.util.List<java.lang.Integer>);
-    method public void setUniontest(java.util.List<java.lang.String>);
+    method public void setUnionTest(java.util.List<java.lang.String>);
     method public void setYesOrNo(simple.type.EnumType);
   }
 
   public class XmlParser {
     ctor public XmlParser();
-    method public static simple.type.Simpletypes read(java.io.InputStream) throws javax.xml.datatype.DatatypeConfigurationException, java.io.IOException, org.xmlpull.v1.XmlPullParserException;
+    method public static simple.type.SimpleTypes read(java.io.InputStream) throws javax.xml.datatype.DatatypeConfigurationException, java.io.IOException, org.xmlpull.v1.XmlPullParserException;
     method public static String readText(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
     method public static void skip(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
   }
