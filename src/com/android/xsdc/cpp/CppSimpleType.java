@@ -18,13 +18,15 @@ package com.android.xsdc.cpp;
 
 class CppSimpleType implements CppType {
     final private String name;
+    final private String fullName;
     final private String rawParsingExpression;
     final private boolean list;
 
     CppSimpleType(String name, String rawParsingExpression, boolean list) {
         this.rawParsingExpression = rawParsingExpression;
         this.list = list;
-        this.name = list ? String.format("std::vector<%s>", name) : name;
+        this.name = name;
+        this.fullName = list ? String.format("std::vector<%s>", name) : name;
     }
 
     boolean isList() {
@@ -36,9 +38,13 @@ class CppSimpleType implements CppType {
         return new CppSimpleType(name, rawParsingExpression, true);
     }
 
+    public String getTypeName() {
+        return name;
+    }
+
     @Override
     public String getName() {
-        return name;
+        return fullName;
     }
 
     @Override
