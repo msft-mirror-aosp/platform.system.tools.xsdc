@@ -38,24 +38,24 @@ public:
 TEST_F(XmlTest, Simpletype) {
   using namespace simple::type;
   string file_name = "resources/simple_type.xml";
-  SimpleTypes simple = read(file_name.c_str())[0];
+  SimpleTypes simple = *read(file_name.c_str());
 
   for (int i = 0; i < simple.getListInt().size(); ++i) {
     EXPECT_EQ(simple.getListInt()[i], i + 1);
   }
-  EXPECT_EQ(simple.getUnionTest()[0], "100");
+  EXPECT_EQ(*simple.getFirstUnionTest(), "100");
   EXPECT_EQ(simple.getYesOrNo(), EnumType::YES);
 }
 
 TEST_F(XmlTest, Predefinedtypes) {
   using namespace predefined::types;
-  Types type = read("resources/predefined_types.xml")[0];
+  Types type = *read("resources/predefined_types.xml");
 
-  StringTypes stringTypes = type.getStringTypes()[0];
-  DateTypes dateTypes = type.getDateTypes()[0];
-  NumericTypes numericTypes = type.getNumericTypes()[0];
-  MiscTypes miscTypes = type.getMiscTypes()[0];
-  ListPrimitiveTypes listPrimitiveTypes = type.getListPrimitiveTypes()[0];
+  StringTypes stringTypes = *type.getFirstStringTypes();
+  DateTypes dateTypes = *type.getFirstDateTypes();
+  NumericTypes numericTypes = *type.getFirstNumericTypes();
+  MiscTypes miscTypes = *type.getFirstMiscTypes();
+  ListPrimitiveTypes listPrimitiveTypes = *type.getFirstListPrimitiveTypes();
 
   EXPECT_EQ(stringTypes.getString(), "abcd");
   EXPECT_EQ(stringTypes.getToken(), "abcd");
@@ -127,10 +127,10 @@ TEST_F(XmlTest, Predefinedtypes) {
 
 TEST_F(XmlTest, Nestedtype) {
   using namespace nested::type;
-  Employee employee = read("resources/nested_type.xml")[0];
+  Employee employee = *read("resources/nested_type.xml");
 
-  Employee::Address address = employee.getAddress()[0];
-  Employee::Address::Extra extra = address.getExtra()[0];
+  Employee::Address address = *employee.getFirstAddress();
+  Employee::Address::Extra extra = *address.getFirstExtra();
 
   EXPECT_EQ((int)employee.getId(), 1);
   EXPECT_EQ(employee.getName(), "Peter");
@@ -143,7 +143,7 @@ TEST_F(XmlTest, Nestedtype) {
 
 TEST_F(XmlTest, Purchasesimple) {
   using namespace purchase::simple;
-  PurchaseOrderType orderType = read("resources/purchase_simple.xml")[0];
+  PurchaseOrderType orderType = *read("resources/purchase_simple.xml");
 
   EXPECT_EQ(orderType.getOrderDate(), "1900-01-01");
 
@@ -170,7 +170,7 @@ TEST_F(XmlTest, Purchasesimple) {
 
 TEST_F(XmlTest, Reference) {
   using namespace reference;
-  Class _class = read("resources/reference.xml")[0];
+  Class _class = *read("resources/reference.xml");
 
   EXPECT_EQ(_class.getStudent()[0], "Sam");
   EXPECT_EQ(_class.getStudent()[1], "Paul");
@@ -179,10 +179,10 @@ TEST_F(XmlTest, Reference) {
 
 TEST_F(XmlTest, Simplecomplexcontent) {
   using namespace simple::complex::content;
-  Person person = read("resources/simple_complex_content.xml")[0];
-  USAddressP uSAddressP = person.getUSAddressP()[0];
-  KRAddress kRAddress = person.getKRAddress()[0];
-  SubAddress subAddress = person.getSubAddress()[0];
+  Person person = *read("resources/simple_complex_content.xml");
+  USAddressP uSAddressP = *person.getFirstUSAddressP();
+  KRAddress kRAddress = *person.getFirstKRAddress();
+  SubAddress subAddress = *person.getFirstSubAddress();
 
   EXPECT_EQ(person.getName(), "Petr");
 
