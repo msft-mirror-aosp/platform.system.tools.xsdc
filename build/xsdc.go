@@ -57,6 +57,7 @@ var (
 type xsdConfigProperties struct {
 	Srcs         []string
 	Package_name *string
+	Api_dir *string
 }
 
 type xsdConfig struct {
@@ -170,8 +171,10 @@ func xsdConfigMutator(mctx android.TopDownMutatorContext) {
 			" --hide HiddenSuperclass --hide DeprecationMismatch --hide UnavailableSymbol" +
 			" --hide SdkConstant --hide HiddenTypeParameter --hide Todo --hide Typo"
 
-		currentApiFileName := filepath.Join("api", "current.txt")
-		removedApiFileName := filepath.Join("api", "removed.txt")
+		api_dir := proptools.StringDefault(module.properties.Api_dir, "api")
+
+		currentApiFileName := filepath.Join(api_dir, "current.txt")
+		removedApiFileName := filepath.Join(api_dir, "removed.txt")
 
 		check_api := CheckApi{}
 
@@ -179,9 +182,9 @@ func xsdConfigMutator(mctx android.TopDownMutatorContext) {
 		check_api.Current.Removed_api_file = proptools.StringPtr(removedApiFileName)
 
 		check_api.Last_released.Api_file = proptools.StringPtr(
-			filepath.Join("api", "last_current.txt"))
+			filepath.Join(api_dir, "last_current.txt"))
 		check_api.Last_released.Removed_api_file = proptools.StringPtr(
-			filepath.Join("api", "last_removed.txt"))
+			filepath.Join(api_dir, "last_removed.txt"))
 
 		mctx.CreateModule(android.ModuleFactoryAdaptor(java.DroidstubsFactory), &DroidstubsProperties{
 			Name:                 proptools.StringPtr(name + ".docs"),
