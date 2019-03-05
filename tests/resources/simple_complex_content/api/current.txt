@@ -1,14 +1,14 @@
 // Signature format: 2.0
 package simple.complex.content {
 
-  public class Address {
-    ctor public Address();
-    method public String getCity();
-    method public String getName();
-    method public String getStreet();
-    method public void setCity(String);
-    method public void setName(String);
-    method public void setStreet(String);
+  @Deprecated public class Address {
+    ctor @Deprecated public Address();
+    method @Deprecated public String getCity();
+    method @Deprecated public String getName();
+    method @Deprecated public String getStreet();
+    method @Deprecated public void setCity(String);
+    method @Deprecated public void setName(String);
+    method @Deprecated public void setStreet(String);
   }
 
   public class KRAddress extends simple.complex.content.Address {
