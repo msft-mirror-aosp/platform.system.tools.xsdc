@@ -18,7 +18,9 @@
     </xs:simpleType>
     <xs:simpleType name="enumType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="YES"/>
+            <xs:enumeration value="YES">
+            <xs:annotation name="Deprecated"/>
+            </xs:enumeration>
             <xs:enumeration value="NO"/>
         </xs:restriction>
     </xs:simpleType>
