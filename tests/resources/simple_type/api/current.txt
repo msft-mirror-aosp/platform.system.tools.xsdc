@@ -4,7 +4,7 @@ package simple.type {
   public enum EnumType {
     method public String getRawName();
     enum_constant public static final simple.type.EnumType NO;
-    enum_constant public static final simple.type.EnumType YES;
+    enum_constant @Deprecated public static final simple.type.EnumType YES;
   }
 
   public class SimpleTypes {
