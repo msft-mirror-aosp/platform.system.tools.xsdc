@@ -21,10 +21,12 @@ import javax.xml.namespace.QName;
 public abstract class XsdTag {
     final private String name;
     final private QName ref;
+    private boolean deprecated;
 
     XsdTag(String name, QName ref) {
         this.name = name;
         this.ref = ref;
+        this.deprecated = false;
     }
 
     public String getName() {
@@ -33,5 +35,13 @@ public abstract class XsdTag {
 
     public QName getRef() {
         return ref;
+    }
+
+    public boolean isDeprecated() {
+        return deprecated;
+    }
+
+    public void setDeprecated(boolean deprecated) {
+        this.deprecated = deprecated;
     }
 }
