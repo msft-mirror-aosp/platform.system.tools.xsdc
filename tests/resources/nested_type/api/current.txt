@@ -16,10 +16,12 @@ package nested.type {
     ctor public Employee.Address();
     method public String getCountry();
     method public nested.type.Employee.Address.Extra getExtra();
+    method public nested.type.Employee.Address.ExtraAddress getExtra_address();
     method public String getState();
     method public short getZip();
     method public void setCountry(String);
     method public void setExtra(nested.type.Employee.Address.Extra);
+    method public void setExtra_address(nested.type.Employee.Address.ExtraAddress);
     method public void setState(String);
     method public void setZip(short);
   }
@@ -30,6 +32,14 @@ package nested.type {
     method public String getLine2();
     method public void setLine1(String);
     method public void setLine2(String);
+  }
+
+  public static class Employee.Address.ExtraAddress {
+    ctor public Employee.Address.ExtraAddress();
+    method public String getLine1_all();
+    method public String getLine2_all();
+    method public void setLine1_all(String);
+    method public void setLine2_all(String);
   }
 
   public class XmlParser {

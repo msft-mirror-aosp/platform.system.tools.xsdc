@@ -18,6 +18,14 @@
                                     </xs:sequence>
                                 </xs:complexType>
                             </xs:element>
+                            <xs:element name="extra_address">
+                                <xs:complexType>
+                                    <xs:all>
+                                        <xs:element type="xs:string" name="line1"/>
+                                        <xs:element type="xs:string" name="line2"/>
+                                    </xs:all>
+                                </xs:complexType>
+                            </xs:element>
                         </xs:sequence>
                     </xs:complexType>
                 </xs:element>
