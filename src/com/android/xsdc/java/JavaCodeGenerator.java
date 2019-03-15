@@ -407,6 +407,8 @@ public class JavaCodeGenerator {
     private String getElementName(XsdElement element) {
         if (element instanceof XsdChoice) {
             return element.getName() + "_optional";
+        } else if (element instanceof XsdAll) {
+            return element.getName() + "_all";
         }
         return element.getName();
     }
