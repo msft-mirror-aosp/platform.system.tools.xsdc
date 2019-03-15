@@ -171,6 +171,9 @@ public class XsdHandler extends DefaultHandler {
                 case "choice":
                     stateStack.peek().tags.addAll(makeChoice(state));
                     break;
+                case "all":
+                    stateStack.peek().tags.addAll(makeAll(state));
+                    break;
                 case "enumeration":
                     stateStack.peek().tags.add(makeEnumeration(state));
                     enumerationFlag = true;
@@ -500,6 +503,20 @@ public class XsdHandler extends DefaultHandler {
             if (tag instanceof XsdElement) {
                 XsdElement element = (XsdElement)tag;
                 elements.add((XsdChoice)setDeprecated(new XsdChoice(element.getName(),
+                        element.getRef(), element.getType(), element.isMultiple()),
+                        element.isDeprecated()));
+            }
+        }
+        return elements;
+    }
+
+    private static List<XsdElement> makeAll(State state) throws XsdParserException {
+        List<XsdElement> elements = new ArrayList<>();
+        for (XsdTag tag : state.tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdElement) {
+                XsdElement element = (XsdElement)tag;
+                elements.add((XsdAll)setDeprecated(new XsdAll(element.getName(),
                         element.getRef(), element.getType(), element.isMultiple()),
                         element.isDeprecated()));
             }

@@ -170,6 +170,9 @@ Only the follow tags and attributes are allowed:
 "xsd:choice": [
 ]
 
+"xsd:all": [
+]
+
 "xsd:enumeration": [
     "xsd:value" {
         values: built-in data type
