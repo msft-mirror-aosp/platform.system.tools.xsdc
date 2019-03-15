@@ -474,6 +474,8 @@ public class CppCodeGenerator {
     private String getElementName(XsdElement element) {
         if (element instanceof XsdChoice) {
             return element.getName() + "_optional";
+        } else if (element instanceof XsdAll) {
+            return element.getName() + "_all";
         }
         return element.getName();
     }
@@ -695,9 +697,9 @@ public class CppCodeGenerator {
             case "nonPositiveInteger":
                 return new CppSimpleType("long long", "std::stoll(%s)", false);
             case "unsignedLong":
-                return new CppSimpleType("unsigned long", "std::stoul(%s)", false);
+                return new CppSimpleType("unsigned long long", "std::stoull(%s)", false);
             case "long":
-                return new CppSimpleType("long", "std::stol(%s)", false);
+                return new CppSimpleType("long long", "std::stoll(%s)", false);
             case "unsignedInt":
                 return new CppSimpleType("unsigned int",
                         "static_cast<unsigned int>(stoul(%s))", false);
