@@ -1,7 +1,7 @@
 
 java_test_host {
     name: "xsdc-java-tests",
-    srcs: ["tests/src/**/*.java"],
+    srcs: ["src/**/*.java"],
     static_libs: [
         "junit",
         "xsdc",

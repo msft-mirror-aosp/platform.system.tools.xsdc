@@ -438,6 +438,7 @@ public class CppCodeGenerator {
 
         String className = Utils.toClassName(fileName);
 
+        boolean isMultiRootElement = xmlSchema.getElementMap().values().size() > 1;
         for (XsdElement element : xmlSchema.getElementMap().values()) {
             CppType cppType = parseType(element.getType(), element.getName());
             String elementName = element.getName();
@@ -445,8 +446,10 @@ public class CppCodeGenerator {
             String typeName = cppType instanceof CppSimpleType ? cppType.getName() :
                     Utils.toClassName(cppType.getName());
 
-            headerFile.printf("std::optional<%s> read(const char* configFile);\n\n", typeName);
-            cppFile.printf("std::optional<%s> read(const char* configFile) {\n", typeName);
+            headerFile.printf("std::optional<%s> read%s(const char* configFile);\n\n",
+                    typeName, isMultiRootElement ? Utils.capitalize(typeName) : "");
+            cppFile.printf("std::optional<%s> read%s(const char* configFile) {\n",
+                    typeName, isMultiRootElement ? Utils.capitalize(typeName) : "");
             cppFile.printf("auto doc = make_xmlUnique(xmlParseFile(configFile));\n"
                     + "if (doc == nullptr) {\n"
                     + "return std::nullopt;\n"
@@ -466,9 +469,9 @@ public class CppCodeGenerator {
                 cppFile.printf(cppType.getParsingExpression());
             }
             cppFile.printf("return value;\n}\n");
+            cppFile.printf("return std::nullopt;\n");
+            cppFile.printf("}\n\n");
         }
-        cppFile.printf("return std::nullopt;\n");
-        cppFile.printf("}\n\n");
     }
 
     private String getElementName(XsdElement element) {
