@@ -344,9 +344,10 @@ public class JavaCodeGenerator {
         out.println();
         out.println("public class XmlParser {");
 
+        boolean isMultiRootElement = xmlSchema.getElementMap().values().size() > 1;
         for (XsdElement element : xmlSchema.getElementMap().values()) {
             JavaType javaType = parseType(element.getType(), element.getName());
-            out.printf("public static %s read(java.io.InputStream in)"
+            out.printf("public static %s read%s(java.io.InputStream in)"
                 + " throws org.xmlpull.v1.XmlPullParserException, java.io.IOException, "
                 + "javax.xml.datatype.DatatypeConfigurationException {\n"
                 + "org.xmlpull.v1.XmlPullParser parser = org.xmlpull.v1.XmlPullParserFactory"
@@ -356,19 +357,19 @@ public class JavaCodeGenerator {
                 + "parser.setInput(in, null);\n"
                 + "parser.nextTag();\n"
                 + "String tagName = parser.getName();\n"
-                + "String raw = null;\n", javaType.getName());
+                + "String raw = null;\n", javaType.getName(),
+                isMultiRootElement ? Utils.capitalize(javaType.getName()) : "");
             out.printf("if (tagName.equals(\"%s\")) {\n", element.getName());
             if (javaType instanceof JavaSimpleType) {
                 out.print("raw = XmlParser.readText(parser);\n");
             }
             out.print(javaType.getParsingExpression());
             out.print("return value;\n"
-                    + "} else ");
+                    + "}\n"
+                    + "return null;\n"
+                    + "}\n");
+            out.println();
         }
-        out.print("{\n"
-                + "throw new RuntimeException(String.format(\"unknown element '%s'\", tagName));\n"
-                + "}\n}\n");
-        out.println();
 
         out.print(
                 "public static java.lang.String readText(org.xmlpull.v1.XmlPullParser parser)"

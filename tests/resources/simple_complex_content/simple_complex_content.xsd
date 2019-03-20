@@ -44,4 +44,15 @@
             </xs:sequence>
         </xs:complexType>
     </xs:element>
+    <xs:element name="person2">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="name" type="xs:string"/>
+                <xs:element name="USAddressP" type="USAddressP"/>
+                <xs:element name="KRAddress" type="KRAddress"/>
+                <xs:element name="subAddress" type="subAddress"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
 </xs:schema>
