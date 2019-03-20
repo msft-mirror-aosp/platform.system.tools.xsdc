@@ -95,11 +95,6 @@ public class Main {
             xmlSchema = xsdHandler.getSchema();
         }
 
-        if (xmlSchema.getElementMap().size() > 1) {
-            System.err.println("Error: xsdc does not support more than one root element.");
-            System.exit(1);
-        }
-
         if (cmd.hasOption('j')) {
             File packageDir = new File(Paths.get(outDir, packageName.replace(".", "/")).toString());
             packageDir.mkdirs();
