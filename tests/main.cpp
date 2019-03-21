@@ -179,7 +179,7 @@ TEST_F(XmlTest, Reference) {
 
 TEST_F(XmlTest, Simplecomplexcontent) {
   using namespace simple::complex::content;
-  Person person = *read("resources/simple_complex_content.xml");
+  Person person = *readPerson("resources/simple_complex_content.xml");
   USAddressP uSAddressP = *person.getFirstUSAddressP();
   KRAddress kRAddress = *person.getFirstKRAddress();
   SubAddress subAddress = *person.getFirstSubAddress();

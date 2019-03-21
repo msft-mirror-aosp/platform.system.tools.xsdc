@@ -64,7 +64,7 @@ public class XmlParserTest {
         assertThat(name, is("billName"));
         assertThat(zip, is(new BigInteger("1")));
         assertThat(street, is("street1"));
-        assertThat(largeZip, is(new BigInteger("-79228162514264337593543950335")));
+        assertThat(largeZip, is(new BigInteger("-7922816251426433759")));
         assertThat(orderDate,
                 is(javax.xml.datatype.DatatypeFactory.newInstance().newXMLGregorianCalendar(
                         "1900-01-01")));
@@ -116,7 +116,7 @@ public class XmlParserTest {
         Object instance;
         try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(
                 "simple_complex_content.xml")) {
-            instance = xmlParser.getMethod("read", InputStream.class).invoke(null, in);
+            instance = xmlParser.getMethod("readPerson", InputStream.class).invoke(null, in);
         }
 
         String name = (String) person.getMethod("getName").invoke(instance);
@@ -130,10 +130,8 @@ public class XmlParserTest {
         String krStreet = (String) krAddress.getMethod("getStreet").invoke(krAddressInstance);
 
         assertThat(name, is("Petr"));
-        assertThat(sizing, is("Korea"));
-        assertThat(currency, is("dollar"));
         assertThat(usStreet, is("street fighter"));
-        assertThat(usZipcode, is(new BigInteger("3232323183298523436434")));
+        assertThat(usZipcode, is(new BigInteger("323232318329852")));
         assertThat(krStreet, is("Nokdu Street"));
     }
 
@@ -250,8 +248,8 @@ public class XmlParserTest {
             short unsignedByte = (short) numericTypes.getMethod("getUnsignedByte").invoke(
                     numericTypesInstance);
 
-            assertThat(decimal, is(new BigDecimal("1234.5678")));
-            assertThat(integer, is(new BigInteger("123456789012345678901234567890")));
+            assertThat(decimal, is(new BigDecimal("1234.57")));
+            assertThat(integer, is(new BigInteger("1234567890123456789")));
             assertThat(_long, is(9223372036854775807L));
             assertThat(_int, is(2147483647));
             assertThat(_short, is((short) 32767));
@@ -282,8 +280,8 @@ public class XmlParserTest {
             List iDREFS = (List) miscTypes.getMethod("getIDREFS").invoke(miscTypesInstance);
             String anyType = (String) miscTypes.getMethod("getAnyType").invoke(miscTypesInstance);
 
-            assertThat(_double, is(1234.5678));
-            assertThat(_float, is(123.456f));
+            assertThat(_double, is(1234.57));
+            assertThat(_float, is(123.4f));
             assertThat(anyURI, is("https://www.google.com"));
             assertThat(base64Binary, is(Base64.getDecoder().decode("Z29vZ2xl")));
             assertThat(_boolean, is(true));
@@ -316,8 +314,8 @@ public class XmlParserTest {
             assertThat(listInt, is(Arrays.asList(-2147483648, 2147483647)));
             assertThat(listShort, is(Arrays.asList((short) -32768, (short) 32767)));
             assertThat(listByte, is(Arrays.asList((byte) -128, (byte) 127)));
-            assertThat(listDouble, is(Arrays.asList(1234.5678, 5678.1234)));
-            assertThat(listFloat, is(Arrays.asList(123.456f, 456.123f)));
+            assertThat(listDouble, is(Arrays.asList(1234.56, 5678.12)));
+            assertThat(listFloat, is(Arrays.asList(123.4f, 456.1f)));
             assertThat(listBoolean, is(Arrays.asList(true, false)));
         }
     }
@@ -326,21 +324,21 @@ public class XmlParserTest {
     public void testSimpleType() throws Exception {
         TestCompilationResult result;
         try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(
-                "simple_type.xsd")) {
+                "simple_type/simple_type.xsd")) {
             result = TestHelper.parseXsdAndCompile(in);
         }
 
         Class<?> xmlParser = result.loadClass("XmlParser");
-        Class<?> simpleTypes = result.loadClass("Simpletypes");
+        Class<?> simpleTypes = result.loadClass("SimpleTypes");
 
         Object instance;
         try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(
-                "simple_type/simple_type.xml")) {
+                "simple_type.xml")) {
             instance = xmlParser.getMethod("read", InputStream.class).invoke(null, in);
         }
 
         List listInt = (List) simpleTypes.getMethod("getListInt").invoke(instance);
-        List uniontest = (List) simpleTypes.getMethod("getUniontest").invoke(instance);
+        List uniontest = (List) simpleTypes.getMethod("getUnionTest").invoke(instance);
 
         assertThat(listInt, is(Arrays.asList(1, 2, 3, 4, 5)));
         assertThat(uniontest, is(Arrays.asList("100")));
