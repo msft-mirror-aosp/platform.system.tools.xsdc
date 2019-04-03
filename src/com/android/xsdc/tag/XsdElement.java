@@ -22,7 +22,7 @@ import javax.xml.namespace.QName;
 
 public class XsdElement extends XsdTag {
     final private XsdType type;
-    final private boolean multiple;
+    private boolean multiple;
 
     public XsdElement(String name, QName ref, XsdType type, boolean multiple)
             throws XsdParserException {
@@ -40,6 +40,10 @@ public class XsdElement extends XsdTag {
 
     public XsdType getType() {
         return type;
+    }
+
+    public void setMultiple(boolean multiple) {
+        this.multiple = multiple;
     }
 
     public boolean isMultiple() {

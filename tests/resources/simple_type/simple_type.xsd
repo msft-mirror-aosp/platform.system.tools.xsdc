@@ -33,4 +33,22 @@
             </xs:sequence>
         </xs:complexType>
     </xs:element>
+    <xs:element name="multi-choice">
+        <xs:complexType>
+            <xs:choice maxOccurs="unbounded">
+                <xs:element name="example1" type="xs:string"/>
+                <xs:element name="example2" type="xs:string"/>
+                <xs:element name="example3" type="xs:string"/>
+            </xs:choice>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="single-choice">
+        <xs:complexType>
+            <xs:choice>
+                <xs:element name="example1" type="xs:string"/>
+                <xs:element name="example2" type="xs:string"/>
+                <xs:element name="example3" type="xs:string"/>
+            </xs:choice>
+        </xs:complexType>
+    </xs:element>
 </xs:schema>
