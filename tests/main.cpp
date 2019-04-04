@@ -38,7 +38,7 @@ public:
 TEST_F(XmlTest, Simpletype) {
   using namespace simple::type;
   string file_name = "resources/simple_type.xml";
-  SimpleTypes simple = *read(file_name.c_str());
+  SimpleTypes simple = *readSimpleTypes(file_name.c_str());
 
   for (int i = 0; i < simple.getListInt().size(); ++i) {
     EXPECT_EQ(simple.getListInt()[i], i + 1);
