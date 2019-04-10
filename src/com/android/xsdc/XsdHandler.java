@@ -488,6 +488,10 @@ public class XsdHandler extends DefaultHandler {
         for (XsdTag tag : state.tags) {
             if (tag == null) continue;
             if (tag instanceof XsdElement) {
+                if (maxOccurs != null && (maxOccurs.equals("unbounded")
+                        || Integer.parseInt(maxOccurs) > 1)) {
+                    ((XsdElement)tag).setMultiple(true);
+                }
                 elements.add((XsdElement) tag);
             }
         }
@@ -495,10 +499,16 @@ public class XsdHandler extends DefaultHandler {
     }
 
     private static List<XsdElement> makeChoice(State state) throws XsdParserException {
+        String maxOccurs = state.attributeMap.get("maxOccurs");
         List<XsdElement> elements = new ArrayList<>();
+
         for (XsdTag tag : state.tags) {
             if (tag == null) continue;
             if (tag instanceof XsdElement) {
+                if (maxOccurs != null && (maxOccurs.equals("unbounded")
+                        || Integer.parseInt(maxOccurs) > 1)) {
+                    ((XsdElement)tag).setMultiple(true);
+                }
                 XsdElement element = (XsdElement)tag;
                 elements.add(setDeprecated(new XsdChoice(element.getName(), element.getRef(),
                         element.getType(), element.isMultiple()), element.isDeprecated()));
