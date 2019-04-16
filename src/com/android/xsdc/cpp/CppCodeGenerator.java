@@ -99,9 +99,10 @@ public class CppCodeGenerator {
         headerFile.printf("#define %s_H\n\n", fileName.toUpperCase());
         headerFile.printf("#include <libxml/parser.h>\n");
         headerFile.printf("#include <libxml/xinclude.h>\n\n");
+        headerFile.printf("#include <map>\n");
+        headerFile.printf("#include <optional>\n");
         headerFile.printf("#include <string>\n");
         headerFile.printf("#include <vector>\n\n");
-        headerFile.printf("#include <map>\n\n");
 
         cppFile.printf("#define LOG_TAG \"%s\"\n\n", fileName);
         cppFile.printf("#include <android/log.h>\n");
@@ -238,7 +239,6 @@ public class CppCodeGenerator {
             CppType type = elementTypes.get(i);
             XsdElement element = complexType.getElements().get(i);
             XsdElement elementValue = resolveElement(element);
-            //String typeName = String.format("std::vector<%s>", type.getName());
             String typeName = element.isMultiple() || type instanceof CppComplexType ?
                     String.format("std::vector<%s>", type.getName()) : type.getName();
             headerFile.printf("%s %s;\n", typeName,
@@ -263,16 +263,17 @@ public class CppCodeGenerator {
             XsdElement elementValue = resolveElement(element);
             printGetterAndSetter(nameScope + name, type,
                     Utils.toVariableName(getElementName(elementValue)),
-                    type instanceof CppComplexType ? true : element.isMultiple());
+                    type instanceof CppComplexType ? true : element.isMultiple(),
+                    type instanceof CppComplexType ? false : ((CppSimpleType)type).isList());
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             CppType type = attributeTypes.get(i);
             XsdAttribute attribute = resolveAttribute(complexType.getAttributes().get(i));
             printGetterAndSetter(nameScope + name, type,
-                    Utils.toVariableName(attribute.getName()), false);
+                    Utils.toVariableName(attribute.getName()), false, false);
         }
         if (valueType != null) {
-            printGetterAndSetter(nameScope + name, valueType, "value", false);
+            printGetterAndSetter(nameScope + name, valueType, "value", false, false);
         }
 
         printParser(name, nameScope, complexType);
@@ -360,7 +361,7 @@ public class CppCodeGenerator {
     }
 
     private void printGetterAndSetter(String name, CppType type, String variableName,
-            boolean isMultiple) {
+            boolean isMultiple, boolean isMultipleType) {
         String typeName = isMultiple ? String.format("std::vector<%s>", type.getName())
                 : type.getName();
 
@@ -370,6 +371,36 @@ public class CppCodeGenerator {
         cppFile.printf("%s& %s::get%s() {\n"
                 + "return %s;\n}\n",
                 typeName, name, Utils.capitalize(variableName), variableName);
+
+        if (isMultiple || isMultipleType) {
+            String elementTypeName = type instanceof CppComplexType ? type.getName() :
+                    ((CppSimpleType)type).getTypeName();
+            if (elementTypeName.equals("bool")) {
+                headerFile.printf("%s getFirst%s();\n",
+                        elementTypeName, Utils.capitalize(variableName));
+                cppFile.println();
+                cppFile.printf("%s %s::getFirst%s() {\n"
+                        + "if (%s.empty()) {\n"
+                        + "return false;\n"
+                        + "}\n"
+                        + "return %s[0];\n"
+                        + "}\n",
+                        elementTypeName, name, Utils.capitalize(variableName), variableName,
+                        variableName);
+            } else {
+                headerFile.printf("%s* getFirst%s();\n",
+                        elementTypeName, Utils.capitalize(variableName));
+                cppFile.println();
+                cppFile.printf("%s* %s::getFirst%s() {\n"
+                        + "if (%s.empty()) {\n"
+                        + "return nullptr;\n"
+                        + "}\n"
+                        + "return &%s[0];\n"
+                        + "}\n",
+                        elementTypeName, name, Utils.capitalize(variableName), variableName,
+                        variableName);
+            }
+        }
 
         if (isMultiple) return;
         headerFile.printf("void set%s(%s);\n", Utils.capitalize(variableName), typeName);
@@ -407,6 +438,7 @@ public class CppCodeGenerator {
 
         String className = Utils.toClassName(fileName);
 
+        boolean isMultiRootElement = xmlSchema.getElementMap().values().size() > 1;
         for (XsdElement element : xmlSchema.getElementMap().values()) {
             CppType cppType = parseType(element.getType(), element.getName());
             String elementName = element.getName();
@@ -414,21 +446,21 @@ public class CppCodeGenerator {
             String typeName = cppType instanceof CppSimpleType ? cppType.getName() :
                     Utils.toClassName(cppType.getName());
 
-            headerFile.printf("std::vector<%s> read(const char* configFile);\n\n",
-                    typeName);
-            cppFile.printf("std::vector<%s> read(const char* configFile) {\n", typeName);
-            cppFile.printf("std::vector<%s> config;\n"
-                    + "auto doc = make_xmlUnique(xmlParseFile(configFile));\n"
+            headerFile.printf("std::optional<%s> read%s(const char* configFile);\n\n",
+                    typeName, isMultiRootElement ? Utils.capitalize(typeName) : "");
+            cppFile.printf("std::optional<%s> read%s(const char* configFile) {\n",
+                    typeName, isMultiRootElement ? Utils.capitalize(typeName) : "");
+            cppFile.printf("auto doc = make_xmlUnique(xmlParseFile(configFile));\n"
                     + "if (doc == nullptr) {\n"
-                    + "return config;\n"
+                    + "return std::nullopt;\n"
                     + "}\n"
                     + "xmlNodePtr child = xmlDocGetRootElement(doc.get());\n"
                     + "if (child == NULL) {\n"
-                    + "return config;\n"
+                    + "return std::nullopt;\n"
                     + "}\n\n"
                     + "if (!xmlStrcmp(child->name, reinterpret_cast<const xmlChar*>"
                     + "(\"%s\"))) {\n",
-                    typeName, elementName);
+                    elementName);
 
             if (cppType instanceof CppSimpleType) {
                 cppFile.printf("%s value = getXmlAttribute(child, \"%s\");\n",
@@ -436,18 +468,17 @@ public class CppCodeGenerator {
             } else {
                 cppFile.printf(cppType.getParsingExpression());
             }
-
-            cppFile.printf("config.push_back(std::move(value));\n"
-                    + "}\n",
-                    Utils.capitalize(VariableName));
+            cppFile.printf("return value;\n}\n");
+            cppFile.printf("return std::nullopt;\n");
+            cppFile.printf("}\n\n");
         }
-        cppFile.printf("return config;\n");
-        cppFile.printf("}\n\n");
     }
 
     private String getElementName(XsdElement element) {
         if (element instanceof XsdChoice) {
             return element.getName() + "_optional";
+        } else if (element instanceof XsdAll) {
+            return element.getName() + "_all";
         }
         return element.getName();
     }
@@ -669,9 +700,9 @@ public class CppCodeGenerator {
             case "nonPositiveInteger":
                 return new CppSimpleType("long long", "std::stoll(%s)", false);
             case "unsignedLong":
-                return new CppSimpleType("unsigned long", "std::stoul(%s)", false);
+                return new CppSimpleType("unsigned long long", "std::stoull(%s)", false);
             case "long":
-                return new CppSimpleType("long", "std::stol(%s)", false);
+                return new CppSimpleType("long long", "std::stoll(%s)", false);
             case "unsignedInt":
                 return new CppSimpleType("unsigned int",
                         "static_cast<unsigned int>(stoul(%s))", false);

@@ -16,32 +16,13 @@
 
 package com.android.xsdc.tag;
 
+import com.android.xsdc.XsdParserException;
+
 import javax.xml.namespace.QName;
 
-public abstract class XsdTag {
-    final private String name;
-    final private QName ref;
-    private boolean deprecated;
-
-    XsdTag(String name, QName ref) {
-        this.name = name;
-        this.ref = ref;
-        this.deprecated = false;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public QName getRef() {
-        return ref;
-    }
-
-    public boolean isDeprecated() {
-        return deprecated;
-    }
-
-    public void setDeprecated(boolean deprecated) {
-        this.deprecated = deprecated;
+public class XsdAll extends XsdElement {
+    public XsdAll(String name, QName ref, XsdType type, boolean multiple)
+            throws XsdParserException {
+        super(name, ref, type, multiple);
     }
 }

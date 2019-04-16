@@ -33,6 +33,14 @@ class Utils {
     };
     private static final HashSet<String> keywordSet = new HashSet<>(Arrays.asList(keywords));
 
+    private static String toCamelCase(String[] words) {
+        String res = words[0];
+        for (int idx = 1; idx < words.length; ++idx) {
+            res += capitalize(words[idx]);
+        }
+        return res;
+    }
+
     static String capitalize(String input) {
         return input.substring(0, 1).toUpperCase() + input.substring(1);
     }
@@ -42,8 +50,7 @@ class Utils {
     }
 
     static String toVariableName(String name) throws JavaCodeGeneratorException {
-        // remove non-alphanumeric and non-underscore characters
-        String trimmed = name.replaceAll("[^A-Za-z0-9_]", "");
+        String trimmed = toCamelCase(name.replaceAll("[^A-Za-z0-9_-]", "").split("-"));
         if (trimmed.isEmpty()) {
             throw new JavaCodeGeneratorException(
                     String.format("cannot convert to a variable name : %s", name));
@@ -55,8 +62,8 @@ class Utils {
     }
 
     static String toClassName(String name) throws JavaCodeGeneratorException {
-        // remove non-alphanumeric characters
-        String trimmed = name.replaceAll("[^A-Za-z0-9]", "");
+        String trimmed = toCamelCase(
+                name.replaceAll("[^A-Za-z0-9_-]", "").replaceAll("-","_").split("_"));
         if (trimmed.isEmpty() || Character.isDigit(trimmed.charAt(0))) {
             throw new JavaCodeGeneratorException(
                     String.format("cannot convert to a class name : %s", name));
