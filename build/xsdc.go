@@ -57,7 +57,7 @@ var (
 type xsdConfigProperties struct {
 	Srcs         []string
 	Package_name *string
-	Api_dir *string
+	Api_dir      *string
 }
 
 type xsdConfig struct {
@@ -85,9 +85,9 @@ type CheckApi struct {
 }
 type DroidstubsProperties struct {
 	Name                 *string
-	No_framework_libs    *bool
 	Installable          *bool
 	Srcs                 []string
+	Sdk_version          *string
 	Args                 *string
 	Api_filename         *string
 	Removed_api_filename *string
@@ -194,7 +194,7 @@ func xsdConfigMutator(mctx android.TopDownMutatorContext) {
 			Removed_api_filename: proptools.StringPtr(removedApiFileName),
 			Check_api:            check_api,
 			Installable:          proptools.BoolPtr(false),
-			No_framework_libs:    proptools.BoolPtr(true),
+			Sdk_version:          proptools.StringPtr("core_platform"),
 		})
 	}
 }
