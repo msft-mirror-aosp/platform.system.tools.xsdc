@@ -186,7 +186,7 @@ func xsdConfigMutator(mctx android.TopDownMutatorContext) {
 		check_api.Last_released.Removed_api_file = proptools.StringPtr(
 			filepath.Join(api_dir, "last_removed.txt"))
 
-		mctx.CreateModule(android.ModuleFactoryAdaptor(java.DroidstubsFactory), &DroidstubsProperties{
+		mctx.CreateModule(java.DroidstubsFactory, &DroidstubsProperties{
 			Name:                 proptools.StringPtr(name + ".docs"),
 			Srcs:                 []string{":" + name},
 			Args:                 proptools.StringPtr(args),
