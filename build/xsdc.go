@@ -143,9 +143,9 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		},
 	})
 
-	pkgName = strings.Replace(pkgName, ".", "_", -1)
-	module.genOutputs_c = android.PathForModuleGen(ctx, "cpp", pkgName+".cpp")
-	module.genOutputs_h = android.PathForModuleGen(ctx, "cpp", "include/"+pkgName+".h")
+	filenameStem := strings.Replace(pkgName, ".", "_", -1)
+	module.genOutputs_c = android.PathForModuleGen(ctx, "cpp", filenameStem+".cpp")
+	module.genOutputs_h = android.PathForModuleGen(ctx, "cpp", "include/"+filenameStem+".h")
 	module.genOutputDir = android.PathForModuleGen(ctx, "cpp", "include")
 
 	ctx.Build(pctx, android.BuildParams{
