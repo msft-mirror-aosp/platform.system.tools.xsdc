@@ -66,7 +66,7 @@ class Utils {
 
     static String toClassName(String name) throws CppCodeGeneratorException {
         String trimmed = toCamelCase(
-                name.replaceAll("[^A-Za-z0-9_-]", "").replaceAll("-","_").split("_"));
+                name.replaceAll("[^A-Za-z0-9_-]", "").replaceAll("[\\.-]", "_").split("_"));
         if (trimmed.isEmpty() || Character.isDigit(trimmed.charAt(0))) {
             throw new CppCodeGeneratorException(
                     String.format("cannot convert to a class name : %s", name));

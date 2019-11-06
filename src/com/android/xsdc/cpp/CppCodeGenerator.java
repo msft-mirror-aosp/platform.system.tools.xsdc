@@ -35,16 +35,16 @@ import javax.xml.namespace.QName;
 
 public class CppCodeGenerator {
     private XmlSchema xmlSchema;
-    private String fileName;
+    private String pkgName;
     private Map<String, CppSimpleType> cppSimpleTypeMap;
     private CodeWriter cppFile;
     private CodeWriter headerFile;
     private boolean hasAttr;
 
-    public CppCodeGenerator(XmlSchema xmlSchema, String fileName)
+    public CppCodeGenerator(XmlSchema xmlSchema, String pkgName)
             throws CppCodeGeneratorException {
         this.xmlSchema = xmlSchema;
-        this.fileName = fileName;
+        this.pkgName = pkgName;
 
         // class naming validation
         {
@@ -92,11 +92,14 @@ public class CppCodeGenerator {
     public void print(FileSystem fs)
             throws CppCodeGeneratorException, IOException {
         // cpp file, headr file init
-        cppFile =  new CodeWriter(fs.getPrintWriter(fileName + ".cpp"));
-        headerFile = new CodeWriter(fs.getPrintWriter("include/" + fileName + ".h"));
+        String cppFileName = pkgName.replace(".", "_") + ".cpp";
+        String hFileName =  pkgName.replace(".", "_") + ".h";
+        cppFile =  new CodeWriter(fs.getPrintWriter(cppFileName));
+        headerFile = new CodeWriter(fs.getPrintWriter("include/" + hFileName));
 
-        headerFile.printf("#ifndef %s_H\n", fileName.toUpperCase());
-        headerFile.printf("#define %s_H\n\n", fileName.toUpperCase());
+        String headerMacro = hFileName.toUpperCase().replace(".", "_");
+        headerFile.printf("#ifndef %s\n", headerMacro);
+        headerFile.printf("#define %s\n\n", headerMacro);
         headerFile.printf("#include <libxml/parser.h>\n");
         headerFile.printf("#include <libxml/xinclude.h>\n\n");
         headerFile.printf("#include <map>\n");
@@ -104,15 +107,21 @@ public class CppCodeGenerator {
         headerFile.printf("#include <string>\n");
         headerFile.printf("#include <vector>\n\n");
 
-        cppFile.printf("#define LOG_TAG \"%s\"\n\n", fileName);
+        cppFile.printf("#define LOG_TAG \"%s\"\n\n", pkgName);
         cppFile.printf("#include <android/log.h>\n");
         cppFile.printf("#include <android-base/strings.h>\n\n");
         cppFile.printf("#include <libxml/parser.h>\n");
         cppFile.printf("#include <libxml/xinclude.h>\n\n");
-        cppFile.printf("#include \"%s.h\"\n\n",fileName);
+        cppFile.printf("#include \"%s\"\n\n", hFileName);
 
         List<String> namespace = new java.util.ArrayList<>();
-        for (String token : fileName.split("_")) {
+        for (String token : pkgName.split("\\.")) {
+            if (token.isEmpty()) {
+                continue;
+            }
+            if (Character.isDigit(token.charAt(0))) {
+                token = "_" + token;
+            }
             namespace.add(token);
             headerFile.printf("namespace %s {\n", token);
             cppFile.printf("namespace %s {\n", token);
@@ -148,7 +157,7 @@ public class CppCodeGenerator {
             cppFile.printf("} // %s\n", token);
         }
 
-        headerFile.printf("#endif // %s_H\n",fileName.toUpperCase().replace(".", "_"));
+        headerFile.printf("#endif // %s\n", headerMacro);
         cppFile.close();
         headerFile.close();
     }
@@ -436,7 +445,7 @@ public class CppCodeGenerator {
                     + "}\n\n");
         }
 
-        String className = Utils.toClassName(fileName);
+        String className = Utils.toClassName(pkgName);
 
         boolean isMultiRootElement = xmlSchema.getElementMap().values().size() > 1;
         for (XsdElement element : xmlSchema.getElementMap().values()) {
