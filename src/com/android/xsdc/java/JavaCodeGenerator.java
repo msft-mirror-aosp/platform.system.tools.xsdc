@@ -277,7 +277,10 @@ public class JavaCodeGenerator {
             out.print("instance.setValue(value);\n"
                     + "}\n");
         } else if (!allElements.isEmpty()) {
-            out.print("while (parser.next() != org.xmlpull.v1.XmlPullParser.END_TAG) {\n"
+            out.print("int outerDepth = parser.getDepth();\n"
+                    + "int type;\n"
+                    + "while ((type=parser.next()) != org.xmlpull.v1.XmlPullParser.END_DOCUMENT\n"
+                    + "        && type != org.xmlpull.v1.XmlPullParser.END_TAG) {\n"
                     + "if (parser.getEventType() != org.xmlpull.v1.XmlPullParser.START_TAG) "
                     + "continue;\n"
                     + "String tagName = parser.getName();\n");
@@ -304,6 +307,9 @@ public class JavaCodeGenerator {
                     + "XmlParser.skip(parser);\n"
                     + "}\n"
                     + "}\n");
+            out.printf("if (type != org.xmlpull.v1.XmlPullParser.END_TAG) {\n"
+                    + "throw new javax.xml.datatype.DatatypeConfigurationException(\"%s is not closed\");\n"
+                    + "}\n", name);
         } else {
             out.print("XmlParser.skip(parser);\n");
         }
