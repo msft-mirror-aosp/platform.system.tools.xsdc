@@ -22,13 +22,16 @@ import java.util.List;
 public class XsdGeneralRestriction extends XsdTag {
     final private XsdType base;
     final private List<XsdAttribute> attributes;
+    final private List<XsdAttributeGroup> attributeGroups;
     final private List<XsdElement> elements;
 
     public XsdGeneralRestriction(XsdType base, List<XsdAttribute> attributes,
+            List<XsdAttributeGroup> attributeGroups,
             List<XsdElement> elements) {
         super(null, null);
         this.base = base;
         this.attributes = Collections.unmodifiableList(attributes);
+        this.attributeGroups = Collections.unmodifiableList(attributeGroups);
         this.elements = Collections.unmodifiableList(elements);
     }
 
@@ -38,6 +41,10 @@ public class XsdGeneralRestriction extends XsdTag {
 
     public List<XsdAttribute> getAttributes() {
         return attributes;
+    }
+
+    public List<XsdAttributeGroup> getAttributeGroups() {
+        return attributeGroups;
     }
 
     public List<XsdElement> getElements() {
