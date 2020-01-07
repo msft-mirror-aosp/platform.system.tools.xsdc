@@ -183,7 +183,13 @@ public class JavaCodeGenerator {
             elementTypes.add(javaType);
         }
         List<JavaSimpleType> attributeTypes = new ArrayList<>();
-        for (XsdAttribute attribute : complexType.getAttributes()) {
+        List<XsdAttribute> attributes =  new ArrayList<>();
+        for (XsdAttributeGroup attributeGroup : complexType.getAttributeGroups()) {
+            attributes.addAll(getAllAttributes(resolveAttributeGroup(attributeGroup)));
+        }
+        attributes.addAll(complexType.getAttributes());
+
+        for (XsdAttribute attribute : attributes) {
             XsdType type = resolveAttribute(attribute).getType();
             attributeTypes.add(parseSimpleType(type, false));
         }
@@ -200,7 +206,7 @@ public class JavaCodeGenerator {
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             JavaType type = attributeTypes.get(i);
-            XsdAttribute attribute = resolveAttribute(complexType.getAttributes().get(i));
+            XsdAttribute attribute = resolveAttribute(attributes.get(i));
             out.printf("private %s %s;\n", type.getName(),
                     Utils.toVariableName(attribute.getName()));
         }
@@ -218,7 +224,7 @@ public class JavaCodeGenerator {
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             JavaType type = attributeTypes.get(i);
-            XsdAttribute attribute = resolveAttribute(complexType.getAttributes().get(i));
+            XsdAttribute attribute = resolveAttribute(attributes.get(i));
             printGetterAndSetter(out, type, Utils.toVariableName(attribute.getName()), false,
                     attribute.isDeprecated());
         }
@@ -432,7 +438,20 @@ public class JavaCodeGenerator {
             }
         }
         elements.addAll(complexType.getElements());
+        for (XsdAttributeGroup attributeGroup : complexType.getAttributeGroups()) {
+            attributes.addAll(getAllAttributes(resolveAttributeGroup(attributeGroup)));
+        }
         attributes.addAll(complexType.getAttributes());
+    }
+
+    private List<XsdAttribute> getAllAttributes(XsdAttributeGroup attributeGroup)
+            throws JavaCodeGeneratorException{
+        List<XsdAttribute> attributes = new ArrayList<>();
+        for (XsdAttributeGroup attrGroup : attributeGroup.getAttributeGroups()) {
+            attributes.addAll(getAllAttributes(resolveAttributeGroup(attrGroup)));
+        }
+        attributes.addAll(attributeGroup.getAttributes());
+        return attributes;
     }
 
     private String getBaseName(XsdComplexType complexType) throws JavaCodeGeneratorException {
@@ -566,6 +585,15 @@ public class JavaCodeGenerator {
         XsdAttribute ret = xmlSchema.getAttributeMap().get(name);
         if (ret != null) return ret;
         throw new JavaCodeGeneratorException(String.format("no attribute named : %s", name));
+    }
+
+    private XsdAttributeGroup resolveAttributeGroup(XsdAttributeGroup attributeGroup)
+            throws JavaCodeGeneratorException {
+        if (attributeGroup.getRef() == null) return attributeGroup;
+        String name = attributeGroup.getRef().getLocalPart();
+        XsdAttributeGroup ret = xmlSchema.getAttributeGroupMap().get(name);
+        if (ret != null) return ret;
+        throw new JavaCodeGeneratorException(String.format("no attribute group named : %s", name));
     }
 
     private XsdType getType(String name) throws JavaCodeGeneratorException {
