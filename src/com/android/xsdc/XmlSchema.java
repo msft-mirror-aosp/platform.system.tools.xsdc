@@ -25,12 +25,15 @@ public class XmlSchema {
     final private Map<String, XsdElement> elementMap;
     final private Map<String, XsdType> typeMap;
     final private Map<String, XsdAttribute> attributeMap;
+    final private Map<String, XsdAttributeGroup> attributeGroupMap;
 
     XmlSchema(Map<String, XsdElement> elementMap, Map<String, XsdType> typeMap,
-            Map<String, XsdAttribute> attributeMap) {
+            Map<String, XsdAttribute> attributeMap,
+            Map<String, XsdAttributeGroup> attributeGroupMap) {
         this.elementMap = Collections.unmodifiableMap(elementMap);
         this.typeMap = Collections.unmodifiableMap(typeMap);
         this.attributeMap = Collections.unmodifiableMap(attributeMap);
+        this.attributeGroupMap = Collections.unmodifiableMap(attributeGroupMap);
     }
 
     public Map<String, XsdElement> getElementMap() {
@@ -43,5 +46,9 @@ public class XmlSchema {
 
     public Map<String, XsdAttribute> getAttributeMap() {
         return attributeMap;
+    }
+
+    public Map<String, XsdAttributeGroup> getAttributeGroupMap() {
+        return attributeGroupMap;
     }
 }
