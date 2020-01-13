@@ -55,12 +55,14 @@ public class XsdHandler extends DefaultHandler {
     private Locator locator;
     private boolean documentationFlag;
     private boolean enumerationFlag;
+    private List<XsdTag> enumTags;
 
     public XsdHandler() {
         stateStack = new Stack<>();
         namespaces = new HashMap<>();
         documentationFlag = false;
         enumerationFlag = false;
+        enumTags = new ArrayList<>();
     }
 
     public XmlSchema getSchema() {
@@ -228,6 +230,7 @@ public class XsdHandler extends DefaultHandler {
         Map<String, XsdAttribute> attrMap = new LinkedHashMap<>();
         Map<String, XsdAttributeGroup> attrGroupMap = new LinkedHashMap<>();
 
+        state.tags.addAll(enumTags);
         for (XsdTag tag : state.tags) {
             if (tag == null) continue;
             if (tag instanceof XsdElement) {
@@ -472,8 +475,13 @@ public class XsdHandler extends DefaultHandler {
             } else if (tag instanceof XsdGeneralRestriction) {
                 type = new XsdRestriction(name, ((XsdGeneralRestriction) tag).getBase(), null);
             } else if (tag instanceof XsdEnumRestriction) {
+                if (name == null) {
+                    throw new XsdParserException(
+                            "The name of simpleType for enumeration must be set.");
+                }
                 type = new XsdRestriction(name, ((XsdEnumRestriction) tag).getBase(),
                         ((XsdEnumRestriction) tag).getEnums());
+                enumTags.add(type);
             } else if (tag instanceof XsdUnion) {
                 type = new XsdUnion(name, ((XsdUnion) tag).getMemberTypes());
             }
