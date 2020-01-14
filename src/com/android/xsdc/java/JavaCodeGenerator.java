@@ -165,7 +165,11 @@ public class JavaCodeGenerator {
 
         // parse types for elements and attributes
         List<JavaType> elementTypes = new ArrayList<>();
-        for (XsdElement element : complexType.getElements()) {
+        List<XsdElement> elements = new ArrayList<>();
+        elements.addAll(getAllElements(complexType.getGroup()));
+        elements.addAll(complexType.getElements());
+
+        for (XsdElement element : elements) {
             JavaType javaType;
             XsdElement elementValue = resolveElement(element);
             if (element.getRef() == null && element.getType().getRef() == null
@@ -197,7 +201,7 @@ public class JavaCodeGenerator {
         // print member variables
         for (int i = 0; i < elementTypes.size(); ++i) {
             JavaType type = elementTypes.get(i);
-            XsdElement element = complexType.getElements().get(i);
+            XsdElement element = elements.get(i);
             XsdElement elementValue = resolveElement(element);
             String typeName = element.isMultiple() ? String.format("java.util.List<%s>",
                     type.getNullableName()) : type.getName();
@@ -217,7 +221,7 @@ public class JavaCodeGenerator {
         // print getters and setters
         for (int i = 0; i < elementTypes.size(); ++i) {
             JavaType type = elementTypes.get(i);
-            XsdElement element = complexType.getElements().get(i);
+            XsdElement element = elements.get(i);
             XsdElement elementValue = resolveElement(element);
             printGetterAndSetter(out, type, Utils.toVariableName(getElementName(elementValue)),
                     element.isMultiple(), element.isDeprecated());
@@ -437,6 +441,7 @@ public class JavaCodeGenerator {
                 }
             }
         }
+        elements.addAll(getAllElements(complexType.getGroup()));
         elements.addAll(complexType.getElements());
         for (XsdAttributeGroup attributeGroup : complexType.getAttributeGroups()) {
             attributes.addAll(getAllAttributes(resolveAttributeGroup(attributeGroup)));
@@ -445,13 +450,23 @@ public class JavaCodeGenerator {
     }
 
     private List<XsdAttribute> getAllAttributes(XsdAttributeGroup attributeGroup)
-            throws JavaCodeGeneratorException{
+            throws JavaCodeGeneratorException {
         List<XsdAttribute> attributes = new ArrayList<>();
         for (XsdAttributeGroup attrGroup : attributeGroup.getAttributeGroups()) {
             attributes.addAll(getAllAttributes(resolveAttributeGroup(attrGroup)));
         }
         attributes.addAll(attributeGroup.getAttributes());
         return attributes;
+    }
+
+    private List<XsdElement> getAllElements(XsdGroup group) throws JavaCodeGeneratorException {
+        List<XsdElement> elements = new ArrayList<>();
+        if (group == null) {
+            return elements;
+        }
+        elements.addAll(getAllElements(resolveGroup(group)));
+        elements.addAll(group.getElements());
+        return elements;
     }
 
     private String getBaseName(XsdComplexType complexType) throws JavaCodeGeneratorException {
@@ -576,6 +591,14 @@ public class JavaCodeGenerator {
         XsdElement ret = xmlSchema.getElementMap().get(name);
         if (ret != null) return ret;
         throw new JavaCodeGeneratorException(String.format("no element named : %s", name));
+    }
+
+    private XsdGroup resolveGroup(XsdGroup group) throws JavaCodeGeneratorException {
+        if (group.getRef() == null) return null;
+        String name = group.getRef().getLocalPart();
+        XsdGroup ret = xmlSchema.getGroupMap().get(name);
+        if (ret != null) return ret;
+        throw new JavaCodeGeneratorException(String.format("no group named : %s", name));
     }
 
     private XsdAttribute resolveAttribute(XsdAttribute attribute)
