@@ -46,7 +46,8 @@ TEST_F(XmlTest, Simpletype) {
     EXPECT_EQ(simple.getListInt()[i], i + 1);
   }
   EXPECT_EQ(*simple.getFirstUnionTest(), "100");
-  EXPECT_EQ(simple.getYesOrNo(), EnumType::YES);
+  EXPECT_EQ(simple.getYesOrNo()[0], EnumType::YES);
+  EXPECT_EQ(simple.getYesOrNo()[1], EnumType::EMPTY);
 }
 
 TEST_F(XmlTest, Predefinedtypes) {

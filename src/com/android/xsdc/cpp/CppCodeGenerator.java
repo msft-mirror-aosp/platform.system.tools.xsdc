@@ -169,9 +169,13 @@ public class CppCodeGenerator {
         List<XsdEnumeration> enums = restrictionType.getEnums();
 
         for (XsdEnumeration tag : enums) {
-            headerFile.printf("%s,\n", Utils.toEnumName(tag.getValue()));
+            String value = tag.getValue();
+            if (value == "") {
+                value = "EMPTY";
+            }
+            headerFile.printf("%s,\n", Utils.toEnumName(value));
             cppFile.printf("{ \"%s\", %s::%s },\n", tag.getValue(), name,
-                    Utils.toEnumName(tag.getValue()));
+                    Utils.toEnumName(value));
         }
         headerFile.printf("UNKNOWN\n};\n\n");
         cppFile.printf("};\n\n");
@@ -360,8 +364,8 @@ public class CppCodeGenerator {
                 if (type instanceof CppSimpleType) {
                     cppFile.printf("auto xmlValue = make_xmlUnique(xmlNodeListGetString(");
                     cppFile.printf("child->doc, child->xmlChildrenNode, 1));\n");
-                    cppFile.printf("if (xmlValue == nullptr) {\ncontinue;\n}\n");
-                    cppFile.printf("raw = reinterpret_cast<const char*>(xmlValue.get());\n");
+                    cppFile.printf("if (xmlValue == nullptr) {\nraw = \"\";\n} else {\n");
+                    cppFile.printf("raw = reinterpret_cast<const char*>(xmlValue.get());\n}\n");
                 }
 
                 cppFile.print(type.getParsingExpression());
