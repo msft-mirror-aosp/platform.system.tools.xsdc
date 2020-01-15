@@ -25,6 +25,7 @@
 #include "reference.h"
 #include "simple_type.h"
 #include "attr_group_simple.h"
+#include "group.h"
 
 using namespace std;
 
@@ -205,6 +206,15 @@ TEST_F(XmlTest, Attrgroupsimple) {
   Student student = *read("resources/attr_group_simple.xml");
 
   EXPECT_EQ(student.getName(), "Jun");
+  EXPECT_EQ(student.getCity(), "Mountain View");
+  EXPECT_EQ(student.getState(), "CA");
+  EXPECT_EQ(student.getRoad(), "Street 101");
+}
+
+TEST_F(XmlTest, Group) {
+  using namespace group;
+  Student student = *read("resources/group.xml");
+
   EXPECT_EQ(student.getCity(), "Mountain View");
   EXPECT_EQ(student.getState(), "CA");
   EXPECT_EQ(student.getRoad(), "Street 101");
