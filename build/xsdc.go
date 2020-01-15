@@ -157,8 +157,9 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 	xsdFile := srcFiles[0]
 
 	pkgName := *module.properties.Package_name
+	filenameStem := strings.Replace(pkgName, ".", "_", -1)
 
-	module.genOutputs_j = android.PathForModuleGen(ctx, "java", "xsdcgen.srcjar")
+	module.genOutputs_j = android.PathForModuleGen(ctx, "java", filenameStem+"_xsdcgen.srcjar")
 
 	ctx.Build(pctx, android.BuildParams{
 		Rule:        xsdcJavaRule,
@@ -171,7 +172,6 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		},
 	})
 
-	filenameStem := strings.Replace(pkgName, ".", "_", -1)
 	module.genOutputs_c = android.PathForModuleGen(ctx, "cpp", filenameStem+".cpp")
 	module.genOutputs_h = android.PathForModuleGen(ctx, "cpp", "include/"+filenameStem+".h")
 	module.genOutputDir = android.PathForModuleGen(ctx, "cpp", "include")
