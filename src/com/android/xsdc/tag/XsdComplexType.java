@@ -25,10 +25,11 @@ public abstract class XsdComplexType extends XsdType {
     final private List<XsdAttribute> attributes;
     final private List<XsdAttributeGroup> attributeGroups;
     final private List<XsdElement> elements;
+    final private XsdGroup group;
 
     XsdComplexType(String name, XsdType base, List<XsdAttribute> attributes,
             List<XsdAttributeGroup> attributeGroups,
-            List<XsdElement> elements) {
+            List<XsdElement> elements, XsdGroup group) {
         super(name, null);
         this.base = base;
         this.attributes = Collections.unmodifiableList(
@@ -37,6 +38,7 @@ public abstract class XsdComplexType extends XsdType {
                 attributeGroups != null ? attributeGroups : new ArrayList<>());
         this.elements = Collections.unmodifiableList(
                 elements != null ? elements : new ArrayList<>());
+        this.group = group;
     }
 
     public XsdType getBase() {
@@ -53,5 +55,9 @@ public abstract class XsdComplexType extends XsdType {
 
     public List<XsdElement> getElements() {
         return elements;
+    }
+
+    public XsdGroup getGroup() {
+        return group;
     }
 }

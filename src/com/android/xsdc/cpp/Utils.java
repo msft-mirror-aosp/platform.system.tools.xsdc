@@ -61,7 +61,7 @@ class Utils {
         String lowered = Character.isDigit(trimmed.charAt(0)) ? "_" + trimmed
                 : lowerize(trimmed);
         // always starts with a lowercase or underscore character.
-        return (keywordSet.contains(trimmed)) ? "_" + lowered : lowered;
+        return (keywordSet.contains(lowered)) ? "_" + lowered : lowered;
     }
 
     static String toClassName(String name) throws CppCodeGeneratorException {
@@ -81,6 +81,6 @@ class Utils {
                     String.format("cannot convert to a variable name : %s", name));
         }
         String enumName = Character.isDigit(trimmed.charAt(0)) ? "_" + trimmed : trimmed;
-        return (keywordSet.contains(trimmed)) ? "_" + enumName : enumName;
+        return (keywordSet.contains(enumName)) ? "_" + enumName : enumName;
     }
 }
