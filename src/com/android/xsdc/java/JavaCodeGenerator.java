@@ -127,7 +127,11 @@ public class JavaCodeGenerator {
             if (tag.isDeprecated()) {
                 out.printf("@java.lang.Deprecated\n");
             }
-            out.printf("\n%s(\"%s\"),", Utils.toEnumName(tag.getValue()), tag.getValue());
+            String value = tag.getValue();
+            if (value == "") {
+                value = "EMPTY";
+            }
+            out.printf("\n%s(\"%s\"),", Utils.toEnumName(value), tag.getValue());
         }
         out.printf(";\n\n");
         out.printf("private final String rawName;\n\n");
