@@ -170,7 +170,7 @@ public class CppCodeGenerator {
 
         for (XsdEnumeration tag : enums) {
             String value = tag.getValue();
-            if (value == "") {
+            if ("".equals(value)) {
                 value = "EMPTY";
             }
             headerFile.printf("%s,\n", Utils.toEnumName(value));
