@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 The Android Open Source Project
+ * Copyright (C) 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,29 +16,25 @@
 
 package com.android.xsdc.tag;
 
+import com.android.xsdc.XsdParserException;
+
 import java.util.Collections;
 import java.util.List;
+import javax.xml.namespace.QName;
 
-public class XsdGeneralExtension extends XsdTag {
-    final private XsdType base;
+public class XsdAttributeGroup extends XsdTag {
     final private List<XsdAttribute> attributes;
     final private List<XsdAttributeGroup> attributeGroups;
-    final private List<XsdElement> elements;
-    final private XsdGroup group;
 
-    public XsdGeneralExtension(XsdType base, List<XsdAttribute> attributes,
-            List<XsdAttributeGroup> attributeGroups,
-            List<XsdElement> elements, XsdGroup group) {
-        super(null, null);
-        this.base = base;
+    public XsdAttributeGroup(String name, QName ref,
+            List<XsdAttribute> attributes,
+            List<XsdAttributeGroup> attributeGroups) throws XsdParserException {
+        super(name, ref);
+        if (name == null && ref == null) {
+            throw new XsdParserException("name and ref cannot be both null");
+        }
         this.attributes = Collections.unmodifiableList(attributes);
         this.attributeGroups = Collections.unmodifiableList(attributeGroups);
-        this.elements = Collections.unmodifiableList(elements);
-        this.group = group;
-    }
-
-    public XsdType getBase() {
-        return base;
     }
 
     public List<XsdAttribute> getAttributes() {
@@ -47,13 +43,5 @@ public class XsdGeneralExtension extends XsdTag {
 
     public List<XsdAttributeGroup> getAttributeGroups() {
         return attributeGroups;
-    }
-
-    public List<XsdElement> getElements() {
-        return elements;
-    }
-
-    public XsdGroup getGroup() {
-        return group;
     }
 }

@@ -55,12 +55,14 @@ public class XsdHandler extends DefaultHandler {
     private Locator locator;
     private boolean documentationFlag;
     private boolean enumerationFlag;
+    private List<XsdTag> enumTags;
 
     public XsdHandler() {
         stateStack = new Stack<>();
         namespaces = new HashMap<>();
         documentationFlag = false;
         enumerationFlag = false;
+        enumTags = new ArrayList<>();
     }
 
     public XmlSchema getSchema() {
@@ -136,6 +138,9 @@ public class XsdHandler extends DefaultHandler {
                 case "attribute":
                     stateStack.peek().tags.add(makeAttribute(state));
                     break;
+                case "attributeGroup":
+                    stateStack.peek().tags.add(makeAttributeGroup(state));
+                    break;
                 case "complexType":
                     stateStack.peek().tags.add(makeComplexType(state));
                     break;
@@ -177,6 +182,9 @@ public class XsdHandler extends DefaultHandler {
                 case "enumeration":
                     stateStack.peek().tags.add(makeEnumeration(state));
                     enumerationFlag = true;
+                    break;
+                case "group":
+                    stateStack.peek().tags.add(makeGroup(state));
                     break;
                 case "fractionDigits":
                 case "length":
@@ -223,19 +231,26 @@ public class XsdHandler extends DefaultHandler {
         Map<String, XsdElement> elementMap = new LinkedHashMap<>();
         Map<String, XsdType> typeMap = new LinkedHashMap<>();
         Map<String, XsdAttribute> attrMap = new LinkedHashMap<>();
+        Map<String, XsdAttributeGroup> attrGroupMap = new LinkedHashMap<>();
+        Map<String, XsdGroup> groupMap = new LinkedHashMap<>();
 
+        state.tags.addAll(enumTags);
         for (XsdTag tag : state.tags) {
             if (tag == null) continue;
             if (tag instanceof XsdElement) {
                 elementMap.put(tag.getName(), (XsdElement) tag);
             } else if (tag instanceof XsdAttribute) {
                 attrMap.put(tag.getName(), (XsdAttribute) tag);
+            } else if (tag instanceof XsdAttributeGroup) {
+                attrGroupMap.put(tag.getName(), (XsdAttributeGroup) tag);
             } else if (tag instanceof XsdType) {
                 typeMap.put(tag.getName(), (XsdType) tag);
+            } else if (tag instanceof XsdGroup) {
+                groupMap.put(tag.getName(), (XsdGroup) tag);
             }
         }
 
-        return new XmlSchema(elementMap, typeMap, attrMap);
+        return new XmlSchema(elementMap, typeMap, attrMap, attrGroupMap, groupMap);
     }
 
     private XsdElement makeElement(State state) throws XsdParserException {
@@ -300,6 +315,42 @@ public class XsdHandler extends DefaultHandler {
         return setDeprecated(new XsdAttribute(name, ref, type), state.deprecated);
     }
 
+    private XsdAttributeGroup makeAttributeGroup(State state) throws XsdParserException {
+        String name = state.attributeMap.get("name");
+        QName ref = parseQName(state.attributeMap.get("ref"));
+
+        List<XsdAttribute> attributes = new ArrayList<>();
+        List<XsdAttributeGroup> attributeGroups = new ArrayList<>();
+
+        for (XsdTag tag : state.tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdAttribute) {
+                attributes.add((XsdAttribute) tag);
+            } else if (tag instanceof XsdAttributeGroup) {
+                attributeGroups.add((XsdAttributeGroup) tag);
+            }
+        }
+
+        return setDeprecated(new XsdAttributeGroup(name, ref, attributes, attributeGroups),
+                state.deprecated);
+    }
+
+    private XsdGroup makeGroup(State state) throws XsdParserException {
+        String name = state.attributeMap.get("name");
+        QName ref = parseQName(state.attributeMap.get("ref"));
+
+        List<XsdElement> elements = new ArrayList<>();
+
+        for (XsdTag tag: state.tags) {
+            if (tag == null) continue;
+            if (tag instanceof XsdElement) {
+                elements.add((XsdElement) tag);
+            }
+        }
+
+        return setDeprecated(new XsdGroup(name, ref, elements), state.deprecated);
+    }
+
     private XsdComplexType makeComplexType(State state) throws XsdParserException {
         String name = state.attributeMap.get("name");
         String isAbstract = state.attributeMap.get("abstract");
@@ -313,19 +364,26 @@ public class XsdHandler extends DefaultHandler {
         }
 
         List<XsdAttribute> attributes = new ArrayList<>();
+        List<XsdAttributeGroup> attributeGroups = new ArrayList<>();
         List<XsdElement> elements = new ArrayList<>();
         XsdComplexType type = null;
+        XsdGroup group = null;
 
         for (XsdTag tag : state.tags) {
             if (tag == null) continue;
             if (tag instanceof XsdAttribute) {
                 attributes.add((XsdAttribute) tag);
+            } else if (tag instanceof XsdAttributeGroup) {
+                attributeGroups.add((XsdAttributeGroup) tag);
+            } else if (tag instanceof XsdGroup) {
+                group = (XsdGroup) tag;
             } else if (tag instanceof XsdElement) {
                 elements.add((XsdElement) tag);
             } else if (tag instanceof XsdComplexContent) {
                 XsdComplexContent child = (XsdComplexContent) tag;
                 type = setDeprecated(new XsdComplexContent(name, child.getBase(),
-                        child.getAttributes(), child.getElements()), state.deprecated);
+                        child.getAttributes(), child.getAttributeGroups(),
+                        child.getElements(), child.getGroup()), state.deprecated);
             } else if (tag instanceof XsdSimpleContent) {
                 XsdSimpleContent child = (XsdSimpleContent) tag;
                 type = setDeprecated(new XsdSimpleContent(name, child.getBase(),
@@ -334,7 +392,7 @@ public class XsdHandler extends DefaultHandler {
         }
 
         return (type != null) ? type : setDeprecated(new XsdComplexContent(name, null, attributes,
-                elements), state.deprecated);
+                attributeGroups, elements, group), state.deprecated);
     }
 
     private XsdComplexContent makeComplexContent(State state) throws XsdParserException {
@@ -349,7 +407,8 @@ public class XsdHandler extends DefaultHandler {
             if (tag instanceof XsdGeneralExtension) {
                 XsdGeneralExtension extension = (XsdGeneralExtension) tag;
                 content = new XsdComplexContent(null, extension.getBase(),
-                        extension.getAttributes(), extension.getElements());
+                        extension.getAttributes(), extension.getAttributeGroups(),
+                        extension.getElements(), extension.getGroup());
             } else if (tag instanceof XsdGeneralRestriction) {
                 XsdGeneralRestriction restriction = (XsdGeneralRestriction) tag;
                 XsdType base = restriction.getBase();
@@ -357,10 +416,11 @@ public class XsdHandler extends DefaultHandler {
                         XsdConstants.XSD_NAMESPACE)) {
                     // restriction of base 'xsd:anyType' is equal to complex content definition
                     content = new XsdComplexContent(null, null, restriction.getAttributes(),
-                            restriction.getElements());
+                            restriction.getAttributeGroups(), restriction.getElements(),
+                            restriction.getGroup());
                 } else {
                     // otherwise ignore restrictions
-                    content = new XsdComplexContent(null, base, null, null);
+                    content = new XsdComplexContent(null, base, null, null, null, null);
                 }
             }
         }
@@ -394,35 +454,47 @@ public class XsdHandler extends DefaultHandler {
             type = new XsdType(null, base);
         }
         List<XsdAttribute> attributes = new ArrayList<>();
+        List<XsdAttributeGroup> attributeGroups = new ArrayList<>();
         List<XsdElement> elements = new ArrayList<>();
+        XsdGroup group = null;
         for (XsdTag tag : state.tags) {
             if (tag == null) continue;
             if (tag instanceof XsdAttribute) {
                 attributes.add((XsdAttribute) tag);
+            } else if (tag instanceof XsdAttributeGroup) {
+                attributeGroups.add((XsdAttributeGroup) tag);
             } else if (tag instanceof XsdElement) {
                 elements.add((XsdElement) tag);
+            } else if (tag instanceof XsdGroup) {
+                group = (XsdGroup) tag;
             }
         }
 
-        return setDeprecated(new XsdGeneralRestriction(type, attributes, elements),
-                state.deprecated);
+        return setDeprecated(new XsdGeneralRestriction(type, attributes, attributeGroups,
+                elements, group), state.deprecated);
     }
 
     private XsdGeneralExtension makeGeneralExtension(State state) throws XsdParserException {
         QName base = parseQName(state.attributeMap.get("base"));
 
         List<XsdAttribute> attributes = new ArrayList<>();
+        List<XsdAttributeGroup> attributeGroups = new ArrayList<>();
         List<XsdElement> elements = new ArrayList<>();
+        XsdGroup group = null;
         for (XsdTag tag : state.tags) {
             if (tag == null) continue;
             if (tag instanceof XsdAttribute) {
                 attributes.add((XsdAttribute) tag);
+            } else if (tag instanceof XsdAttributeGroup) {
+                attributeGroups.add((XsdAttributeGroup) tag);
             } else if (tag instanceof XsdElement) {
                 elements.add((XsdElement) tag);
+            } else if (tag instanceof XsdGroup) {
+                group = (XsdGroup) tag;
             }
         }
-        return setDeprecated(new XsdGeneralExtension(new XsdType(null, base), attributes, elements),
-                state.deprecated);
+        return setDeprecated(new XsdGeneralExtension(new XsdType(null, base), attributes,
+                attributeGroups, elements, group), state.deprecated);
     }
 
     private XsdSimpleType makeSimpleType(State state) throws XsdParserException {
@@ -435,8 +507,13 @@ public class XsdHandler extends DefaultHandler {
             } else if (tag instanceof XsdGeneralRestriction) {
                 type = new XsdRestriction(name, ((XsdGeneralRestriction) tag).getBase(), null);
             } else if (tag instanceof XsdEnumRestriction) {
+                if (name == null) {
+                    throw new XsdParserException(
+                            "The name of simpleType for enumeration must be set.");
+                }
                 type = new XsdRestriction(name, ((XsdEnumRestriction) tag).getBase(),
                         ((XsdEnumRestriction) tag).getEnums());
+                enumTags.add(type);
             } else if (tag instanceof XsdUnion) {
                 type = new XsdUnion(name, ((XsdUnion) tag).getMemberTypes());
             }
@@ -475,7 +552,7 @@ public class XsdHandler extends DefaultHandler {
         return setDeprecated(new XsdUnion(null, memberTypes), state.deprecated);
     }
 
-    private static List<XsdElement> makeSequence(State state) throws XsdParserException {
+    private static List<XsdTag> makeSequence(State state) throws XsdParserException {
         String minOccurs = state.attributeMap.get("minOccurs");
         String maxOccurs = state.attributeMap.get("maxOccurs");
 
@@ -484,7 +561,7 @@ public class XsdHandler extends DefaultHandler {
                     "minOccurs, maxOccurs options of a sequence is not supported");
         }
 
-        List<XsdElement> elements = new ArrayList<>();
+        List<XsdTag> elementsAndGroup = new ArrayList<>();
         for (XsdTag tag : state.tags) {
             if (tag == null) continue;
             if (tag instanceof XsdElement) {
@@ -492,15 +569,17 @@ public class XsdHandler extends DefaultHandler {
                         || Integer.parseInt(maxOccurs) > 1)) {
                     ((XsdElement)tag).setMultiple(true);
                 }
-                elements.add((XsdElement) tag);
+                elementsAndGroup.add(tag);
+            } else if (tag instanceof XsdGroup) {
+                elementsAndGroup.add(tag);
             }
         }
-        return elements;
+        return elementsAndGroup;
     }
 
-    private static List<XsdElement> makeChoice(State state) throws XsdParserException {
+    private static List<XsdTag> makeChoice(State state) throws XsdParserException {
         String maxOccurs = state.attributeMap.get("maxOccurs");
-        List<XsdElement> elements = new ArrayList<>();
+        List<XsdTag> elementsAndGroup = new ArrayList<>();
 
         for (XsdTag tag : state.tags) {
             if (tag == null) continue;
@@ -510,11 +589,14 @@ public class XsdHandler extends DefaultHandler {
                     ((XsdElement)tag).setMultiple(true);
                 }
                 XsdElement element = (XsdElement)tag;
-                elements.add(setDeprecated(new XsdChoice(element.getName(), element.getRef(),
-                        element.getType(), element.isMultiple()), element.isDeprecated()));
+                elementsAndGroup.add((XsdTag) setDeprecated(new XsdChoice(element.getName(),
+                        element.getRef(), element.getType(), element.isMultiple()),
+                        element.isDeprecated()));
+            } else if (tag instanceof XsdGroup) {
+                elementsAndGroup.add(tag);
             }
         }
-        return elements;
+        return elementsAndGroup;
     }
 
     private static List<XsdElement> makeAll(State state) throws XsdParserException {

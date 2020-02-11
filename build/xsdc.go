@@ -52,6 +52,11 @@ var (
 		CommandDeps: []string{"${xsdcCmd}", "${config.SoongZipCmd}"},
 		Description: "xsdc C++ ${in} => ${out}",
 	}, "pkgName", "outDir")
+
+	xsdConfigRule = pctx.StaticRule("xsdConfigRule", blueprint.RuleParams{
+		Command:     "cp -f ${in} ${output}",
+		Description: "copy the xsd file: ${in} => ${output}",
+	}, "output")
 )
 
 type xsdConfigProperties struct {
@@ -71,7 +76,12 @@ type xsdConfig struct {
 	genOutputs_h android.WritablePath
 
 	docsPath android.Path
+
+	xsdConfigPath android.OptionalPath
+	genOutputs  android.Paths
 }
+
+var _ android.SourceFileProducer = (*xsdConfig)(nil)
 
 type ApiToCheck struct {
 	Api_file         *string
@@ -99,7 +109,7 @@ func (module *xsdConfig) GeneratedSourceFiles() android.Paths {
 }
 
 func (module *xsdConfig) Srcs() android.Paths {
-	return android.Paths{module.genOutputs_j}
+	return append(module.genOutputs, module.genOutputs_j)
 }
 
 func (module *xsdConfig) GeneratedDeps() android.Paths {
@@ -112,6 +122,24 @@ func (module *xsdConfig) GeneratedHeaderDirs() android.Paths {
 
 func (module *xsdConfig) DepsMutator(ctx android.BottomUpMutatorContext) {
 	android.ExtractSourcesDeps(ctx, module.properties.Srcs)
+}
+
+func (module *xsdConfig) generateXsdConfig(ctx android.ModuleContext) {
+	if !module.xsdConfigPath.Valid() {
+		return
+	}
+
+	output := android.PathForModuleGen(ctx, module.Name()+".xsd")
+	module.genOutputs = append(module.genOutputs, output)
+
+	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
+		Rule:   xsdConfigRule,
+		Input:  module.xsdConfigPath.Path(),
+		Output: output,
+		Args: map[string]string{
+			"output": output.String(),
+		},
+	})
 }
 
 func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) {
@@ -129,8 +157,9 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 	xsdFile := srcFiles[0]
 
 	pkgName := *module.properties.Package_name
+	filenameStem := strings.Replace(pkgName, ".", "_", -1)
 
-	module.genOutputs_j = android.PathForModuleGen(ctx, "java", "xsdcgen.srcjar")
+	module.genOutputs_j = android.PathForModuleGen(ctx, "java", filenameStem+"_xsdcgen.srcjar")
 
 	ctx.Build(pctx, android.BuildParams{
 		Rule:        xsdcJavaRule,
@@ -143,9 +172,8 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		},
 	})
 
-	pkgName = strings.Replace(pkgName, ".", "_", -1)
-	module.genOutputs_c = android.PathForModuleGen(ctx, "cpp", pkgName+".cpp")
-	module.genOutputs_h = android.PathForModuleGen(ctx, "cpp", "include/"+pkgName+".h")
+	module.genOutputs_c = android.PathForModuleGen(ctx, "cpp", filenameStem+".cpp")
+	module.genOutputs_h = android.PathForModuleGen(ctx, "cpp", "include/"+filenameStem+".h")
 	module.genOutputDir = android.PathForModuleGen(ctx, "cpp", "include")
 
 	ctx.Build(pctx, android.BuildParams{
@@ -160,6 +188,8 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 			"outDir":  android.PathForModuleGen(ctx, "cpp").String(),
 		},
 	})
+	module.xsdConfigPath = android.ExistentPathForSource(ctx, xsdFile.String())
+	module.generateXsdConfig(ctx)
 }
 
 func xsdConfigMutator(mctx android.TopDownMutatorContext) {
