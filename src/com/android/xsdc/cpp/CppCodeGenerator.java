@@ -169,9 +169,13 @@ public class CppCodeGenerator {
         List<XsdEnumeration> enums = restrictionType.getEnums();
 
         for (XsdEnumeration tag : enums) {
-            headerFile.printf("%s,\n", Utils.toEnumName(tag.getValue()));
+            String value = tag.getValue();
+            if ("".equals(value)) {
+                value = "EMPTY";
+            }
+            headerFile.printf("%s,\n", Utils.toEnumName(value));
             cppFile.printf("{ \"%s\", %s::%s },\n", tag.getValue(), name,
-                    Utils.toEnumName(tag.getValue()));
+                    Utils.toEnumName(value));
         }
         headerFile.printf("UNKNOWN\n};\n\n");
         cppFile.printf("};\n\n");
@@ -218,7 +222,11 @@ public class CppCodeGenerator {
 
         // parse types for elements and attributes
         List<CppType> elementTypes = new ArrayList<>();
-        for (XsdElement element : complexType.getElements()) {
+        List<XsdElement> elements = new ArrayList<>();
+        elements.addAll(getAllElements(complexType.getGroup()));
+        elements.addAll(complexType.getElements());
+
+        for (XsdElement element : elements) {
             CppType cppType;
             XsdElement elementValue = resolveElement(element);
             if (element.getRef() == null && element.getType().getRef() == null
@@ -236,7 +244,13 @@ public class CppCodeGenerator {
             elementTypes.add(cppType);
         }
         List<CppSimpleType> attributeTypes = new ArrayList<>();
-        for (XsdAttribute attribute : complexType.getAttributes()) {
+        List<XsdAttribute> attributes = new ArrayList();
+        for (XsdAttributeGroup attributeGroup : complexType.getAttributeGroups()) {
+            attributes.addAll(getAllAttributes(resolveAttributeGroup(attributeGroup)));
+        }
+        attributes.addAll(complexType.getAttributes());
+
+        for (XsdAttribute attribute : attributes) {
             XsdType type = resolveAttribute(attribute).getType();
             attributeTypes.add(parseSimpleType(type, false));
         }
@@ -246,7 +260,7 @@ public class CppCodeGenerator {
         headerFile.printf("private:\n");
         for (int i = 0; i < elementTypes.size(); ++i) {
             CppType type = elementTypes.get(i);
-            XsdElement element = complexType.getElements().get(i);
+            XsdElement element = elements.get(i);
             XsdElement elementValue = resolveElement(element);
             String typeName = element.isMultiple() || type instanceof CppComplexType ?
                     String.format("std::vector<%s>", type.getName()) : type.getName();
@@ -255,7 +269,7 @@ public class CppCodeGenerator {
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             CppType type = attributeTypes.get(i);
-            XsdAttribute attribute = resolveAttribute(complexType.getAttributes().get(i));
+            XsdAttribute attribute = resolveAttribute(attributes.get(i));
             headerFile.printf("%s %s;\n", type.getName(),
                     Utils.toVariableName(attribute.getName()));
         }
@@ -268,7 +282,7 @@ public class CppCodeGenerator {
         headerFile.printf("public:\n");
         for (int i = 0; i < elementTypes.size(); ++i) {
             CppType type = elementTypes.get(i);
-            XsdElement element = complexType.getElements().get(i);
+            XsdElement element = elements.get(i);
             XsdElement elementValue = resolveElement(element);
             printGetterAndSetter(nameScope + name, type,
                     Utils.toVariableName(getElementName(elementValue)),
@@ -277,7 +291,7 @@ public class CppCodeGenerator {
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             CppType type = attributeTypes.get(i);
-            XsdAttribute attribute = resolveAttribute(complexType.getAttributes().get(i));
+            XsdAttribute attribute = resolveAttribute(attributes.get(i));
             printGetterAndSetter(nameScope + name, type,
                     Utils.toVariableName(attribute.getName()), false, false);
         }
@@ -350,8 +364,8 @@ public class CppCodeGenerator {
                 if (type instanceof CppSimpleType) {
                     cppFile.printf("auto xmlValue = make_xmlUnique(xmlNodeListGetString(");
                     cppFile.printf("child->doc, child->xmlChildrenNode, 1));\n");
-                    cppFile.printf("if (xmlValue == nullptr) {\ncontinue;\n}\n");
-                    cppFile.printf("raw = reinterpret_cast<const char*>(xmlValue.get());\n");
+                    cppFile.printf("if (xmlValue == nullptr) {\nraw = \"\";\n} else {\n");
+                    cppFile.printf("raw = reinterpret_cast<const char*>(xmlValue.get());\n}\n");
                 }
 
                 cppFile.print(type.getParsingExpression());
@@ -503,9 +517,34 @@ public class CppCodeGenerator {
                 }
             }
         }
+        elements.addAll(getAllElements(complexType.getGroup()));
         elements.addAll(complexType.getElements());
+        for (XsdAttributeGroup attributeGroup : complexType.getAttributeGroups()) {
+            attributes.addAll(getAllAttributes(resolveAttributeGroup(attributeGroup)));
+        }
         attributes.addAll(complexType.getAttributes());
     }
+
+    private List<XsdAttribute> getAllAttributes(XsdAttributeGroup attributeGroup)
+            throws CppCodeGeneratorException{
+        List<XsdAttribute> attributes = new ArrayList<>();
+        for (XsdAttributeGroup attrGroup : attributeGroup.getAttributeGroups()) {
+            attributes.addAll(getAllAttributes(resolveAttributeGroup(attrGroup)));
+        }
+        attributes.addAll(attributeGroup.getAttributes());
+        return attributes;
+    }
+
+    private List<XsdElement> getAllElements(XsdGroup group) throws CppCodeGeneratorException {
+        List<XsdElement> elements = new ArrayList<>();
+        if (group == null) {
+            return elements;
+        }
+        elements.addAll(getAllElements(resolveGroup(group)));
+        elements.addAll(group.getElements());
+        return elements;
+    }
+
 
     private String getBaseName(XsdComplexType complexType) throws CppCodeGeneratorException {
         if (complexType.getBase() == null) return null;
@@ -630,6 +669,14 @@ public class CppCodeGenerator {
         throw new CppCodeGeneratorException(String.format("no element named : %s", name));
     }
 
+    private XsdGroup resolveGroup(XsdGroup group) throws CppCodeGeneratorException {
+        if (group.getRef() == null) return null;
+        String name = group.getRef().getLocalPart();
+        XsdGroup ret = xmlSchema.getGroupMap().get(name);
+        if (ret != null) return ret;
+        throw new CppCodeGeneratorException(String.format("no group named : %s", name));
+    }
+
     private XsdAttribute resolveAttribute(XsdAttribute attribute)
             throws CppCodeGeneratorException {
         if (attribute.getRef() == null) return attribute;
@@ -637,6 +684,15 @@ public class CppCodeGenerator {
         XsdAttribute ret = xmlSchema.getAttributeMap().get(name);
         if (ret != null) return ret;
         throw new CppCodeGeneratorException(String.format("no attribute named : %s", name));
+    }
+
+    private XsdAttributeGroup resolveAttributeGroup(XsdAttributeGroup attributeGroup)
+            throws CppCodeGeneratorException {
+        if (attributeGroup.getRef() == null) return attributeGroup;
+        String name = attributeGroup.getRef().getLocalPart();
+        XsdAttributeGroup ret = xmlSchema.getAttributeGroupMap().get(name);
+        if (ret != null) return ret;
+        throw new CppCodeGeneratorException(String.format("no attribute group named : %s", name));
     }
 
     private XsdType getType(String name) throws CppCodeGeneratorException {
@@ -652,7 +708,8 @@ public class CppCodeGenerator {
     }
 
     private boolean hasAttribute(XsdComplexType complexType) throws CppCodeGeneratorException {
-        if (complexType.getAttributes().size() > 0) {
+        if (complexType.getAttributes().size() > 0 ||
+                complexType.getAttributeGroups().size() > 0) {
             return true;
         }
         boolean results = false;
