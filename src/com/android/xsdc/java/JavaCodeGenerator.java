@@ -87,7 +87,8 @@ public class JavaCodeGenerator {
                 XsdComplexType complexType = (XsdComplexType) type;
                 try (CodeWriter out = new CodeWriter(fs.getPrintWriter(name + ".java"))) {
                     out.printf("package %s;\n\n", packageName);
-                    printClass(out, name, complexType, "", type.isDeprecated());
+                    printClass(out, name, complexType, "", type.isDeprecated(),
+                            type.isFinalValue());
                 }
             } else if (type instanceof XsdRestriction &&
                     ((XsdRestriction)type).getEnums() != null) {
@@ -106,7 +107,8 @@ public class JavaCodeGenerator {
                 XsdComplexType complexType = (XsdComplexType) type;
                 try (CodeWriter out = new CodeWriter(fs.getPrintWriter(name + ".java"))) {
                     out.printf("package %s;\n\n", packageName);
-                    printClass(out, name, complexType, "", type.isDeprecated());
+                    printClass(out, name, complexType, "", type.isDeprecated(),
+                            type.isFinalValue());
                 }
             }
         }
@@ -145,7 +147,8 @@ public class JavaCodeGenerator {
     }
 
     private void printClass(CodeWriter out, String name, XsdComplexType complexType,
-            String nameScope, boolean deprecated) throws JavaCodeGeneratorException {
+            String nameScope, boolean deprecated, boolean finalValue)
+            throws JavaCodeGeneratorException {
         assert name != null;
         // need element, attribute name duplicate validation?
 
@@ -153,13 +156,14 @@ public class JavaCodeGenerator {
         JavaSimpleType valueType = (complexType instanceof XsdSimpleContent) ?
                 getValueType((XsdSimpleContent) complexType, false) : null;
 
+        String finalString = getFinalString(finalValue);
         if (deprecated) {
             out.printf("@java.lang.Deprecated\n");
         }
         if (nameScope.isEmpty()) {
-            out.printf("public class %s ", name);
+            out.printf("public%s class %s ", finalString, name);
         } else {
-            out.printf("public static class %s ", name);
+            out.printf("public%s static class %s ", finalString, name);
         }
         if (baseName != null) {
             out.printf("extends %s {\n", baseName);
@@ -182,7 +186,8 @@ public class JavaCodeGenerator {
                 String innerName = Utils.toClassName(getElementName(element));
                 XsdComplexType innerType = (XsdComplexType) element.getType();
                 String innerNameScope = nameScope + name + ".";
-                printClass(out, innerName, innerType, innerNameScope, innerType.isDeprecated());
+                printClass(out, innerName, innerType, innerNameScope, innerType.isDeprecated(),
+                        innerType.isFinalValue());
                 out.println();
                 javaType = new JavaComplexType(innerNameScope + innerName);
             } else {
@@ -228,16 +233,16 @@ public class JavaCodeGenerator {
             XsdElement element = elements.get(i);
             XsdElement elementValue = resolveElement(element);
             printGetterAndSetter(out, type, Utils.toVariableName(getElementName(elementValue)),
-                    element.isMultiple(), element.isDeprecated());
+                    element.isMultiple(), element.isDeprecated(), element.isFinalValue());
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             JavaType type = attributeTypes.get(i);
             XsdAttribute attribute = resolveAttribute(attributes.get(i));
             printGetterAndSetter(out, type, Utils.toVariableName(attribute.getName()), false,
-                    attribute.isDeprecated());
+                    attribute.isDeprecated(), attribute.isFinalValue());
         }
         if (valueType != null) {
-            printGetterAndSetter(out, valueType, "value", false, false);
+            printGetterAndSetter(out, valueType, "value", false, false, false);
         }
 
         out.println();
@@ -332,14 +337,15 @@ public class JavaCodeGenerator {
     }
 
     private void printGetterAndSetter(CodeWriter out, JavaType type, String variableName,
-            boolean isMultiple, boolean deprecated) {
+            boolean isMultiple, boolean deprecated, boolean finalValue) {
         String typeName = isMultiple ? String.format("java.util.List<%s>", type.getNullableName())
                 : type.getName();
         out.println();
         if (deprecated) {
             out.printf("@java.lang.Deprecated\n");
         }
-        out.printf("public %s get%s() {\n", typeName, Utils.capitalize(variableName));
+        out.printf("public%s %s get%s() {\n", getFinalString(finalValue), typeName,
+                Utils.capitalize(variableName));
         if (isMultiple) {
             out.printf("if (%s == null) {\n"
                     + "%s = new java.util.ArrayList<>();\n"
@@ -353,9 +359,10 @@ public class JavaCodeGenerator {
         if (deprecated) {
             out.printf("@java.lang.Deprecated\n");
         }
-        out.printf("public void set%s(%s %s) {\n"
+        out.printf("public%s void set%s(%s %s) {\n"
                         + "this.%s = %s;\n"
                         + "}\n",
+                getFinalString(finalValue),
                 Utils.capitalize(variableName), typeName, variableName, variableName, variableName);
     }
 
@@ -432,6 +439,13 @@ public class JavaCodeGenerator {
             return element.getName() + "_all";
         }
         return element.getName();
+    }
+
+    private String getFinalString(boolean finalValue) {
+        if (finalValue) {
+          return " final";
+        }
+        return "";
     }
 
     private void stackComponents(XsdComplexType complexType, List<XsdElement> elements,
