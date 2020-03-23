@@ -2,12 +2,15 @@
     <xs:complexType name="address">
         <xs:annotation name="Deprecated"/>
         <xs:sequence>
-            <xs:element name="name"   type="xs:string"/>
+            <xs:element name="name"   type="xs:string">
+                <xs:annotation name="final"/>
+            </xs:element>
             <xs:element name="street" type="xs:string"/>
             <xs:element name="city"   type="xs:string"/>
         </xs:sequence>
     </xs:complexType>
     <xs:complexType name="USAddressP">
+        <xs:annotation name="final"/>
         <xs:complexContent>
             <xs:extension base="address">
                 <xs:sequence>
