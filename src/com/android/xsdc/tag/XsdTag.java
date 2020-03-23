@@ -22,11 +22,13 @@ public abstract class XsdTag {
     final private String name;
     final private QName ref;
     private boolean deprecated;
+    private boolean finalValue;
 
     XsdTag(String name, QName ref) {
         this.name = name;
         this.ref = ref;
         this.deprecated = false;
+        this.finalValue = false;
     }
 
     public String getName() {
@@ -35,6 +37,14 @@ public abstract class XsdTag {
 
     public QName getRef() {
         return ref;
+    }
+
+    public boolean isFinalValue() {
+        return finalValue;
+    }
+
+    public void setFinalValue(boolean finalValue) {
+        this.finalValue = finalValue;
     }
 
     public boolean isDeprecated() {
