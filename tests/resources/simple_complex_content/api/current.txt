@@ -4,10 +4,10 @@ package simple.complex.content {
   @Deprecated public class Address {
     ctor @Deprecated public Address();
     method @Deprecated public String getCity();
-    method @Deprecated public String getName();
+    method @Deprecated public final String getName();
     method @Deprecated public String getStreet();
     method @Deprecated public void setCity(String);
-    method @Deprecated public void setName(String);
+    method @Deprecated public final void setName(String);
     method @Deprecated public void setStreet(String);
   }
 
@@ -47,7 +47,7 @@ package simple.complex.content {
     method public void setChoice2_optional(String);
   }
 
-  public class USAddressP extends simple.complex.content.Address {
+  public final class USAddressP extends simple.complex.content.Address {
     ctor public USAddressP();
     method public String getState();
     method public java.math.BigInteger getZipcode();
