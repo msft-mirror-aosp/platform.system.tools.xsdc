@@ -87,7 +87,7 @@ public class JavaCodeGenerator {
                 XsdComplexType complexType = (XsdComplexType) type;
                 try (CodeWriter out = new CodeWriter(fs.getPrintWriter(name + ".java"))) {
                     out.printf("package %s;\n\n", packageName);
-                    printClass(out, name, complexType, "", type.isDeprecated());
+                    printClass(out, name, complexType, "");
                 }
             } else if (type instanceof XsdRestriction &&
                     ((XsdRestriction)type).getEnums() != null) {
@@ -95,7 +95,7 @@ public class JavaCodeGenerator {
                 XsdRestriction restrictionType = (XsdRestriction) type;
                 try (CodeWriter out = new CodeWriter(fs.getPrintWriter(name + ".java"))) {
                     out.printf("package %s;\n\n", packageName);
-                    printEnumClass(out, name, restrictionType, type.isDeprecated());
+                    printEnumClass(out, name, restrictionType);
                 }
             }
         }
@@ -106,7 +106,7 @@ public class JavaCodeGenerator {
                 XsdComplexType complexType = (XsdComplexType) type;
                 try (CodeWriter out = new CodeWriter(fs.getPrintWriter(name + ".java"))) {
                     out.printf("package %s;\n\n", packageName);
-                    printClass(out, name, complexType, "", type.isDeprecated());
+                    printClass(out, name, complexType, "");
                 }
             }
         }
@@ -115,9 +115,9 @@ public class JavaCodeGenerator {
         }
     }
 
-    private void printEnumClass(CodeWriter out, String name, XsdRestriction restrictionType,
-            boolean deprecated) throws JavaCodeGeneratorException {
-        if (deprecated) {
+    private void printEnumClass(CodeWriter out, String name, XsdRestriction restrictionType)
+            throws JavaCodeGeneratorException {
+        if (restrictionType.isDeprecated()) {
             out.printf("@java.lang.Deprecated\n");
         }
         out.printf("public enum %s {", name);
@@ -145,7 +145,7 @@ public class JavaCodeGenerator {
     }
 
     private void printClass(CodeWriter out, String name, XsdComplexType complexType,
-            String nameScope, boolean deprecated) throws JavaCodeGeneratorException {
+            String nameScope) throws JavaCodeGeneratorException {
         assert name != null;
         // need element, attribute name duplicate validation?
 
@@ -153,13 +153,14 @@ public class JavaCodeGenerator {
         JavaSimpleType valueType = (complexType instanceof XsdSimpleContent) ?
                 getValueType((XsdSimpleContent) complexType, false) : null;
 
-        if (deprecated) {
+        String finalString = getFinalString(complexType.isFinalValue());
+        if (complexType.isDeprecated()) {
             out.printf("@java.lang.Deprecated\n");
         }
         if (nameScope.isEmpty()) {
-            out.printf("public class %s ", name);
+            out.printf("public%s class %s ", finalString, name);
         } else {
-            out.printf("public static class %s ", name);
+            out.printf("public%s static class %s ", finalString, name);
         }
         if (baseName != null) {
             out.printf("extends %s {\n", baseName);
@@ -182,7 +183,7 @@ public class JavaCodeGenerator {
                 String innerName = Utils.toClassName(getElementName(element));
                 XsdComplexType innerType = (XsdComplexType) element.getType();
                 String innerNameScope = nameScope + name + ".";
-                printClass(out, innerName, innerType, innerNameScope, innerType.isDeprecated());
+                printClass(out, innerName, innerType, innerNameScope);
                 out.println();
                 javaType = new JavaComplexType(innerNameScope + innerName);
             } else {
@@ -209,14 +210,14 @@ public class JavaCodeGenerator {
             XsdElement elementValue = resolveElement(element);
             String typeName = element.isMultiple() ? String.format("java.util.List<%s>",
                     type.getNullableName()) : type.getName();
-            out.printf("private %s %s;\n", typeName,
-                    Utils.toVariableName(getElementName(elementValue)));
+            out.printf("%sprivate %s %s;\n", getNullabilityString(element.getNullability()),
+                    typeName, Utils.toVariableName(getElementName(elementValue)));
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             JavaType type = attributeTypes.get(i);
             XsdAttribute attribute = resolveAttribute(attributes.get(i));
-            out.printf("private %s %s;\n", type.getName(),
-                    Utils.toVariableName(attribute.getName()));
+            out.printf("%sprivate %s %s;\n", getNullabilityString(attribute.getNullability()),
+                    type.getName(), Utils.toVariableName(attribute.getName()));
         }
         if (valueType != null) {
             out.printf("private %s value;\n", valueType.getName());
@@ -228,16 +229,16 @@ public class JavaCodeGenerator {
             XsdElement element = elements.get(i);
             XsdElement elementValue = resolveElement(element);
             printGetterAndSetter(out, type, Utils.toVariableName(getElementName(elementValue)),
-                    element.isMultiple(), element.isDeprecated());
+                    element.isMultiple(), element);
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             JavaType type = attributeTypes.get(i);
             XsdAttribute attribute = resolveAttribute(attributes.get(i));
             printGetterAndSetter(out, type, Utils.toVariableName(attribute.getName()), false,
-                    attribute.isDeprecated());
+                    attribute);
         }
         if (valueType != null) {
-            printGetterAndSetter(out, valueType, "value", false, false);
+            printGetterAndSetter(out, valueType, "value", false, null);
         }
 
         out.println();
@@ -332,14 +333,18 @@ public class JavaCodeGenerator {
     }
 
     private void printGetterAndSetter(CodeWriter out, JavaType type, String variableName,
-            boolean isMultiple, boolean deprecated) {
+            boolean isMultiple, XsdTag tag) {
         String typeName = isMultiple ? String.format("java.util.List<%s>", type.getNullableName())
                 : type.getName();
+        boolean deprecated = tag == null ? false : tag.isDeprecated();
+        boolean finalValue = tag == null ? false : tag.isFinalValue();
+        Nullability nullability = tag == null ? Nullability.UNKNOWN : tag.getNullability();
         out.println();
         if (deprecated) {
             out.printf("@java.lang.Deprecated\n");
         }
-        out.printf("public %s get%s() {\n", typeName, Utils.capitalize(variableName));
+        out.printf("public%s %s%s get%s() {\n", getFinalString(finalValue),
+                getNullabilityString(nullability), typeName, Utils.capitalize(variableName));
         if (isMultiple) {
             out.printf("if (%s == null) {\n"
                     + "%s = new java.util.ArrayList<>();\n"
@@ -353,10 +358,12 @@ public class JavaCodeGenerator {
         if (deprecated) {
             out.printf("@java.lang.Deprecated\n");
         }
-        out.printf("public void set%s(%s %s) {\n"
+        out.printf("public%s void set%s(%s%s %s) {\n"
                         + "this.%s = %s;\n"
                         + "}\n",
-                Utils.capitalize(variableName), typeName, variableName, variableName, variableName);
+                getFinalString(finalValue), Utils.capitalize(variableName),
+                getNullabilityString(nullability), typeName, variableName,
+                variableName, variableName);
     }
 
     private void printXmlParser(CodeWriter out) throws JavaCodeGeneratorException {
@@ -432,6 +439,22 @@ public class JavaCodeGenerator {
             return element.getName() + "_all";
         }
         return element.getName();
+    }
+
+    private String getFinalString(boolean finalValue) {
+        if (finalValue) {
+          return " final";
+        }
+        return "";
+    }
+
+    private String getNullabilityString(Nullability nullability) {
+        if (nullability == Nullability.NON_NULL) {
+            return "@android.annotation.NonNull ";
+        } else if (nullability == Nullability.NULLABLE) {
+            return "@android.annotation.Nullable ";
+        }
+        return "";
     }
 
     private void stackComponents(XsdComplexType complexType, List<XsdElement> elements,
