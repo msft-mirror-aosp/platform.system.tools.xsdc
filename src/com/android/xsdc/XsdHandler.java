@@ -41,6 +41,7 @@ public class XsdHandler extends DefaultHandler {
         final List<XsdTag> tags;
         boolean deprecated;
         boolean finalValue;
+        Nullability nullability;
 
         State(String name, Map<String, String> attributeMap) {
             this.name = name;
@@ -48,6 +49,7 @@ public class XsdHandler extends DefaultHandler {
             tags = new ArrayList<>();
             deprecated = false;
             finalValue = false;
+            nullability = Nullability.UNKNOWN;
         }
     }
 
@@ -202,8 +204,12 @@ public class XsdHandler extends DefaultHandler {
                     // Tags under simpleType <restriction>. They are ignored.
                     break;
                 case "annotation":
-                    stateStack.peek().deprecated = isDeprecated(state.attributeMap, state.tags);
-                    stateStack.peek().finalValue = isFinalValue(state.attributeMap, state.tags);
+                    stateStack.peek().deprecated = isDeprecated(state.attributeMap, state.tags,
+                            stateStack.peek().deprecated);
+                    stateStack.peek().finalValue = isFinalValue(state.attributeMap, state.tags,
+                            stateStack.peek().finalValue);
+                    stateStack.peek().nullability = getNullability(state.attributeMap, state.tags,
+                            stateStack.peek().nullability);
                     break;
                 case "appinfo":
                     // They function like comments, so are ignored.
@@ -293,7 +299,7 @@ public class XsdHandler extends DefaultHandler {
         }
 
         return setDeprecatedAndFinal(new XsdElement(name, ref, type, multiple), state.deprecated,
-                state.finalValue);
+                state.finalValue, state.nullability);
     }
 
     private XsdAttribute makeAttribute(State state) throws XsdParserException {
@@ -317,7 +323,7 @@ public class XsdHandler extends DefaultHandler {
         }
 
         return setDeprecatedAndFinal(new XsdAttribute(name, ref, type), state.deprecated,
-                state.finalValue);
+                state.finalValue, state.nullability);
     }
 
     private XsdAttributeGroup makeAttributeGroup(State state) throws XsdParserException {
@@ -337,7 +343,7 @@ public class XsdHandler extends DefaultHandler {
         }
 
         return setDeprecatedAndFinal(new XsdAttributeGroup(name, ref, attributes, attributeGroups),
-                state.deprecated, state.finalValue);
+                state.deprecated, state.finalValue, state.nullability);
     }
 
     private XsdGroup makeGroup(State state) throws XsdParserException {
@@ -354,7 +360,7 @@ public class XsdHandler extends DefaultHandler {
         }
 
         return setDeprecatedAndFinal(new XsdGroup(name, ref, elements), state.deprecated,
-                state.finalValue);
+                state.finalValue, state.nullability);
     }
 
     private XsdComplexType makeComplexType(State state) throws XsdParserException {
@@ -389,16 +395,19 @@ public class XsdHandler extends DefaultHandler {
                 XsdComplexContent child = (XsdComplexContent) tag;
                 type = setDeprecatedAndFinal(new XsdComplexContent(name, child.getBase(),
                         child.getAttributes(), child.getAttributeGroups(),
-                        child.getElements(), child.getGroup()), state.deprecated, state.finalValue);
+                        child.getElements(), child.getGroup()), state.deprecated, state.finalValue,
+                        state.nullability);
             } else if (tag instanceof XsdSimpleContent) {
                 XsdSimpleContent child = (XsdSimpleContent) tag;
                 type = setDeprecatedAndFinal(new XsdSimpleContent(name, child.getBase(),
-                        child.getAttributes()), state.deprecated, state.finalValue);
+                        child.getAttributes()), state.deprecated, state.finalValue,
+                        state.nullability);
             }
         }
 
-        return (type != null) ? type : setDeprecatedAndFinal(new XsdComplexContent(name, null, attributes,
-                attributeGroups, elements, group), state.deprecated, state.finalValue);
+        return (type != null) ? type : setDeprecatedAndFinal(new XsdComplexContent(name, null,
+                attributes, attributeGroups, elements, group), state.deprecated, state.finalValue,
+                state.nullability);
     }
 
     private XsdComplexContent makeComplexContent(State state) throws XsdParserException {
@@ -431,7 +440,8 @@ public class XsdHandler extends DefaultHandler {
             }
         }
 
-        return setDeprecatedAndFinal(content, state.deprecated, state.finalValue);
+        return setDeprecatedAndFinal(content, state.deprecated, state.finalValue,
+                state.nullability);
     }
 
     private XsdSimpleContent makeSimpleContent(State state) {
@@ -449,7 +459,8 @@ public class XsdHandler extends DefaultHandler {
             }
         }
 
-        return setDeprecatedAndFinal(content, state.deprecated, state.finalValue);
+        return setDeprecatedAndFinal(content, state.deprecated, state.finalValue,
+                state.nullability);
     }
 
     private XsdGeneralRestriction makeGeneralRestriction(State state) throws XsdParserException {
@@ -477,7 +488,7 @@ public class XsdHandler extends DefaultHandler {
         }
 
         return setDeprecatedAndFinal(new XsdGeneralRestriction(type, attributes, attributeGroups,
-                elements, group), state.deprecated, state.finalValue);
+                elements, group), state.deprecated, state.finalValue, state.nullability);
     }
 
     private XsdGeneralExtension makeGeneralExtension(State state) throws XsdParserException {
@@ -500,7 +511,8 @@ public class XsdHandler extends DefaultHandler {
             }
         }
         return setDeprecatedAndFinal(new XsdGeneralExtension(new XsdType(null, base), attributes,
-                attributeGroups, elements, group), state.deprecated, state.finalValue);
+                attributeGroups, elements, group), state.deprecated, state.finalValue,
+                state.nullability);
     }
 
     private XsdSimpleType makeSimpleType(State state) throws XsdParserException {
@@ -524,7 +536,7 @@ public class XsdHandler extends DefaultHandler {
                 type = new XsdUnion(name, ((XsdUnion) tag).getMemberTypes());
             }
         }
-        return setDeprecatedAndFinal(type, state.deprecated, state.finalValue);
+        return setDeprecatedAndFinal(type, state.deprecated, state.finalValue, state.nullability);
     }
 
     private XsdList makeSimpleTypeList(State state) throws XsdParserException {
@@ -541,7 +553,7 @@ public class XsdHandler extends DefaultHandler {
             }
         }
         return setDeprecatedAndFinal(new XsdList(null, itemType), state.deprecated,
-                state.finalValue);
+                state.finalValue, state.nullability);
     }
 
     private XsdUnion makeSimpleTypeUnion(State state) throws XsdParserException {
@@ -557,7 +569,7 @@ public class XsdHandler extends DefaultHandler {
         }
 
         return setDeprecatedAndFinal(new XsdUnion(null, memberTypes), state.deprecated,
-                state.finalValue);
+                state.finalValue, state.nullability);
     }
 
     private static List<XsdTag> makeSequence(State state) throws XsdParserException {
@@ -599,7 +611,7 @@ public class XsdHandler extends DefaultHandler {
                 XsdElement element = (XsdElement)tag;
                 elementsAndGroup.add((XsdTag) setDeprecatedAndFinal(new XsdChoice(element.getName(),
                         element.getRef(), element.getType(), element.isMultiple()),
-                        element.isDeprecated(), element.isFinalValue()));
+                        element.isDeprecated(), element.isFinalValue(), element.getNullability()));
             } else if (tag instanceof XsdGroup) {
                 elementsAndGroup.add(tag);
             }
@@ -615,7 +627,7 @@ public class XsdHandler extends DefaultHandler {
                 XsdElement element = (XsdElement)tag;
                 elements.add(setDeprecatedAndFinal(new XsdAll(element.getName(), element.getRef(),
                         element.getType(), element.isMultiple()), element.isDeprecated(),
-                        element.isFinalValue()));
+                        element.isFinalValue(), element.getNullability()));
             }
         }
         return elements;
@@ -624,7 +636,7 @@ public class XsdHandler extends DefaultHandler {
     private XsdEnumeration makeEnumeration(State state) throws XsdParserException {
         String value = state.attributeMap.get("value");
         return setDeprecatedAndFinal(new XsdEnumeration(value), state.deprecated,
-                state.finalValue);
+                state.finalValue, state.nullability);
     }
 
     private XsdEnumRestriction makeEnumRestriction(State state) throws XsdParserException {
@@ -643,32 +655,44 @@ public class XsdHandler extends DefaultHandler {
         }
 
         return setDeprecatedAndFinal(new XsdEnumRestriction(type, enums), state.deprecated,
-                state.finalValue);
+                state.finalValue, state.nullability);
     }
 
-    private boolean isDeprecated(Map<String, String> attributeMap,List<XsdTag> tags)
-            throws XsdParserException {
+    private boolean isDeprecated(Map<String, String> attributeMap,List<XsdTag> tags,
+            boolean deprecated) throws XsdParserException {
         String name = attributeMap.get("name");
         if ("Deprecated".equals(name)) {
             return true;
         }
-        return false;
+        return deprecated;
     }
 
-    private boolean isFinalValue(Map<String, String> attributeMap,List<XsdTag> tags)
-            throws XsdParserException {
+    private boolean isFinalValue(Map<String, String> attributeMap,List<XsdTag> tags,
+            boolean finalValue) throws XsdParserException {
         String name = attributeMap.get("name");
         if ("final".equals(name)) {
             return true;
         }
-        return false;
+        return finalValue;
+    }
+
+    private Nullability getNullability(Map<String, String> attributeMap,List<XsdTag> tags,
+            Nullability nullability) throws XsdParserException {
+        String name = attributeMap.get("name");
+        if ("nullable".equals(name)) {
+            return Nullability.NULLABLE;
+        } else if ("nonnull".equals(name)) {
+            return Nullability.NON_NULL;
+        }
+        return nullability;
     }
 
     private static <T extends XsdTag> T setDeprecatedAndFinal(T tag, boolean deprecated,
-            boolean finalValue) {
+            boolean finalValue, Nullability nullability) {
         if (tag != null) {
             tag.setDeprecated(deprecated);
             tag.setFinalValue(finalValue);
+            tag.setNullability(nullability);
         }
         return tag;
     }

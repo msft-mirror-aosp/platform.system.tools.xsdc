@@ -31,20 +31,20 @@ package simple.complex.content {
     ctor public Person2();
     method public simple.complex.content.KRAddress getKRAddress();
     method public String getName();
-    method public simple.complex.content.SubAddress getSubAddress();
+    method @NonNull public simple.complex.content.SubAddress getSubAddress();
     method public simple.complex.content.USAddressP getUSAddressP();
     method public void setKRAddress(simple.complex.content.KRAddress);
     method public void setName(String);
-    method public void setSubAddress(simple.complex.content.SubAddress);
+    method public void setSubAddress(@NonNull simple.complex.content.SubAddress);
     method public void setUSAddressP(simple.complex.content.USAddressP);
   }
 
   public class SubAddress {
     ctor public SubAddress();
-    method public String getChoice1_optional();
-    method public String getChoice2_optional();
-    method public void setChoice1_optional(String);
-    method public void setChoice2_optional(String);
+    method @Nullable public final String getChoice1_optional();
+    method @NonNull public final String getChoice2_optional();
+    method public final void setChoice1_optional(@Nullable String);
+    method public final void setChoice2_optional(@NonNull String);
   }
 
   public final class USAddressP extends simple.complex.content.Address {
