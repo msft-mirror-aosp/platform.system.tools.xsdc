@@ -41,10 +41,10 @@ package simple.complex.content {
 
   public class SubAddress {
     ctor public SubAddress();
-    method @Nullable public String getChoice1_optional();
-    method @NonNull public String getChoice2_optional();
-    method public void setChoice1_optional(@Nullable String);
-    method public void setChoice2_optional(@NonNull String);
+    method @Nullable public final String getChoice1_optional();
+    method @NonNull public final String getChoice2_optional();
+    method public final void setChoice1_optional(@Nullable String);
+    method public final void setChoice2_optional(@NonNull String);
   }
 
   public final class USAddressP extends simple.complex.content.Address {
