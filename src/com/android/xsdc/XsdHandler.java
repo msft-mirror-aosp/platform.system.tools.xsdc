@@ -204,8 +204,10 @@ public class XsdHandler extends DefaultHandler {
                     // Tags under simpleType <restriction>. They are ignored.
                     break;
                 case "annotation":
-                    stateStack.peek().deprecated = isDeprecated(state.attributeMap, state.tags);
-                    stateStack.peek().finalValue = isFinalValue(state.attributeMap, state.tags);
+                    stateStack.peek().deprecated = isDeprecated(state.attributeMap, state.tags,
+                            stateStack.peek().deprecated);
+                    stateStack.peek().finalValue = isFinalValue(state.attributeMap, state.tags,
+                            stateStack.peek().finalValue);
                     stateStack.peek().nullability = getNullability(state.attributeMap, state.tags,
                             stateStack.peek().nullability);
                     break;
@@ -656,22 +658,22 @@ public class XsdHandler extends DefaultHandler {
                 state.finalValue, state.nullability);
     }
 
-    private boolean isDeprecated(Map<String, String> attributeMap,List<XsdTag> tags)
-            throws XsdParserException {
+    private boolean isDeprecated(Map<String, String> attributeMap,List<XsdTag> tags,
+            boolean deprecated) throws XsdParserException {
         String name = attributeMap.get("name");
         if ("Deprecated".equals(name)) {
             return true;
         }
-        return false;
+        return deprecated;
     }
 
-    private boolean isFinalValue(Map<String, String> attributeMap,List<XsdTag> tags)
-            throws XsdParserException {
+    private boolean isFinalValue(Map<String, String> attributeMap,List<XsdTag> tags,
+            boolean finalValue) throws XsdParserException {
         String name = attributeMap.get("name");
         if ("final".equals(name)) {
             return true;
         }
-        return false;
+        return finalValue;
     }
 
     private Nullability getNullability(Map<String, String> attributeMap,List<XsdTag> tags,
