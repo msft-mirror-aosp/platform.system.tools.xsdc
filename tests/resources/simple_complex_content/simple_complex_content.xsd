@@ -34,10 +34,12 @@
     <xs:complexType name="subAddress">
         <xs:choice>
             <xs:element name="choice1" type="xs:string">
+                <xs:annotation name="final"/>
                 <xs:annotation name="nullable"/>
             </xs:element>
             <xs:element name="choice2" type="xs:string">
                 <xs:annotation name="nonnull"/>
+                <xs:annotation name="final"/>
             </xs:element>
         </xs:choice>
     </xs:complexType>
