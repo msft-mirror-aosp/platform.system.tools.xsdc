@@ -105,7 +105,8 @@ public class Main {
             File includeDir = new File(Paths.get(outDir, "include").toString());
             includeDir.mkdirs();
             FileSystem fs = new FileSystem(new File(outDir));
-            CppCodeGenerator cppCodeGenerator = new CppCodeGenerator(xmlSchema, packageName);
+            CppCodeGenerator cppCodeGenerator = new CppCodeGenerator(xmlSchema,
+                    packageName.replace(".", "_"));
             cppCodeGenerator.print(fs);
         }
     }

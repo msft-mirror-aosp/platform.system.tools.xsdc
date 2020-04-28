@@ -57,7 +57,7 @@ var (
 type xsdConfigProperties struct {
 	Srcs         []string
 	Package_name *string
-	Api_dir      *string
+	Api_dir *string
 }
 
 type xsdConfig struct {
@@ -85,9 +85,9 @@ type CheckApi struct {
 }
 type DroidstubsProperties struct {
 	Name                 *string
+	No_framework_libs    *bool
 	Installable          *bool
 	Srcs                 []string
-	Sdk_version          *string
 	Args                 *string
 	Api_filename         *string
 	Removed_api_filename *string
@@ -143,9 +143,9 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		},
 	})
 
-	filenameStem := strings.Replace(pkgName, ".", "_", -1)
-	module.genOutputs_c = android.PathForModuleGen(ctx, "cpp", filenameStem+".cpp")
-	module.genOutputs_h = android.PathForModuleGen(ctx, "cpp", "include/"+filenameStem+".h")
+	pkgName = strings.Replace(pkgName, ".", "_", -1)
+	module.genOutputs_c = android.PathForModuleGen(ctx, "cpp", pkgName+".cpp")
+	module.genOutputs_h = android.PathForModuleGen(ctx, "cpp", "include/"+pkgName+".h")
 	module.genOutputDir = android.PathForModuleGen(ctx, "cpp", "include")
 
 	ctx.Build(pctx, android.BuildParams{
@@ -186,7 +186,7 @@ func xsdConfigMutator(mctx android.TopDownMutatorContext) {
 		check_api.Last_released.Removed_api_file = proptools.StringPtr(
 			filepath.Join(api_dir, "last_removed.txt"))
 
-		mctx.CreateModule(java.DroidstubsFactory, &DroidstubsProperties{
+		mctx.CreateModule(android.ModuleFactoryAdaptor(java.DroidstubsFactory), &DroidstubsProperties{
 			Name:                 proptools.StringPtr(name + ".docs"),
 			Srcs:                 []string{":" + name},
 			Args:                 proptools.StringPtr(args),
@@ -194,7 +194,7 @@ func xsdConfigMutator(mctx android.TopDownMutatorContext) {
 			Removed_api_filename: proptools.StringPtr(removedApiFileName),
 			Check_api:            check_api,
 			Installable:          proptools.BoolPtr(false),
-			Sdk_version:          proptools.StringPtr("core_platform"),
+			No_framework_libs:    proptools.BoolPtr(true),
 		})
 	}
 }
