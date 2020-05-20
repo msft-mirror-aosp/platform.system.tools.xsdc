@@ -39,19 +39,19 @@ var (
 	xsdc         = pctx.HostBinToolVariable("xsdcCmd", "xsdc")
 	xsdcJavaRule = pctx.StaticRule("xsdcJavaRule", blueprint.RuleParams{
 		Command: `rm -rf "${out}.temp" && mkdir -p "${out}.temp" && ` +
-			`${xsdcCmd} $in -p $pkgName -o ${out}.temp -j && ` +
+			`${xsdcCmd} $in -p $pkgName -o ${out}.temp -j $args && ` +
 			`${config.SoongZipCmd} -jar -o ${out} -C ${out}.temp -D ${out}.temp && ` +
 			`rm -rf ${out}.temp`,
 		CommandDeps: []string{"${xsdcCmd}", "${config.SoongZipCmd}"},
 		Description: "xsdc Java ${in} => ${out}",
-	}, "pkgName")
+	}, "pkgName", "args")
 
 	xsdcCppRule = pctx.StaticRule("xsdcCppRule", blueprint.RuleParams{
 		Command: `rm -rf "${outDir}" && ` +
-			`${xsdcCmd} $in -p $pkgName -o ${outDir} -c`,
+			`${xsdcCmd} $in -p $pkgName -o ${outDir} -c $args`,
 		CommandDeps: []string{"${xsdcCmd}", "${config.SoongZipCmd}"},
 		Description: "xsdc C++ ${in} => ${out}",
-	}, "pkgName", "outDir")
+	}, "pkgName", "outDir", "args")
 
 	xsdConfigRule = pctx.StaticRule("xsdConfigRule", blueprint.RuleParams{
 		Command:     "cp -f ${in} ${output}",
@@ -63,6 +63,7 @@ type xsdConfigProperties struct {
 	Srcs         []string
 	Package_name *string
 	Api_dir      *string
+	Gen_writer   *bool
 }
 
 type xsdConfig struct {
@@ -159,6 +160,11 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 	pkgName := *module.properties.Package_name
 	filenameStem := strings.Replace(pkgName, ".", "_", -1)
 
+	args := ""
+	if proptools.Bool(module.properties.Gen_writer) {
+		args = "-w"
+	}
+
 	module.genOutputs_j = android.PathForModuleGen(ctx, "java", filenameStem+"_xsdcgen.srcjar")
 
 	ctx.Build(pctx, android.BuildParams{
@@ -169,6 +175,7 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		Output:      module.genOutputs_j,
 		Args: map[string]string{
 			"pkgName": pkgName,
+			"args": args,
 		},
 	})
 
@@ -186,6 +193,7 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		Args: map[string]string{
 			"pkgName": pkgName,
 			"outDir":  android.PathForModuleGen(ctx, "cpp").String(),
+			"args": args,
 		},
 	})
 	module.xsdConfigPath = android.ExistentPathForSource(ctx, xsdFile.String())

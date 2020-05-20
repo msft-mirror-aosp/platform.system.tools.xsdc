@@ -60,6 +60,11 @@ public class Main {
                 .hasArgs(0)
                 .withDescription("Generate Cpp code.")
                 .create("c"));
+        options.addOption(OptionBuilder
+                .withLongOpt("writer")
+                .hasArgs(0)
+                .withDescription("Generate Writer code.")
+                .create("w"));
 
         CommandLineParser CommandParser = new GnuParser();
         CommandLine cmd;
@@ -75,6 +80,7 @@ public class Main {
         String[] xsdFile = cmd.getArgs();
         String packageName = cmd.getOptionValue('p', null);
         String outDir = cmd.getOptionValue('o', null);
+        boolean writer = cmd.hasOption('w');
 
         if (xsdFile.length != 1 || packageName == null) {
             System.err.println("Error: no xsd files or pacakge name");
@@ -99,13 +105,15 @@ public class Main {
             File packageDir = new File(Paths.get(outDir, packageName.replace(".", "/")).toString());
             packageDir.mkdirs();
             FileSystem fs = new FileSystem(packageDir);
-            JavaCodeGenerator javaCodeGenerator = new JavaCodeGenerator(xmlSchema, packageName);
+            JavaCodeGenerator javaCodeGenerator =
+                    new JavaCodeGenerator(xmlSchema, packageName, writer);
             javaCodeGenerator.print(fs);
         } else if (cmd.hasOption('c')) {
             File includeDir = new File(Paths.get(outDir, "include").toString());
             includeDir.mkdirs();
             FileSystem fs = new FileSystem(new File(outDir));
-            CppCodeGenerator cppCodeGenerator = new CppCodeGenerator(xmlSchema, packageName);
+            CppCodeGenerator cppCodeGenerator =
+                    new CppCodeGenerator(xmlSchema, packageName, writer);
             cppCodeGenerator.print(fs);
         }
     }

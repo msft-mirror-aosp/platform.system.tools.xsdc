@@ -43,5 +43,13 @@ package simple.type {
     method public static void skip(org.xmlpull.v1.XmlPullParser) throws java.io.IOException, org.xmlpull.v1.XmlPullParserException;
   }
 
+  public class XmlWriter implements java.io.Closeable {
+    ctor public XmlWriter(java.io.PrintWriter);
+    method public void close();
+    method public static void write(simple.type.XmlWriter, simple.type.SimpleTypes);
+    method public static void write(simple.type.XmlWriter, simple.type.MultiChoice);
+    method public static void write(simple.type.XmlWriter, simple.type.SingleChoice);
+  }
+
 }
 
