@@ -107,7 +107,7 @@ class TestHelper {
         XmlSchema xmlSchema = xsdHandler.getSchema();
         Map<String, StringBuffer> fileOutputMap = new HashMap<>();
         FileSystem fs = new FileSystem(fileOutputMap);
-        JavaCodeGenerator javaCodeGenerator = new JavaCodeGenerator(xmlSchema, packageName);
+        JavaCodeGenerator javaCodeGenerator = new JavaCodeGenerator(xmlSchema, packageName, false);
         javaCodeGenerator.print(fs);
         List<JavaFileObject> javaFileObjects = new ArrayList<>();
         for (Map.Entry<String, StringBuffer> entry : fileOutputMap.entrySet()) {
