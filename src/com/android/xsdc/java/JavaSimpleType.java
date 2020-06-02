@@ -52,6 +52,11 @@ class JavaSimpleType implements JavaType {
     }
 
     @Override
+    public boolean isPrimitiveType() {
+        return !fullName.equals(nullableName);
+    }
+
+    @Override
     public String getNullableName() {
         return nullableFullName;
     }
@@ -70,6 +75,23 @@ class JavaSimpleType implements JavaType {
             expression.append(
                     String.format("%s value = %s;\n", getName(),
                             String.format(rawParsingExpression, "raw")));
+        }
+        return expression.toString();
+    }
+
+    @Override
+    public String getWritingExpression(String getValue, String name) {
+        StringBuilder expression = new StringBuilder();
+        if (list) {
+            expression.append("{\nint count = 0;\n");
+            expression.append(String.format("for (%s v : %s) {\n", this.name, getValue));
+            expression.append("if (count != 0) {\n"
+                    + "out.print(\" \");\n}\n"
+                    + "++count;");
+            expression.append("out.printf(\"%s \", v);\n}\n");
+            expression.append("}\n");
+        } else {
+            expression.append(String.format("out.printf(\"%%s\", %s);\n", getValue));
         }
         return expression.toString();
     }
