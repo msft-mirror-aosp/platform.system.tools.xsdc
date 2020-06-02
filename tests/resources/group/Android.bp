@@ -3,5 +3,6 @@ xsd_config {
     name: "xsdc_group_tests",
     srcs: ["group.xsd"],
     package_name: "group",
+    gen_writer: true,
 }
 

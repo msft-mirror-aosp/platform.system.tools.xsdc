@@ -36,11 +36,13 @@ public class JavaCodeGenerator {
     private XmlSchema xmlSchema;
     private String packageName;
     private Map<String, JavaSimpleType> javaSimpleTypeMap;
+    private boolean writer;
 
-    public JavaCodeGenerator(XmlSchema xmlSchema, String packageName)
+    public JavaCodeGenerator(XmlSchema xmlSchema, String packageName, boolean writer)
             throws JavaCodeGeneratorException {
         this.xmlSchema = xmlSchema;
         this.packageName = packageName;
+        this.writer = writer;
 
         // class naming validation
         {
@@ -113,6 +115,11 @@ public class JavaCodeGenerator {
         try (CodeWriter out = new CodeWriter(fs.getPrintWriter("XmlParser.java"))) {
             printXmlParser(out);
         }
+        if (writer) {
+            try (CodeWriter out = new CodeWriter(fs.getPrintWriter("XmlWriter.java"))) {
+                printXmlWriter(out);
+            }
+        }
     }
 
     private void printEnumClass(CodeWriter out, String name, XsdRestriction restrictionType)
@@ -141,6 +148,13 @@ public class JavaCodeGenerator {
         out.printf("public String getRawName() {\n"
                 + "return rawName;\n"
                 + "}\n");
+
+        if (writer) {
+            out.printf("@Override\n"
+                    + "public String toString() {\n"
+                    + "return rawName;\n"
+                    + "}\n");
+        }
         out.println("}");
     }
 
@@ -209,7 +223,7 @@ public class JavaCodeGenerator {
             XsdElement element = elements.get(i);
             XsdElement elementValue = resolveElement(element);
             String typeName = element.isMultiple() ? String.format("java.util.List<%s>",
-                    type.getNullableName()) : type.getName();
+                    type.getNullableName()) : type.getNullableName();
             out.printf("%sprivate %s %s;\n", getNullabilityString(element.getNullability()),
                     typeName, Utils.toVariableName(getElementName(elementValue)));
         }
@@ -217,7 +231,7 @@ public class JavaCodeGenerator {
             JavaType type = attributeTypes.get(i);
             XsdAttribute attribute = resolveAttribute(attributes.get(i));
             out.printf("%sprivate %s %s;\n", getNullabilityString(attribute.getNullability()),
-                    type.getName(), Utils.toVariableName(attribute.getName()));
+                    type.getNullableName(), Utils.toVariableName(attribute.getName()));
         }
         if (valueType != null) {
             out.printf("private %s value;\n", valueType.getName());
@@ -243,6 +257,9 @@ public class JavaCodeGenerator {
 
         out.println();
         printParser(out, nameScope + name, complexType);
+        if (writer) {
+            printWriter(out, name, complexType);
+        }
 
         out.println("}");
     }
@@ -332,6 +349,83 @@ public class JavaCodeGenerator {
                 + "}\n");
     }
 
+    private void printWriter(CodeWriter out, String name, XsdComplexType complexType)
+            throws JavaCodeGeneratorException {
+        JavaSimpleType baseValueType = (complexType instanceof XsdSimpleContent) ?
+                getValueType((XsdSimpleContent) complexType, true) : null;
+        List<XsdElement> allElements = new ArrayList<>();
+        List<XsdAttribute> allAttributes = new ArrayList<>();
+        stackComponents(complexType, allElements, allAttributes);
+
+        // parse types for elements and attributes
+        List<JavaType> allElementTypes = new ArrayList<>();
+        for (XsdElement element : allElements) {
+            XsdElement elementValue = resolveElement(element);
+            JavaType javaType = parseType(elementValue.getType(), elementValue.getName());
+            allElementTypes.add(javaType);
+        }
+        List<JavaSimpleType> allAttributeTypes = new ArrayList<>();
+        for (XsdAttribute attribute : allAttributes) {
+            XsdType type = resolveAttribute(attribute).getType();
+            allAttributeTypes.add(parseSimpleType(type, false));
+        }
+
+        out.printf("\nvoid write(XmlWriter out, String name) " +
+                "throws java.io.IOException {\n");
+
+        out.printf("out.printf(\"<%s\");\n", name);
+        for (int i = 0; i < allAttributes.size(); ++i) {
+            JavaType type = allAttributeTypes.get(i);
+            XsdAttribute attribute = resolveAttribute(allAttributes.get(i));
+            String variableName = Utils.toVariableName(attribute.getName());
+            out.printf("if (get%s() != null) {\n", Utils.capitalize(variableName));
+            out.printf("out.printf(\" %s=\\\"\");\n", attribute.getName());
+            out.print(type.getWritingExpression(String.format("get%s()",
+                    Utils.capitalize(variableName)), attribute.getName()));
+            out.printf("out.printf(\"\\\"\");\n}\n");
+        }
+        out.printf("out.printf(\">\\n\");\n");
+        out.printf("out.increaseIndent();\n");
+
+        if (!allElements.isEmpty()) {
+            for (int i = 0; i < allElements.size(); ++i) {
+                JavaType type = allElementTypes.get(i);
+                XsdElement element = allElements.get(i);
+                XsdElement elementValue = resolveElement(element);
+                String elementName = getElementName(elementValue);
+                String variableName = Utils.toVariableName(elementName);
+
+                if (element.isMultiple()) {
+                    out.printf("for (%s value : get%s()) {\n", type.getName(),
+                            Utils.capitalize(variableName));
+                    if (type instanceof JavaSimpleType) {
+                        out.printf("out.printf(\"<%s>\");\n", elementValue.getName());
+                    }
+                    out.print(type.getWritingExpression("value", elementValue.getName()));
+                    if (type instanceof JavaSimpleType) {
+                        out.printf("out.printf(\"</%s>\\n\");\n", elementValue.getName());
+                    }
+                    out.print("}\n");
+                } else {
+                    out.printf("if (has%s()) {\n", Utils.capitalize(variableName));
+                    if (type instanceof JavaSimpleType) {
+                        out.printf("out.printf(\"<%s>\");\n", elementValue.getName());
+                    }
+                    out.print(type.getWritingExpression(String.format("get%s()",
+                              Utils.capitalize(variableName)), elementValue.getName()));
+                    if (type instanceof JavaSimpleType) {
+                        out.printf("out.printf(\"</%s>\\n\");\n", elementValue.getName());
+                    }
+                    out.printf("}\n");
+                }
+
+            }
+        }
+        out.printf("out.decreaseIndent();\n");
+        out.printf("out.printf(\"</%s>\");\n", name);
+        out.print("}\n");
+    }
+
     private void printGetterAndSetter(CodeWriter out, JavaType type, String variableName,
             boolean isMultiple, XsdTag tag) {
         String typeName = isMultiple ? String.format("java.util.List<%s>", type.getNullableName())
@@ -349,12 +443,25 @@ public class JavaCodeGenerator {
             out.printf("if (%s == null) {\n"
                     + "%s = new java.util.ArrayList<>();\n"
                     + "}\n", variableName, variableName);
+        } else if (type.isPrimitiveType()) {
+            out.printf("if (%s == null) {\n", variableName);
+            if (typeName.equals("boolean")) {
+                out.printf("return false;\n}\n", variableName);
+            } else {
+                out.printf("return (%s)0;\n}\n", typeName);
+            }
         }
         out.printf("return %s;\n"
                 + "}\n", variableName);
 
         if (isMultiple) return;
         out.println();
+        out.printf("boolean has%s() {\n"
+                + "if (%s == null) {\n"
+                + "return false;\n"
+                + "}\n"
+                + "return true;\n}\n\n",
+                Utils.capitalize(variableName), variableName);
         if (deprecated) {
             out.printf("@java.lang.Deprecated\n");
         }
@@ -430,6 +537,70 @@ public class JavaCodeGenerator {
                         + "}\n");
 
         out.println("}");
+    }
+
+    private void printXmlWriter(CodeWriter out) throws JavaCodeGeneratorException {
+        out.printf("package %s;\n", packageName);
+        out.println();
+        out.println("public class XmlWriter implements java.io.Closeable {");
+
+        out.print("private java.io.PrintWriter out;\n"
+                + "private int indent;\n"
+                + "private boolean startLine;\n\n"
+                + "public XmlWriter(java.io.PrintWriter printWriter) {\n"
+                + "    out = printWriter;\n"
+                + "    indent = 0;\n"
+                + "    startLine = true;\n"
+                + "}\n\n"
+                + "private void printIndent() {\n"
+                + "    assert startLine;\n"
+                + "    for (int i = 0; i < indent; ++i) {\n"
+                + "        out.print(\"    \");\n"
+                + "    }\n"
+                + "    startLine = false;\n"
+                + "}\n\n"
+                + "void print(String code) {\n"
+                + "    String[] lines = code.split(\"\\n\", -1);\n"
+                + "    for (int i = 0; i < lines.length; ++i) {\n"
+                + "        String line = lines[i].replaceAll(\"^\\\\s+\", \"\");\n"
+                + "        if (startLine && !line.isEmpty()) {\n"
+                + "            printIndent();\n"
+                + "        }\n"
+                + "        out.print(line);\n"
+                + "        if (i + 1 < lines.length) {\n"
+                + "            out.println();\n"
+                + "        startLine = true;\n"
+                + "        }\n"
+                + "    }\n"
+                + "}\n\n"
+                + "void printf(String code, Object... arguments) {\n"
+                + "    print(String.format(code, arguments));\n"
+                + "}\n\n"
+                + "void increaseIndent() {\n"
+                + "    ++indent;\n}\n\n"
+                + "void decreaseIndent() {\n"
+                + "    --indent;\n"
+                + "}\n\n"
+                + "@Override\n"
+                + "public void close() {\n"
+                + "    if (out != null) {\n"
+                + "        out.close();\n"
+                + "    }\n"
+                + "}\n\n");
+
+
+        for (XsdElement element : xmlSchema.getElementMap().values()) {
+            JavaType javaType = parseType(element.getType(), element.getName());
+            String elementName = element.getName();
+            String VariableName = Utils.toVariableName(elementName);
+            String typeName = javaType instanceof JavaSimpleType ? javaType.getName() :
+                    Utils.toClassName(javaType.getName());
+            out.printf("public static void write(XmlWriter out, %s %s) {", typeName, VariableName);
+            out.print("\nout.print(\"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n\");\n");
+            out.printf("if (%s != null) {\n", VariableName);
+            out.printf("%s.write(out, \"%s\");\n}\n}\n\n", VariableName, elementName);
+        }
+        out.printf("}\n");
     }
 
     private String getElementName(XsdElement element) {
@@ -658,7 +829,7 @@ public class JavaCodeGenerator {
         throw new JavaCodeGeneratorException(String.format("not a simple type : %s", name));
     }
 
-    private static JavaSimpleType predefinedType(String name) throws JavaCodeGeneratorException {
+    private JavaSimpleType predefinedType(String name) throws JavaCodeGeneratorException {
         switch (name) {
             case "string":
             case "token":
