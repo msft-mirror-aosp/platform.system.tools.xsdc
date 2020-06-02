@@ -21,12 +21,18 @@ class CppSimpleType implements CppType {
     final private String fullName;
     final private String rawParsingExpression;
     final private boolean list;
+    final private boolean isEnum;
 
-    CppSimpleType(String name, String rawParsingExpression, boolean list) {
+    CppSimpleType(String name, String rawParsingExpression, boolean list, boolean isEnum) {
         this.rawParsingExpression = rawParsingExpression;
         this.list = list;
         this.name = name;
         this.fullName = list ? String.format("std::vector<%s>", name) : name;
+        this.isEnum = isEnum;
+    }
+
+    CppSimpleType(String name, String rawParsingExpression, boolean list) {
+        this(name, rawParsingExpression, list, false);
     }
 
     boolean isList() {
@@ -61,6 +67,27 @@ class CppSimpleType implements CppType {
             expression.append(
                     String.format("%s value = %s;\n", getName(),
                             String.format(rawParsingExpression, "raw")));
+        }
+        return expression.toString();
+    }
+
+    @Override
+    public String getWritingExpression(String getValue, String name) {
+        StringBuilder expression = new StringBuilder();
+        if (list) {
+            expression.append("{\nint count = 0;\n");
+            expression.append(String.format("for (const auto& v : %s) {\n", getValue));
+            String value = isEnum ? String.format("%sToString(v)", this.name) : "v";
+            expression.append("if (count != 0) {\n"
+                    + "out << \" \";\n}\n"
+                    + "++count;\n");
+            expression.append(String.format("out << %s;\n}\n}\n", value));
+        } else {
+            if (isEnum) {
+                expression.append(String.format("out << %sToString(%s);\n", this.name, getValue));
+            } else {
+                expression.append(String.format("out << %s;\n", getValue));
+            }
         }
         return expression.toString();
     }
