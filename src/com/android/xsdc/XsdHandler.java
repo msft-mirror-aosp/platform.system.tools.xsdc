@@ -311,6 +311,11 @@ public class XsdHandler extends DefaultHandler {
 
         if (use != null && use.equals("prohibited")) return null;
 
+        boolean required = false;
+        if (use != null && use.equals("required")) {
+            required = true;
+        }
+
         XsdType type = null;
         if (typename != null) {
             type = new XsdType(null, typename);
@@ -322,7 +327,7 @@ public class XsdHandler extends DefaultHandler {
             }
         }
 
-        return setDeprecatedAndFinal(new XsdAttribute(name, ref, type), state.deprecated,
+        return setDeprecatedAndFinal(new XsdAttribute(name, ref, type, required), state.deprecated,
                 state.finalValue, state.nullability);
     }
 
