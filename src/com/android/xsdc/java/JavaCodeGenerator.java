@@ -378,7 +378,7 @@ public class JavaCodeGenerator {
             JavaType type = allAttributeTypes.get(i);
             XsdAttribute attribute = resolveAttribute(allAttributes.get(i));
             String variableName = Utils.toVariableName(attribute.getName());
-            out.printf("if (get%s() != null) {\n", Utils.capitalize(variableName));
+            out.printf("if (has%s()) {\n", Utils.capitalize(variableName));
             out.printf("out.printf(\" %s=\\\"\");\n", attribute.getName());
             out.print(type.getWritingExpression(String.format("get%s()",
                     Utils.capitalize(variableName)), attribute.getName()));
@@ -595,7 +595,7 @@ public class JavaCodeGenerator {
             String VariableName = Utils.toVariableName(elementName);
             String typeName = javaType instanceof JavaSimpleType ? javaType.getName() :
                     Utils.toClassName(javaType.getName());
-            out.printf("public static void write(XmlWriter out, %s %s) {", typeName, VariableName);
+            out.printf("public static void write(XmlWriter out, %s %s) throws java.io.IOException {", typeName, VariableName);
             out.print("\nout.print(\"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n\");\n");
             out.printf("if (%s != null) {\n", VariableName);
             out.printf("%s.write(out, \"%s\");\n}\n}\n\n", VariableName, elementName);

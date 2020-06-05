@@ -66,8 +66,8 @@ package simple.complex.content {
   public class XmlWriter implements java.io.Closeable {
     ctor public XmlWriter(java.io.PrintWriter);
     method public void close();
-    method public static void write(simple.complex.content.XmlWriter, simple.complex.content.Person);
-    method public static void write(simple.complex.content.XmlWriter, simple.complex.content.Person2);
+    method public static void write(simple.complex.content.XmlWriter, simple.complex.content.Person) throws java.io.IOException;
+    method public static void write(simple.complex.content.XmlWriter, simple.complex.content.Person2) throws java.io.IOException;
   }
 
 }
