@@ -18,7 +18,7 @@ package reference {
   public class XmlWriter implements java.io.Closeable {
     ctor public XmlWriter(java.io.PrintWriter);
     method public void close();
-    method public static void write(reference.XmlWriter, reference.Class);
+    method public static void write(reference.XmlWriter, reference.Class) throws java.io.IOException;
   }
 
 }
