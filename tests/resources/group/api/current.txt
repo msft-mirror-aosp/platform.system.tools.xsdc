@@ -21,7 +21,7 @@ package group {
   public class XmlWriter implements java.io.Closeable {
     ctor public XmlWriter(java.io.PrintWriter);
     method public void close();
-    method public static void write(group.XmlWriter, group.Student);
+    method public static void write(group.XmlWriter, group.Student) throws java.io.IOException;
   }
 
 }
