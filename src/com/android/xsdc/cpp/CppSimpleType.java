@@ -77,7 +77,16 @@ class CppSimpleType implements CppType {
         if (list) {
             expression.append("{\nint count = 0;\n");
             expression.append(String.format("for (const auto& v : %s) {\n", getValue));
-            String value = isEnum ? String.format("%sToString(v)", this.name) : "v";
+            String value;
+            if (isEnum) {
+                value = String.format("%sToString(v)", this.name);
+            } else if (this.name.equals("char") || this.name.equals("unsigned char")) {
+                value = "(int)v";
+            } else if (this.name.equals("bool")) {
+                value = "(v ? \"true\" : \"false\")";
+            } else {
+                value = "v";
+            }
             expression.append("if (count != 0) {\n"
                     + "out << \" \";\n}\n"
                     + "++count;\n");
@@ -85,6 +94,10 @@ class CppSimpleType implements CppType {
         } else {
             if (isEnum) {
                 expression.append(String.format("out << %sToString(%s);\n", this.name, getValue));
+            } else if (this.name.equals("char") || this.name.equals("unsigned char")) {
+                expression.append(String.format("out << (int)%s;\n", getValue));
+            } else if (this.name.equals("bool")) {
+                expression.append(String.format("out << (%s ? \"true\" : \"false\");\n", getValue));
             } else {
                 expression.append(String.format("out << %s;\n", getValue));
             }

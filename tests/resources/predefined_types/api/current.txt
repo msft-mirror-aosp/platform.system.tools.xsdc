@@ -147,7 +147,7 @@ package predefined.types {
   public class XmlWriter implements java.io.Closeable {
     ctor public XmlWriter(java.io.PrintWriter);
     method public void close();
-    method public static void write(predefined.types.XmlWriter, predefined.types.Types);
+    method public static void write(predefined.types.XmlWriter, predefined.types.Types) throws java.io.IOException;
   }
 
 }
