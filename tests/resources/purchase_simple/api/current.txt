@@ -36,7 +36,7 @@ package purchase.simple {
   public class XmlWriter implements java.io.Closeable {
     ctor public XmlWriter(java.io.PrintWriter);
     method public void close();
-    method public static void write(purchase.simple.XmlWriter, purchase.simple.PurchaseOrderType);
+    method public static void write(purchase.simple.XmlWriter, purchase.simple.PurchaseOrderType) throws java.io.IOException;
   }
 
 }

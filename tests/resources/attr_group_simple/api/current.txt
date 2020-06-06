@@ -23,7 +23,7 @@ package attr.group.simple {
   public class XmlWriter implements java.io.Closeable {
     ctor public XmlWriter(java.io.PrintWriter);
     method public void close();
-    method public static void write(attr.group.simple.XmlWriter, attr.group.simple.Student);
+    method public static void write(attr.group.simple.XmlWriter, attr.group.simple.Student) throws java.io.IOException;
   }
 
 }
