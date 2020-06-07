@@ -139,6 +139,36 @@ TEST_F(XmlTest, Predefinedtypes) {
 
   ofstream out("old_predefined_types.xml");
   write(out, type);
+  Types type2 = *read("old_predefined_types.xml");
+
+  NumericTypes numericTypes2 = *type.getFirstNumericTypes();
+  ListPrimitiveTypes listPrimitiveTypes2 = *type.getFirstListPrimitiveTypes();
+
+  EXPECT_EQ(numericTypes.getDecimal(), numericTypes2.getDecimal());
+  EXPECT_EQ(numericTypes.getInteger(), numericTypes2.getInteger());
+  EXPECT_EQ(numericTypes.get_long(), numericTypes2.get_long());
+  EXPECT_EQ(numericTypes.get_int(), numericTypes2.get_int());
+  EXPECT_EQ(numericTypes.get_short(), numericTypes2.get_short());
+  EXPECT_EQ(numericTypes.getByte(), numericTypes2.getByte());
+  EXPECT_EQ(numericTypes.getNegativeInteger(), numericTypes2.getNegativeInteger());
+  EXPECT_EQ(numericTypes.getNonNegativeInteger(), numericTypes2.getNonNegativeInteger());
+  EXPECT_EQ(numericTypes.getPositiveInteger(), numericTypes2.getPositiveInteger());
+  EXPECT_EQ(numericTypes.getNonPositiveInteger(), numericTypes2.getNonPositiveInteger());
+  EXPECT_EQ(numericTypes.getUnsignedLong(), numericTypes2.getUnsignedLong());
+  EXPECT_EQ(numericTypes.getUnsignedInt(), numericTypes2.getUnsignedInt());
+  EXPECT_EQ(numericTypes.getUnsignedShort(), numericTypes2.getUnsignedShort());
+  EXPECT_EQ((numericTypes.getUnsignedByte()), numericTypes2.getUnsignedByte());
+
+  EXPECT_EQ(listPrimitiveTypes.getListInt()[0], listPrimitiveTypes2.getListInt()[0]);
+  EXPECT_EQ(listPrimitiveTypes.getListInt()[1], listPrimitiveTypes2.getListInt()[1]);
+  EXPECT_EQ(listPrimitiveTypes.getListShort()[0], listPrimitiveTypes2.getListShort()[0]);
+  EXPECT_EQ(listPrimitiveTypes.getListShort()[1], listPrimitiveTypes2.getListShort()[1]);
+  EXPECT_EQ(listPrimitiveTypes.getListByte()[0], listPrimitiveTypes2.getListByte()[0]);
+  EXPECT_EQ(listPrimitiveTypes.getListByte()[1], listPrimitiveTypes2.getListByte()[1]);
+  EXPECT_EQ(listPrimitiveTypes.getListDouble()[0], listPrimitiveTypes2.getListDouble()[0]);
+  EXPECT_EQ(listPrimitiveTypes.getListDouble()[1], listPrimitiveTypes2.getListDouble()[1]);
+  EXPECT_EQ(listPrimitiveTypes.getListBoolean()[0], listPrimitiveTypes2.getListBoolean()[0]);
+  EXPECT_EQ(listPrimitiveTypes.getListBoolean()[1], listPrimitiveTypes2.getListBoolean()[1]);
 }
 
 TEST_F(XmlTest, Nestedtype) {

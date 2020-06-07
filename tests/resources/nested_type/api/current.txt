@@ -52,7 +52,7 @@ package nested.type {
   public class XmlWriter implements java.io.Closeable {
     ctor public XmlWriter(java.io.PrintWriter);
     method public void close();
-    method public static void write(nested.type.XmlWriter, nested.type.Employee);
+    method public static void write(nested.type.XmlWriter, nested.type.Employee) throws java.io.IOException;
   }
 
 }
