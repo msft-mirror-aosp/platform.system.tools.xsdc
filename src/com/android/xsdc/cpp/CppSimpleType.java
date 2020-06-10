@@ -65,7 +65,8 @@ class CppSimpleType implements CppType {
             expression.append("}\n");
         } else {
             expression.append(
-                    String.format("%s value = %s;\n", getName(),
+                    String.format("%s %svalue = %s;\n", getName(),
+                            this.name.equals("std::string") ? "&" : "",
                             String.format(rawParsingExpression, "raw")));
         }
         return expression.toString();
