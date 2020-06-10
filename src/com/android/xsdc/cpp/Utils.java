@@ -83,4 +83,11 @@ class Utils {
         String enumName = Character.isDigit(trimmed.charAt(0)) ? "_" + trimmed : trimmed;
         return (keywordSet.contains(enumName)) ? "_" + enumName : enumName;
     }
+
+    static String toAssignmentName(String typeName, String variableName, boolean isMultipleType) {
+        if (isMultipleType || typeName.equals("std::string")) {
+            return String.format("std::move(%s)", variableName);
+        }
+        return variableName;
+    }
 }
