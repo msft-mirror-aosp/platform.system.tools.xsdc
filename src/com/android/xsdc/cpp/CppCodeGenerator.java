@@ -280,22 +280,22 @@ public class CppCodeGenerator {
             String typeName = element.isMultiple() || type instanceof CppComplexType ?
                     String.format("std::vector<%s>", type.getName()) :
                     String.format("std::optional<%s>", type.getName());
-            headerFile.printf("%s %s;\n", typeName,
+            headerFile.printf("%s %s_;\n", typeName,
                     Utils.toVariableName(getElementName(elementValue)));
         }
         for (int i = 0; i < attributeTypes.size(); ++i) {
             CppType type = attributeTypes.get(i);
             XsdAttribute attribute = resolveAttribute(attributes.get(i));
             if (attribute.isRequired()) {
-                headerFile.printf("%s %s;\n", type.getName(),
+                headerFile.printf("%s %s_;\n", type.getName(),
                         Utils.toVariableName(attribute.getName()));
             } else {
-                headerFile.printf("std::optional<%s> %s;\n", type.getName(),
+                headerFile.printf("std::optional<%s> %s_;\n", type.getName(),
                         Utils.toVariableName(attribute.getName()));
             }
         }
         if (valueType != null) {
-            headerFile.printf("std::optional<%s> value;\n", valueType.getName());
+            headerFile.printf("std::optional<%s> _value;\n", valueType.getName());
         }
 
         // print getters and setters
@@ -433,7 +433,7 @@ public class CppCodeGenerator {
 
         String fullName = nameScope + name;
         headerFile.printf("void write(std::ostream& out, const std::string& name);\n");
-        cppFile.printf("void %s::write(std::ostream& out, const std::string& name) {\n", fullName);
+        cppFile.printf("\nvoid %s::write(std::ostream& out, const std::string& name) {\n", fullName);
 
         cppFile.printf("out << printIndent() << \"<\" << name;\n");
         for (int i = 0; i < allAttributes.size(); ++i) {
@@ -502,16 +502,16 @@ public class CppCodeGenerator {
         cppFile.printf("%s& %s::get%s() {\n"
                 + "return %s;\n}\n\n",
                 typeName, name, Utils.capitalize(variableName), isMultiple || isRequired ?
-                variableName : String.format("%s.value()", variableName));
+                variableName + "_" : String.format("%s_.value()", variableName));
 
         headerFile.printf("bool has%s() const;\n", Utils.capitalize(variableName));
         cppFile.printf("bool %s::has%s() const {\n", name, Utils.capitalize(variableName));
         if (isMultiple) {
-            cppFile.printf("return !(%s.empty());\n}\n", variableName);
+            cppFile.printf("return !(%s_.empty());\n}\n", variableName);
         } else if (isRequired){
             cppFile.print("return true;\n}\n");
         } else {
-            cppFile.printf("return %s.has_value();\n}\n", variableName);
+            cppFile.printf("return %s_.has_value();\n}\n", variableName);
         }
 
         if (isMultiple || isMultipleType) {
@@ -522,29 +522,29 @@ public class CppCodeGenerator {
                         elementTypeName, Utils.capitalize(variableName));
                 cppFile.println();
                 cppFile.printf("%s %s::getFirst%s() {\n"
-                        + "if (%s%sempty()) {\n"
+                        + "if (%s_%sempty()) {\n"
                         + "return false;\n"
                         + "}\n"
                         + "return %s;\n"
                         + "}\n",
                         elementTypeName, name, Utils.capitalize(variableName), variableName,
                         isMultiple ? "." : "->",
-                        isMultiple ? String.format("%s[0]", variableName) :
-                        String.format("%s.value()[0]", variableName));
+                        isMultiple ? String.format("%s_[0]", variableName) :
+                        String.format("%s_.value()[0]", variableName));
             } else {
                 headerFile.printf("%s* getFirst%s();\n",
                         elementTypeName, Utils.capitalize(variableName));
                 cppFile.println();
                 cppFile.printf("%s* %s::getFirst%s() {\n"
-                        + "if (%s%sempty()) {\n"
+                        + "if (%s_%sempty()) {\n"
                         + "return nullptr;\n"
                         + "}\n"
                         + "return &%s;\n"
                         + "}\n",
                         elementTypeName, name, Utils.capitalize(variableName), variableName,
                         isMultiple ? "." : "->",
-                        isMultiple ? String.format("%s[0]", variableName) :
-                        String.format("%s.value()[0]", variableName));
+                        isMultiple ? String.format("%s_[0]", variableName) :
+                        String.format("%s_.value()[0]", variableName));
             }
         }
 
@@ -552,10 +552,10 @@ public class CppCodeGenerator {
         headerFile.printf("void set%s(%s);\n", Utils.capitalize(variableName), typeName);
         cppFile.println();
         cppFile.printf("void %s::set%s(%s %s) {\n"
-                + "this->%s = std::move(%s);\n"
+                + "%s_ = %s;\n"
                 + "}\n",
                 name, Utils.capitalize(variableName), typeName, variableName,
-                variableName, variableName);
+                variableName, Utils.toAssignmentName(typeName, variableName, isMultipleType));
     }
 
     private void printXmlParser() throws CppCodeGeneratorException {
@@ -912,11 +912,11 @@ public class CppCodeGenerator {
             case "nonNegativeInteger":
             case "positiveInteger":
             case "nonPositiveInteger":
-                return new CppSimpleType("long long", "std::stoll(%s)", false);
+                return new CppSimpleType("int64_t", "std::stoll(%s)", false);
             case "unsignedLong":
-                return new CppSimpleType("unsigned long long", "std::stoull(%s)", false);
+                return new CppSimpleType("uint64_t", "std::stoull(%s)", false);
             case "long":
-                return new CppSimpleType("long long", "std::stoll(%s)", false);
+                return new CppSimpleType("int64_t", "std::stoll(%s)", false);
             case "unsignedInt":
                 return new CppSimpleType("unsigned int",
                         "static_cast<unsigned int>(stoul(%s))", false);
