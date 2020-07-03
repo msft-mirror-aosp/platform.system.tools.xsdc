@@ -90,4 +90,14 @@ class Utils {
         }
         return variableName;
     }
+
+    static String elementTypeName(String name, boolean isMultipleType) {
+        String res;
+        if (isMultipleType) {
+            res = "std::vector<" + name + ">";
+        } else {
+            res = "std::optional<" + name + ">";
+        }
+        return res;
+    }
 }
