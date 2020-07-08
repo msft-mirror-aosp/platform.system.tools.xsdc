@@ -15,7 +15,9 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <string>
+#include <optional>
 #include <gtest/gtest.h>
 #include "nested_type.h"
 #include "purchase_simple.h"
@@ -48,6 +50,15 @@ TEST_F(XmlTest, Simpletype) {
   EXPECT_EQ(*simple.getFirstUnionTest(), "100");
   EXPECT_EQ(simple.getYesOrNo()[0], EnumType::YES);
   EXPECT_EQ(simple.getYesOrNo()[1], EnumType::EMPTY);
+  ofstream out("old_simple_type.xml");
+  write(out, simple);
+  SimpleTypes simple2 = *readSimpleTypes("old_simple_type.xml");
+  for (int i = 0; i < simple.getListInt().size(); ++i) {
+    EXPECT_EQ(simple.getListInt()[i], simple2.getListInt()[i]);
+  }
+  EXPECT_EQ(*simple.getFirstUnionTest(), *simple2.getFirstUnionTest());
+  EXPECT_EQ(simple.getYesOrNo()[0], simple2.getYesOrNo()[0]);
+  EXPECT_EQ(simple.getYesOrNo()[1], simple2.getYesOrNo()[1]);
 }
 
 TEST_F(XmlTest, Predefinedtypes) {
@@ -126,6 +137,38 @@ TEST_F(XmlTest, Predefinedtypes) {
   EXPECT_TRUE(listPrimitiveTypes.getListBoolean()[0]);
   EXPECT_FALSE(listPrimitiveTypes.getListBoolean()[1]);
 
+  ofstream out("old_predefined_types.xml");
+  write(out, type);
+  Types type2 = *read("old_predefined_types.xml");
+
+  NumericTypes numericTypes2 = *type.getFirstNumericTypes();
+  ListPrimitiveTypes listPrimitiveTypes2 = *type.getFirstListPrimitiveTypes();
+
+  EXPECT_EQ(numericTypes.getDecimal(), numericTypes2.getDecimal());
+  EXPECT_EQ(numericTypes.getInteger(), numericTypes2.getInteger());
+  EXPECT_EQ(numericTypes.get_long(), numericTypes2.get_long());
+  EXPECT_EQ(numericTypes.get_int(), numericTypes2.get_int());
+  EXPECT_EQ(numericTypes.get_short(), numericTypes2.get_short());
+  EXPECT_EQ(numericTypes.getByte(), numericTypes2.getByte());
+  EXPECT_EQ(numericTypes.getNegativeInteger(), numericTypes2.getNegativeInteger());
+  EXPECT_EQ(numericTypes.getNonNegativeInteger(), numericTypes2.getNonNegativeInteger());
+  EXPECT_EQ(numericTypes.getPositiveInteger(), numericTypes2.getPositiveInteger());
+  EXPECT_EQ(numericTypes.getNonPositiveInteger(), numericTypes2.getNonPositiveInteger());
+  EXPECT_EQ(numericTypes.getUnsignedLong(), numericTypes2.getUnsignedLong());
+  EXPECT_EQ(numericTypes.getUnsignedInt(), numericTypes2.getUnsignedInt());
+  EXPECT_EQ(numericTypes.getUnsignedShort(), numericTypes2.getUnsignedShort());
+  EXPECT_EQ((numericTypes.getUnsignedByte()), numericTypes2.getUnsignedByte());
+
+  EXPECT_EQ(listPrimitiveTypes.getListInt()[0], listPrimitiveTypes2.getListInt()[0]);
+  EXPECT_EQ(listPrimitiveTypes.getListInt()[1], listPrimitiveTypes2.getListInt()[1]);
+  EXPECT_EQ(listPrimitiveTypes.getListShort()[0], listPrimitiveTypes2.getListShort()[0]);
+  EXPECT_EQ(listPrimitiveTypes.getListShort()[1], listPrimitiveTypes2.getListShort()[1]);
+  EXPECT_EQ(listPrimitiveTypes.getListByte()[0], listPrimitiveTypes2.getListByte()[0]);
+  EXPECT_EQ(listPrimitiveTypes.getListByte()[1], listPrimitiveTypes2.getListByte()[1]);
+  EXPECT_EQ(listPrimitiveTypes.getListDouble()[0], listPrimitiveTypes2.getListDouble()[0]);
+  EXPECT_EQ(listPrimitiveTypes.getListDouble()[1], listPrimitiveTypes2.getListDouble()[1]);
+  EXPECT_EQ(listPrimitiveTypes.getListBoolean()[0], listPrimitiveTypes2.getListBoolean()[0]);
+  EXPECT_EQ(listPrimitiveTypes.getListBoolean()[1], listPrimitiveTypes2.getListBoolean()[1]);
 }
 
 TEST_F(XmlTest, Nestedtype) {
@@ -142,6 +185,9 @@ TEST_F(XmlTest, Nestedtype) {
   EXPECT_EQ(address.getZip(), 3342);
   EXPECT_EQ(extra.getLine1(), "Donga 303-111");
   EXPECT_EQ(extra.getLine2(), "Good Street");
+
+  ofstream out("old_nested_type.xml");
+  write(out, employee);
 }
 
 TEST_F(XmlTest, Purchasesimple) {
@@ -169,6 +215,33 @@ TEST_F(XmlTest, Purchasesimple) {
   EXPECT_EQ(orderType.getBillTo()[0].getState(), "billState");
   EXPECT_EQ(orderType.getBillTo()[0].getZip(), 1);
   EXPECT_EQ(orderType.getBillTo()[0].getCountry(), "US");
+
+  ofstream out("old_purchase_simple.xml");
+  write(out, orderType);
+
+  PurchaseOrderType orderType2 = *read("old_purchase_simple.xml");
+
+  EXPECT_EQ(orderType.getOrderDate(), orderType2.getOrderDate());
+
+  EXPECT_EQ(orderType.getShipTo()[0].getName(), orderType2.getShipTo()[0].getName());
+  EXPECT_EQ(orderType.getShipTo()[0].getStreet(), orderType2.getShipTo()[0].getStreet());
+  EXPECT_EQ(orderType.getShipTo()[0].getCity(), orderType2.getShipTo()[0].getCity());
+  EXPECT_EQ(orderType.getShipTo()[0].getState(), orderType2.getShipTo()[0].getState());
+  EXPECT_EQ(orderType.getShipTo()[0].getZip(), orderType2.getShipTo()[0].getZip());
+  EXPECT_EQ(orderType.getShipTo()[0].getCountry(), orderType2.getShipTo()[0].getCountry());
+  EXPECT_EQ(orderType.getShipTo()[1].getName(), orderType2.getShipTo()[1].getName());
+  EXPECT_EQ(orderType.getShipTo()[1].getStreet(), orderType2.getShipTo()[1].getStreet());
+  EXPECT_EQ(orderType.getShipTo()[1].getCity(), orderType2.getShipTo()[1].getCity());
+  EXPECT_EQ(orderType.getShipTo()[1].getState(), orderType2.getShipTo()[1].getState());
+  EXPECT_EQ(orderType.getShipTo()[1].getZip(), orderType2.getShipTo()[1].getZip());
+  EXPECT_EQ(orderType.getShipTo()[1].getCountry(), orderType2.getShipTo()[1].getCountry());
+
+  EXPECT_EQ(orderType.getBillTo()[0].getName(), orderType2.getBillTo()[0].getName());
+  EXPECT_EQ(orderType.getBillTo()[0].getStreet(), orderType2.getBillTo()[0].getStreet());
+  EXPECT_EQ(orderType.getBillTo()[0].getCity(), orderType2.getBillTo()[0].getCity());
+  EXPECT_EQ(orderType.getBillTo()[0].getState(), orderType2.getBillTo()[0].getState());
+  EXPECT_EQ(orderType.getBillTo()[0].getZip(), orderType2.getBillTo()[0].getZip());
+  EXPECT_EQ(orderType.getBillTo()[0].getCountry(), orderType2.getBillTo()[0].getCountry());
 }
 
 TEST_F(XmlTest, Reference) {
@@ -178,6 +251,9 @@ TEST_F(XmlTest, Reference) {
   EXPECT_EQ(_class.getStudent()[0], "Sam");
   EXPECT_EQ(_class.getStudent()[1], "Paul");
   EXPECT_EQ(_class.getStudent()[2], "Peter");
+
+  ofstream out("old_reference.xml");
+  write(out, _class);
 }
 
 TEST_F(XmlTest, Simplecomplexcontent) {
@@ -200,6 +276,9 @@ TEST_F(XmlTest, Simplecomplexcontent) {
   EXPECT_EQ(kRAddress.getCity(), "Seoul");
 
   EXPECT_EQ(subAddress.getChoice1_optional(), "Temp");
+
+  ofstream out("old_simple_complex_content.xml");
+  write(out, person);
 }
 
 TEST_F(XmlTest, Attrgroupsimple) {
@@ -210,6 +289,9 @@ TEST_F(XmlTest, Attrgroupsimple) {
   EXPECT_EQ(student.getCity(), "Mountain View");
   EXPECT_EQ(student.getState(), "CA");
   EXPECT_EQ(student.getRoad(), "Street 101");
+
+  ofstream out("old_attr_group_simple.xml");
+  write(out, student);
 }
 
 TEST_F(XmlTest, Group) {
@@ -219,6 +301,9 @@ TEST_F(XmlTest, Group) {
   EXPECT_EQ(student.getCity(), "Mountain View");
   EXPECT_EQ(student.getState(), "CA");
   EXPECT_EQ(student.getRoad(), "Street 101");
+
+  ofstream out("old_group.xml");
+  write(out, student);
 }
 
 int main(int argc, char **argv) {
