@@ -39,6 +39,10 @@ class CppSimpleType implements CppType {
         return list;
     }
 
+    boolean isEnum() {
+        return isEnum;
+    }
+
     CppSimpleType newListType() throws CppCodeGeneratorException {
         if (list) throw new CppCodeGeneratorException("list of list is not supported");
         return new CppSimpleType(name, rawParsingExpression, true);
