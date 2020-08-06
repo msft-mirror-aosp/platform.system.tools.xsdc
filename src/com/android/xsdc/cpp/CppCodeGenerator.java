@@ -137,15 +137,18 @@ public class CppCodeGenerator {
         }
 
         for (XsdType type : xmlSchema.getTypeMap().values()) {
-            if (type instanceof XsdComplexType) {
-                String name = Utils.toClassName(type.getName());
-                XsdComplexType complexType = (XsdComplexType) type;
-                printClass(name, "", complexType);
-            } else if (type instanceof XsdRestriction &&
+            if (type instanceof XsdRestriction &&
                   ((XsdRestriction)type).getEnums() != null) {
                 String name = Utils.toClassName(type.getName());
                 XsdRestriction restrictionType = (XsdRestriction) type;
                 printEnum(name, restrictionType);
+            }
+        }
+        for (XsdType type : xmlSchema.getTypeMap().values()) {
+            if (type instanceof XsdComplexType) {
+                String name = Utils.toClassName(type.getName());
+                XsdComplexType complexType = (XsdComplexType) type;
+                printClass(name, "", complexType);
             }
         }
         for (XsdElement element : xmlSchema.getElementMap().values()) {
@@ -186,13 +189,13 @@ public class CppCodeGenerator {
         headerFile.printf("UNKNOWN\n};\n\n");
         cppFile.printf("};\n\n");
 
-        cppFile.printf("static %s stringTo%s(std::string value) {\n"
+        cppFile.printf("[[maybe_unused]] static %s stringTo%s(std::string value) {\n"
                 + "auto enumValue =  %sString.find(value);\n"
                 + "return enumValue == %sString.end() ? %s::UNKNOWN : enumValue->second;\n"
                 + "}\n\n", name, name, name, name, name);
 
         if (writer) {
-            cppFile.printf("static std::string %sToString(%s value) {\n"
+            cppFile.printf("[[maybe_unused]] static std::string %sToString(%s value) {\n"
                     + "for (auto &i : %sString) {\n"
                     + "if (i.second == value) {\n"
                     + "return i.first;\n"
@@ -203,6 +206,13 @@ public class CppCodeGenerator {
 
 
     private void printPrototype() throws CppCodeGeneratorException {
+        for (XsdType type : xmlSchema.getTypeMap().values()) {
+            if (type instanceof XsdRestriction &&
+                ((XsdRestriction)type).getEnums() != null) {
+                String name = Utils.toClassName(type.getName());
+                headerFile.printf("enum class %s;\n", name);
+            }
+        }
         for (XsdType type : xmlSchema.getTypeMap().values()) {
             if (type instanceof XsdComplexType) {
                 String name = Utils.toClassName(type.getName());
@@ -358,7 +368,7 @@ public class CppCodeGenerator {
         cppFile.print("std::string raw;\n");
 
         for (int i = 0; i < allAttributes.size(); ++i) {
-            CppType type = allAttributeTypes.get(i);
+            CppSimpleType type = allAttributeTypes.get(i);
             XsdAttribute attribute = resolveAttribute(allAttributes.get(i));
             String variableName = Utils.toVariableName(attribute.getName());
             cppFile.printf("raw = getXmlAttribute(root, \"%s\");\n", attribute.getName());
@@ -367,6 +377,8 @@ public class CppCodeGenerator {
                     cppFile.printf("%s %s = false;\n", type.getName(), variableName);
                 } else if (type.getName().equals("std::string")) {
                     cppFile.printf("%s %s;\n", type.getName(), variableName);
+                } else if (type.isEnum()) {
+                    cppFile.printf("%s %s = %s::UNKNOWN;\n", type.getName(), variableName, type.getName());
                 } else {
                     cppFile.printf("%s %s = 0;\n", type.getName(), variableName);
                 }
