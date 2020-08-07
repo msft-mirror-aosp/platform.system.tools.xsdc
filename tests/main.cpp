@@ -18,6 +18,8 @@
 #include <fstream>
 #include <string>
 #include <optional>
+
+#include <android-base/file.h>
 #include <gtest/gtest.h>
 #include "nested_type.h"
 #include "purchase_simple.h"
@@ -30,6 +32,7 @@
 #include "group.h"
 
 using namespace std;
+using ::android::base::GetExecutableDirectory;
 
 class XmlTest : public ::testing::Test {
 public:
@@ -37,11 +40,14 @@ public:
     }
     virtual void TearDown() override {
     }
+    std::string Resource(const std::string& filename) {
+      return GetExecutableDirectory() + "/resources/" + filename;
+    }
 };
 
 TEST_F(XmlTest, Simpletype) {
   using namespace simple::type;
-  string file_name = "resources/simple_type.xml";
+  string file_name = Resource("simple_type.xml");
   SimpleTypes simple = *readSimpleTypes(file_name.c_str());
 
   for (int i = 0; i < simple.getListInt().size(); ++i) {
@@ -63,7 +69,7 @@ TEST_F(XmlTest, Simpletype) {
 
 TEST_F(XmlTest, Predefinedtypes) {
   using namespace predefined::types;
-  Types type = *read("resources/predefined_types.xml");
+  Types type = *read(Resource("predefined_types.xml").c_str());
 
   StringTypes stringTypes = *type.getFirstStringTypes();
   DateTypes dateTypes = *type.getFirstDateTypes();
@@ -173,7 +179,7 @@ TEST_F(XmlTest, Predefinedtypes) {
 
 TEST_F(XmlTest, Nestedtype) {
   using namespace nested::type;
-  Employee employee = *read("resources/nested_type.xml");
+  Employee employee = *read(Resource("nested_type.xml").c_str());
 
   Employee::Address address = *employee.getFirstAddress();
   Employee::Address::Extra extra = *address.getFirstExtra();
@@ -192,7 +198,7 @@ TEST_F(XmlTest, Nestedtype) {
 
 TEST_F(XmlTest, Purchasesimple) {
   using namespace purchase::simple;
-  PurchaseOrderType orderType = *read("resources/purchase_simple.xml");
+  PurchaseOrderType orderType = *read(Resource("purchase_simple.xml").c_str());
 
   EXPECT_EQ(orderType.getOrderDate(), "1900-01-01");
 
@@ -246,7 +252,7 @@ TEST_F(XmlTest, Purchasesimple) {
 
 TEST_F(XmlTest, Reference) {
   using namespace reference;
-  Class _class = *read("resources/reference.xml");
+  Class _class = *read(Resource("reference.xml").c_str());
 
   EXPECT_EQ(_class.getStudent()[0], "Sam");
   EXPECT_EQ(_class.getStudent()[1], "Paul");
@@ -258,7 +264,7 @@ TEST_F(XmlTest, Reference) {
 
 TEST_F(XmlTest, Simplecomplexcontent) {
   using namespace simple::complex::content;
-  Person person = *readPerson("resources/simple_complex_content.xml");
+  Person person = *readPerson(Resource("simple_complex_content.xml").c_str());
   USAddressP uSAddressP = *person.getFirstUSAddressP();
   KRAddress kRAddress = *person.getFirstKRAddress();
   SubAddress subAddress = *person.getFirstSubAddress();
@@ -283,7 +289,7 @@ TEST_F(XmlTest, Simplecomplexcontent) {
 
 TEST_F(XmlTest, Attrgroupsimple) {
   using namespace attr::group::simple;
-  Student student = *read("resources/attr_group_simple.xml");
+  Student student = *read(Resource("attr_group_simple.xml").c_str());
 
   EXPECT_EQ(student.getName(), "Jun");
   EXPECT_EQ(student.getCity(), "Mountain View");
@@ -296,7 +302,7 @@ TEST_F(XmlTest, Attrgroupsimple) {
 
 TEST_F(XmlTest, Group) {
   using namespace group;
-  Student student = *read("resources/group.xml");
+  Student student = *read(Resource("group.xml").c_str());
 
   EXPECT_EQ(student.getCity(), "Mountain View");
   EXPECT_EQ(student.getState(), "CA");
