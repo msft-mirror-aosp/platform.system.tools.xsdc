@@ -1,0 +1,5 @@
+xsd_config {
+    name: "xsdc_attr_enumtype_tests",
+    srcs: ["attr_enumtype.xsd"],
+    package_name: "attr.enumtype",
+}
