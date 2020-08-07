@@ -1,4 +1,3 @@
-
 java_test_host {
     name: "xsdc-java-tests",
     srcs: ["src/**/*.java"],
@@ -6,7 +5,7 @@ java_test_host {
         "junit",
         "xsdc",
     ],
-    java_resource_dirs: ["resources"]
+    java_resource_dirs: ["resources"],
 }
 
 cc_test_host {
@@ -36,6 +35,7 @@ cc_test_host {
         "xsdc_simple_complex_content_tests",
         "xsdc_simple_type_tests",
     ],
+    header_libs: ["libxsdc-utils"],
     shared_libs: [
         "libbase",
         "libxml2",

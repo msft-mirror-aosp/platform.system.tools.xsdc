@@ -98,7 +98,7 @@ class CppSimpleType implements CppType {
             expression.append(String.format("out << %s;\n}\n}\n", value));
         } else {
             if (isEnum) {
-                expression.append(String.format("out << %sToString(%s);\n", this.name, getValue));
+                expression.append(String.format("out << toString(%s);\n", getValue));
             } else if (this.name.equals("char") || this.name.equals("unsigned char")) {
                 expression.append(String.format("out << (int)%s;\n", getValue));
             } else if (this.name.equals("bool")) {
