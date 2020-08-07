@@ -16,6 +16,7 @@ cc_test_host {
     ],
     generated_sources: [
         "xsdc_attr_group_simple_tests",
+        "xsdc_attr_enumtype_tests",
         "xsdc_group_tests",
         "xsdc_nested_type_tests",
         "xsdc_predefined_types_tests",
@@ -26,6 +27,7 @@ cc_test_host {
     ],
     generated_headers: [
         "xsdc_attr_group_simple_tests",
+        "xsdc_attr_enumtype_tests",
         "xsdc_group_tests",
         "xsdc_nested_type_tests",
         "xsdc_predefined_types_tests",
@@ -39,4 +41,5 @@ cc_test_host {
         "libxml2",
     ],
     data: ["resources/*.xml"],
+    test_suites: ["general-tests"],
 }
