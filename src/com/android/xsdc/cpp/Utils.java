@@ -75,6 +75,9 @@ class Utils {
     }
 
     static String toEnumName(String name) throws CppCodeGeneratorException {
+        if ("".equals(name)) {
+            name = "EMPTY";
+        }
         String trimmed = name.replace(".", "_").replaceAll("[^A-Za-z0-9_]", "");
         if (trimmed.isEmpty()) {
             throw new CppCodeGeneratorException(
