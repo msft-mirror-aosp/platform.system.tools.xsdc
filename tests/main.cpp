@@ -47,6 +47,11 @@ public:
 
 TEST_F(XmlTest, Simpletype) {
   using namespace simple::type;
+  for (const auto v : android::xsdc_enum_range<EnumType>()) {
+    EXPECT_NE(v, EnumType::UNKNOWN);
+    EXPECT_EQ(stringToEnumType(toString(v)), v);
+  }
+
   string file_name = Resource("simple_type.xml");
   SimpleTypes simple = *readSimpleTypes(file_name.c_str());
 
