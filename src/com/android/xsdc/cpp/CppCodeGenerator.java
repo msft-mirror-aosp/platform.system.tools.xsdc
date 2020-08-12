@@ -42,6 +42,8 @@ public class CppCodeGenerator {
     private boolean hasAttr;
     private boolean writer;
 
+    private static final String UNKNOWN_ENUM = "UNKNOWN";
+
     public CppCodeGenerator(XmlSchema xmlSchema, String pkgName, boolean writer)
             throws CppCodeGeneratorException {
         this.xmlSchema = xmlSchema;
@@ -99,22 +101,38 @@ public class CppCodeGenerator {
         cppFile =  new CodeWriter(fs.getPrintWriter(cppFileName));
         headerFile = new CodeWriter(fs.getPrintWriter("include/" + hFileName));
 
+        boolean hasEnums = false;
+        for (XsdType type : xmlSchema.getTypeMap().values()) {
+            if (type instanceof XsdRestriction &&
+                  ((XsdRestriction)type).getEnums() != null) {
+                hasEnums = true;
+                break;
+            }
+        }
+
         String headerMacro = hFileName.toUpperCase().replace(".", "_");
         headerFile.printf("#ifndef %s\n", headerMacro);
-        headerFile.printf("#define %s\n\n", headerMacro);
-        headerFile.printf("#include <libxml/parser.h>\n");
-        headerFile.printf("#include <libxml/xinclude.h>\n\n");
-
+        headerFile.printf("#define %s\n", headerMacro);
+        headerFile.printf("\n");
+        headerFile.printf("#include <array>\n");
         headerFile.printf("#include <map>\n");
         headerFile.printf("#include <optional>\n");
         headerFile.printf("#include <string>\n");
-        headerFile.printf("#include <vector>\n\n");
+        headerFile.printf("#include <vector>\n");
+        headerFile.printf("\n");
+        headerFile.printf("#include <libxml/parser.h>\n");
+        headerFile.printf("#include <libxml/xinclude.h>\n");
+        if (hasEnums) {
+            headerFile.printf("#include <xsdc/XsdcSupport.h>\n");
+        }
+        headerFile.printf("\n");
 
-        cppFile.printf("#define LOG_TAG \"%s\"\n\n", pkgName);
+        cppFile.printf("#define LOG_TAG \"%s\"\n", pkgName);
         cppFile.printf("#include <android/log.h>\n");
-        cppFile.printf("#include <android-base/strings.h>\n\n");
+        cppFile.printf("#include <android-base/strings.h>\n");
         cppFile.printf("#include <libxml/parser.h>\n");
-        cppFile.printf("#include <libxml/xinclude.h>\n\n");
+        cppFile.printf("#include <libxml/xinclude.h>\n");
+        cppFile.printf("\n");
         cppFile.printf("#include \"%s\"\n\n", hFileName);
 
         List<String> namespace = new java.util.ArrayList<>();
@@ -166,6 +184,21 @@ public class CppCodeGenerator {
             cppFile.printf("} // %s\n", token);
         }
 
+        if (hasEnums) {
+            headerFile.printf("\n//\n// global type declarations for package\n//\n\n");
+            headerFile.printf("namespace android {\nnamespace details {\n");
+            Collections.reverse(namespace);
+            for (XsdType type : xmlSchema.getTypeMap().values()) {
+                if (type instanceof XsdRestriction &&
+                        ((XsdRestriction)type).getEnums() != null) {
+                    String name = Utils.toClassName(type.getName());
+                    XsdRestriction restrictionType = (XsdRestriction) type;
+                    printEnumValues(namespace, name, restrictionType);
+                }
+            }
+            headerFile.printf("}  // namespace details\n}  // namespace android\n\n");
+        }
+
         headerFile.printf("#endif // %s\n", headerMacro);
         cppFile.close();
         headerFile.close();
@@ -177,33 +210,48 @@ public class CppCodeGenerator {
         cppFile.printf("const std::map<std::string, %s> %sString {\n", name, name);
         List<XsdEnumeration> enums = restrictionType.getEnums();
 
+        headerFile.printf("%s = %d,\n", UNKNOWN_ENUM, -1);
         for (XsdEnumeration tag : enums) {
             String value = tag.getValue();
-            if ("".equals(value)) {
-                value = "EMPTY";
-            }
             headerFile.printf("%s,\n", Utils.toEnumName(value));
             cppFile.printf("{ \"%s\", %s::%s },\n", tag.getValue(), name,
                     Utils.toEnumName(value));
         }
-        headerFile.printf("UNKNOWN\n};\n\n");
+        headerFile.printf("};\n");
         cppFile.printf("};\n\n");
 
-        cppFile.printf("[[maybe_unused]] static %s stringTo%s(std::string value) {\n"
-                + "auto enumValue =  %sString.find(value);\n"
-                + "return enumValue == %sString.end() ? %s::UNKNOWN : enumValue->second;\n"
-                + "}\n\n", name, name, name, name, name);
+        headerFile.printf("%s stringTo%s(const std::string& value);\n",
+                name, name);
+        cppFile.printf("%s stringTo%s(const std::string& value) {\n"
+                + "auto enumValue = %sString.find(value);\n"
+                + "return enumValue != %sString.end() ? enumValue->second : %s::%s;\n"
+                + "}\n\n", name, name, name, name, name, UNKNOWN_ENUM);
 
-        if (writer) {
-            cppFile.printf("[[maybe_unused]] static std::string %sToString(%s value) {\n"
-                    + "for (auto &i : %sString) {\n"
-                    + "if (i.second == value) {\n"
-                    + "return i.first;\n"
-                    + "}\n}\n"
-                    + "return \"\";\n}\n\n", name, name, name);
+        headerFile.printf("std::string toString(%s o);\n\n", name);
+        cppFile.printf("std::string toString(%s o) {\n", name);
+        cppFile.printf("switch (o) {\n");
+        for (XsdEnumeration tag : enums) {
+            String value = tag.getValue();
+            cppFile.printf("case %s::%s: return \"%s\";\n",
+                    name, Utils.toEnumName(value), tag.getValue());
         }
+        cppFile.printf("default: return std::to_string(static_cast<int>(o));\n}\n");
+        cppFile.printf("}\n\n");
     }
 
+    private void printEnumValues(List<String> namespace, String name,
+            XsdRestriction restrictionType) throws CppCodeGeneratorException {
+        List<XsdEnumeration> enums = restrictionType.getEnums();
+        String absoluteNamespace = "::" + String.join("::", namespace);
+        headerFile.printf("template<> inline constexpr std::array<%s::%s, %d> "
+                + "xsdc_enum_values<%s::%s> = {\n",
+                absoluteNamespace, name, enums.size(), absoluteNamespace, name);
+        for (XsdEnumeration tag : enums) {
+            String value = tag.getValue();
+            headerFile.printf("%s::%s::%s,\n", absoluteNamespace, name, Utils.toEnumName(value));
+        }
+        headerFile.printf("};\n");
+    }
 
     private void printPrototype() throws CppCodeGeneratorException {
         for (XsdType type : xmlSchema.getTypeMap().values()) {
@@ -378,7 +426,8 @@ public class CppCodeGenerator {
                 } else if (type.getName().equals("std::string")) {
                     cppFile.printf("%s %s;\n", type.getName(), variableName);
                 } else if (type.isEnum()) {
-                    cppFile.printf("%s %s = %s::UNKNOWN;\n", type.getName(), variableName, type.getName());
+                    cppFile.printf("%s %s = %s::%s;\n",
+                            type.getName(), variableName, type.getName(), UNKNOWN_ENUM);
                 } else {
                     cppFile.printf("%s %s = 0;\n", type.getName(), variableName);
                 }
@@ -747,7 +796,7 @@ public class CppCodeGenerator {
                 + "std::string s = \"\";\n"
                 + "for (int index = 0; index < indentIndex; ++index) {\n"
                 + "s += \"    \";\n"
-                + "}\nreturn s;\n}\n");
+                + "}\nreturn s;\n}\n\n");
     }
 
     private String getElementName(XsdElement element) {
