@@ -135,10 +135,7 @@ public class JavaCodeGenerator {
                 out.printf("@java.lang.Deprecated\n");
             }
             String value = tag.getValue();
-            if ("".equals(value)) {
-                value = "EMPTY";
-            }
-            out.printf("\n%s(\"%s\"),", Utils.toEnumName(value), tag.getValue());
+            out.printf("\n%s(\"%s\"),", Utils.toEnumName(value), value);
         }
         out.printf(";\n\n");
         out.printf("private final String rawName;\n\n");
@@ -147,7 +144,16 @@ public class JavaCodeGenerator {
                 + "}\n\n", name);
         out.printf("public String getRawName() {\n"
                 + "return rawName;\n"
-                + "}\n");
+                + "}\n\n");
+
+        out.printf("static %s fromString(String rawString) {\n"
+                + "for (%s _f : values()) {\n"
+                + "if (_f.getRawName().equals(rawString)) {\n"
+                + "return _f;\n"
+                + "}\n"
+                + "}\n"
+                + "throw new IllegalArgumentException(rawString);\n"
+                + "}\n\n", name, name);
 
         if (writer) {
             out.printf("@Override\n"
@@ -439,7 +445,7 @@ public class JavaCodeGenerator {
         }
         out.printf("public%s %s%s get%s() {\n", getFinalString(finalValue),
                 getNullabilityString(nullability), typeName, Utils.capitalize(variableName));
-        if (isMultiple) {
+        if ((type instanceof JavaSimpleType && ((JavaSimpleType)type).isList()) || isMultiple) {
             out.printf("if (%s == null) {\n"
                     + "%s = new java.util.ArrayList<>();\n"
                     + "}\n", variableName, variableName);
@@ -762,8 +768,7 @@ public class JavaCodeGenerator {
             XsdRestriction restriction = (XsdRestriction) simpleType;
             if (restriction.getEnums() != null) {
                 String name = Utils.toClassName(restriction.getName());
-                return new JavaSimpleType(name, name + ".valueOf(%s.replace(\".\", \"_\")."
-                        + "replaceAll(\"[^A-Za-z0-9_]\", \"\"))", false);
+                return new JavaSimpleType(name, name + ".fromString(%s)", false);
             }
             return parseSimpleType(restriction.getBase(), traverse);
         } else if (simpleType instanceof XsdUnion) {
