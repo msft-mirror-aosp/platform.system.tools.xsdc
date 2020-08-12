@@ -1,11 +1,25 @@
 java_test_host {
     name: "xsdc-java-tests",
-    srcs: ["src/**/*.java"],
+    srcs: [
+        "src/**/*.java",
+        ":xsdc_attr_group_simple_tests",
+        ":xsdc_attr_enumtype_tests",
+        ":xsdc_group_tests",
+        ":xsdc_nested_type_tests",
+        ":xsdc_predefined_types_tests",
+        ":xsdc_purchase_simple_tests",
+        ":xsdc_reference_tests",
+        ":xsdc_simple_complex_content_tests",
+        ":xsdc_simple_type_tests",
+    ],
     static_libs: [
         "junit",
         "xsdc",
+        "stub-annotations",
+        "kxml2-2.3.0",
     ],
     java_resource_dirs: ["resources"],
+    test_suites: ["general-tests"],
 }
 
 cc_test_host {
