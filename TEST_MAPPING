@@ -1,0 +1,12 @@
+{
+    "presubmit": [
+        {
+            "name": "xsdc-cpp-tests",
+            "host": true
+        },
+        {
+            "name": "xsdc-java-tests",
+            "host": true
+        }
+    ]
+}
