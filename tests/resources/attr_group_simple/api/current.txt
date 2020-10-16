@@ -4,10 +4,12 @@ package attr.group.simple {
   public class Student {
     ctor public Student();
     method public String getCity();
+    method public java.util.List<java.lang.Integer> getList();
     method public String getName();
     method public String getRoad();
     method public String getState();
     method public void setCity(String);
+    method public void setList(java.util.List<java.lang.Integer>);
     method public void setName(String);
     method public void setRoad(String);
     method public void setState(String);
