@@ -421,15 +421,11 @@ public class CppCodeGenerator {
             String variableName = Utils.toVariableName(attribute.getName());
             cppFile.printf("raw = getXmlAttribute(root, \"%s\");\n", attribute.getName());
             if (attribute.isRequired()) {
-                if (type.getName().equals("bool")) {
-                    cppFile.printf("%s %s = false;\n", type.getName(), variableName);
-                } else if (type.getName().equals("std::string")) {
-                    cppFile.printf("%s %s;\n", type.getName(), variableName);
-                } else if (type.isEnum()) {
+                if (type.isEnum()) {
                     cppFile.printf("%s %s = %s::%s;\n",
                             type.getName(), variableName, type.getName(), UNKNOWN_ENUM);
                 } else {
-                    cppFile.printf("%s %s = 0;\n", type.getName(), variableName);
+                    cppFile.printf("%s %s{};\n", type.getName(), variableName);
                 }
             } else {
                 cppFile.printf("std::optional<%s> %s = std::nullopt;\n", type.getName(),
