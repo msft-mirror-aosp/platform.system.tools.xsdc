@@ -300,6 +300,9 @@ TEST_F(XmlTest, Attrgroupsimple) {
   EXPECT_EQ(student.getCity(), "Mountain View");
   EXPECT_EQ(student.getState(), "CA");
   EXPECT_EQ(student.getRoad(), "Street 101");
+  EXPECT_EQ(student.getList()[0], 1);
+  EXPECT_EQ(student.getList()[1], 2);
+  EXPECT_EQ(student.getList()[2], 3);
 
   ofstream out("old_attr_group_simple.xml");
   write(out, student);
