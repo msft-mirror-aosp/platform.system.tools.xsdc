@@ -91,15 +91,7 @@ public class Main {
             outDir = ".";
         }
 
-        XmlSchema xmlSchema;
-        try (FileInputStream in = new FileInputStream(xsdFile[0])) {
-            SAXParserFactory factory = SAXParserFactory.newInstance();
-            factory.setNamespaceAware(true);
-            SAXParser parser = factory.newSAXParser();
-            XsdHandler xsdHandler = new XsdHandler();
-            parser.parse(in, xsdHandler);
-            xmlSchema = xsdHandler.getSchema();
-        }
+        XmlSchema xmlSchema = parse(xsdFile[0]);
 
         if (cmd.hasOption('j')) {
             File packageDir = new File(Paths.get(outDir, packageName.replace(".", "/")).toString());
@@ -116,6 +108,23 @@ public class Main {
                     new CppCodeGenerator(xmlSchema, packageName, writer);
             cppCodeGenerator.print(fs);
         }
+    }
+
+    private static XmlSchema parse(String xsdFile) throws Exception {
+        XmlSchema xmlSchema;
+        try (FileInputStream in = new FileInputStream(xsdFile)) {
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            factory.setNamespaceAware(true);
+            SAXParser parser = factory.newSAXParser();
+            XsdHandler xsdHandler = new XsdHandler();
+            parser.parse(in, xsdHandler);
+            xmlSchema = xsdHandler.getSchema();
+        }
+        for (String file : xmlSchema.getIncludeList()) {
+            XmlSchema temp = parse(Paths.get(xsdFile).resolveSibling(file).toString());
+            xmlSchema.include(temp);
+        }
+        return xmlSchema;
     }
 
     private static void help(Options options) {
