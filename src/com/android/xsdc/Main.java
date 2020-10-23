@@ -65,6 +65,11 @@ public class Main {
                 .hasArgs(0)
                 .withDescription("Generate Writer code.")
                 .create("w"));
+        options.addOption(OptionBuilder
+                .withLongOpt("nullability")
+                .hasArgs(0)
+                .withDescription("Add @NonNull or @Nullable annotation to generated java code.")
+                .create("n"));
 
         CommandLineParser CommandParser = new GnuParser();
         CommandLine cmd;
@@ -81,6 +86,7 @@ public class Main {
         String packageName = cmd.getOptionValue('p', null);
         String outDir = cmd.getOptionValue('o', null);
         boolean writer = cmd.hasOption('w');
+        boolean nullability = cmd.hasOption('n');
 
         if (xsdFile.length != 1 || packageName == null) {
             System.err.println("Error: no xsd files or pacakge name");
@@ -91,22 +97,14 @@ public class Main {
             outDir = ".";
         }
 
-        XmlSchema xmlSchema;
-        try (FileInputStream in = new FileInputStream(xsdFile[0])) {
-            SAXParserFactory factory = SAXParserFactory.newInstance();
-            factory.setNamespaceAware(true);
-            SAXParser parser = factory.newSAXParser();
-            XsdHandler xsdHandler = new XsdHandler();
-            parser.parse(in, xsdHandler);
-            xmlSchema = xsdHandler.getSchema();
-        }
+        XmlSchema xmlSchema = parse(xsdFile[0]);
 
         if (cmd.hasOption('j')) {
             File packageDir = new File(Paths.get(outDir, packageName.replace(".", "/")).toString());
             packageDir.mkdirs();
             FileSystem fs = new FileSystem(packageDir);
             JavaCodeGenerator javaCodeGenerator =
-                    new JavaCodeGenerator(xmlSchema, packageName, writer);
+                    new JavaCodeGenerator(xmlSchema, packageName, writer, nullability);
             javaCodeGenerator.print(fs);
         } else if (cmd.hasOption('c')) {
             File includeDir = new File(Paths.get(outDir, "include").toString());
@@ -116,6 +114,23 @@ public class Main {
                     new CppCodeGenerator(xmlSchema, packageName, writer);
             cppCodeGenerator.print(fs);
         }
+    }
+
+    private static XmlSchema parse(String xsdFile) throws Exception {
+        XmlSchema xmlSchema;
+        try (FileInputStream in = new FileInputStream(xsdFile)) {
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            factory.setNamespaceAware(true);
+            SAXParser parser = factory.newSAXParser();
+            XsdHandler xsdHandler = new XsdHandler();
+            parser.parse(in, xsdHandler);
+            xmlSchema = xsdHandler.getSchema();
+        }
+        for (String file : xmlSchema.getIncludeList()) {
+            XmlSchema temp = parse(Paths.get(xsdFile).resolveSibling(file).toString());
+            xmlSchema.include(temp);
+        }
+        return xmlSchema;
     }
 
     private static void help(Options options) {

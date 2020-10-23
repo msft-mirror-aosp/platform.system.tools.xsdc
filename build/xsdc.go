@@ -64,6 +64,7 @@ type xsdConfigProperties struct {
 	Package_name *string
 	Api_dir      *string
 	Gen_writer   *bool
+	Nullability  *bool
 }
 
 type xsdConfig struct {
@@ -163,6 +164,10 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 	args := ""
 	if proptools.Bool(module.properties.Gen_writer) {
 		args = "-w"
+	}
+
+	if proptools.Bool(module.properties.Nullability) {
+		args = args + " -n "
 	}
 
 	module.genOutputs_j = android.PathForModuleGen(ctx, "java", filenameStem+"_xsdcgen.srcjar")
