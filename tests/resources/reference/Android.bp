@@ -4,5 +4,6 @@ xsd_config {
     srcs: ["reference.xsd"],
     package_name: "reference",
     gen_writer: true,
+    nullability: true,
 }
 
