@@ -120,20 +120,22 @@ public class CppCodeGenerator {
         headerFile.printf("#include <string>\n");
         headerFile.printf("#include <vector>\n");
         headerFile.printf("\n");
+        headerFile.printf("#if __has_include(<libxml/parser.h>)\n");
         headerFile.printf("#include <libxml/parser.h>\n");
         headerFile.printf("#include <libxml/xinclude.h>\n");
+        headerFile.printf("#else\n");
+        headerFile.printf("#error Require libxml2 library. ");
+        headerFile.printf("Please add libxml2 to shared_libs or static_libs\n");
+        headerFile.printf("#endif\n");
         if (hasEnums) {
             headerFile.printf("#include <xsdc/XsdcSupport.h>\n");
         }
         headerFile.printf("\n");
 
         cppFile.printf("#define LOG_TAG \"%s\"\n", pkgName);
-        cppFile.printf("#include <android/log.h>\n");
-        cppFile.printf("#include <android-base/strings.h>\n");
-        cppFile.printf("#include <libxml/parser.h>\n");
-        cppFile.printf("#include <libxml/xinclude.h>\n");
-        cppFile.printf("\n");
         cppFile.printf("#include \"%s\"\n\n", hFileName);
+        cppFile.printf("#include <android/log.h>\n");
+        cppFile.printf("#include <android-base/strings.h>\n\n");
 
         List<String> namespace = new java.util.ArrayList<>();
         for (String token : pkgName.split("\\.")) {
