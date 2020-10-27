@@ -119,6 +119,9 @@ public class CppCodeGenerator {
         headerFile.printf("#include <optional>\n");
         headerFile.printf("#include <string>\n");
         headerFile.printf("#include <vector>\n");
+        if (writer) {
+            headerFile.printf("#include <iostream>\n");
+        }
         headerFile.printf("\n");
         headerFile.printf("#if __has_include(<libxml/parser.h>)\n");
         headerFile.printf("#include <libxml/parser.h>\n");
@@ -134,8 +137,6 @@ public class CppCodeGenerator {
 
         cppFile.printf("#define LOG_TAG \"%s\"\n", pkgName);
         cppFile.printf("#include \"%s\"\n\n", hFileName);
-        cppFile.printf("#include <android/log.h>\n");
-        cppFile.printf("#include <android-base/strings.h>\n\n");
 
         List<String> namespace = new java.util.ArrayList<>();
         for (String token : pkgName.split("\\.")) {
