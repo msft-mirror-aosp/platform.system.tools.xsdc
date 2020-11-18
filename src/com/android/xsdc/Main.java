@@ -70,6 +70,11 @@ public class Main {
                 .hasArgs(0)
                 .withDescription("Add @NonNull or @Nullable annotation to generated java code.")
                 .create("n"));
+        options.addOption(OptionBuilder
+                .withLongOpt("genHas")
+                .hasArgs(0)
+                .withDescription("Generate public hasX() method")
+                .create("g"));
 
         CommandLineParser CommandParser = new GnuParser();
         CommandLine cmd;
@@ -87,6 +92,7 @@ public class Main {
         String outDir = cmd.getOptionValue('o', null);
         boolean writer = cmd.hasOption('w');
         boolean nullability = cmd.hasOption('n');
+        boolean genHas = cmd.hasOption('g');
 
         if (xsdFile.length != 1 || packageName == null) {
             System.err.println("Error: no xsd files or pacakge name");
@@ -104,7 +110,7 @@ public class Main {
             packageDir.mkdirs();
             FileSystem fs = new FileSystem(packageDir);
             JavaCodeGenerator javaCodeGenerator =
-                    new JavaCodeGenerator(xmlSchema, packageName, writer, nullability);
+                    new JavaCodeGenerator(xmlSchema, packageName, writer, nullability, genHas);
             javaCodeGenerator.print(fs);
         } else if (cmd.hasOption('c')) {
             File includeDir = new File(Paths.get(outDir, "include").toString());
