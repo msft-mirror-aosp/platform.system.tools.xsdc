@@ -38,13 +38,15 @@ public class JavaCodeGenerator {
     private Map<String, JavaSimpleType> javaSimpleTypeMap;
     private boolean writer;
     private boolean showNullability;
+    private boolean generateHasMethod;
 
     public JavaCodeGenerator(XmlSchema xmlSchema, String packageName, boolean writer,
-            boolean showNullability) throws JavaCodeGeneratorException {
+            boolean showNullability, boolean generateHasMethod) throws JavaCodeGeneratorException {
         this.xmlSchema = xmlSchema;
         this.packageName = packageName;
         this.writer = writer;
         this.showNullability = showNullability;
+        this.generateHasMethod = generateHasMethod;
 
         // class naming validation
         {
@@ -468,11 +470,12 @@ public class JavaCodeGenerator {
 
         if (isMultiple) return;
         out.println();
-        out.printf("boolean has%s() {\n"
+        out.printf("%sboolean has%s() {\n"
                 + "if (%s == null) {\n"
                 + "return false;\n"
                 + "}\n"
                 + "return true;\n}\n\n",
+                generateHasMethod ? "public " : "",
                 Utils.capitalize(variableName), variableName);
         if (deprecated) {
             out.printf("@java.lang.Deprecated\n");
