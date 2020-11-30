@@ -119,20 +119,23 @@ public class CppCodeGenerator {
         headerFile.printf("#include <optional>\n");
         headerFile.printf("#include <string>\n");
         headerFile.printf("#include <vector>\n");
+        if (writer) {
+            headerFile.printf("#include <iostream>\n");
+        }
         headerFile.printf("\n");
+        headerFile.printf("#if __has_include(<libxml/parser.h>)\n");
         headerFile.printf("#include <libxml/parser.h>\n");
         headerFile.printf("#include <libxml/xinclude.h>\n");
+        headerFile.printf("#else\n");
+        headerFile.printf("#error Require libxml2 library. ");
+        headerFile.printf("Please add libxml2 to shared_libs or static_libs\n");
+        headerFile.printf("#endif\n");
         if (hasEnums) {
             headerFile.printf("#include <xsdc/XsdcSupport.h>\n");
         }
         headerFile.printf("\n");
 
         cppFile.printf("#define LOG_TAG \"%s\"\n", pkgName);
-        cppFile.printf("#include <android/log.h>\n");
-        cppFile.printf("#include <android-base/strings.h>\n");
-        cppFile.printf("#include <libxml/parser.h>\n");
-        cppFile.printf("#include <libxml/xinclude.h>\n");
-        cppFile.printf("\n");
         cppFile.printf("#include \"%s\"\n\n", hFileName);
 
         List<String> namespace = new java.util.ArrayList<>();
@@ -421,15 +424,11 @@ public class CppCodeGenerator {
             String variableName = Utils.toVariableName(attribute.getName());
             cppFile.printf("raw = getXmlAttribute(root, \"%s\");\n", attribute.getName());
             if (attribute.isRequired()) {
-                if (type.getName().equals("bool")) {
-                    cppFile.printf("%s %s = false;\n", type.getName(), variableName);
-                } else if (type.getName().equals("std::string")) {
-                    cppFile.printf("%s %s;\n", type.getName(), variableName);
-                } else if (type.isEnum()) {
+                if (type.isEnum()) {
                     cppFile.printf("%s %s = %s::%s;\n",
                             type.getName(), variableName, type.getName(), UNKNOWN_ENUM);
                 } else {
-                    cppFile.printf("%s %s = 0;\n", type.getName(), variableName);
+                    cppFile.printf("%s %s{};\n", type.getName(), variableName);
                 }
             } else {
                 cppFile.printf("std::optional<%s> %s = std::nullopt;\n", type.getName(),
