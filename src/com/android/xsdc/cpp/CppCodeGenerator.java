@@ -756,6 +756,9 @@ public class CppCodeGenerator {
                     + "xmlNodePtr child = xmlDocGetRootElement(doc.get());\n"
                     + "if (child == NULL) {\n"
                     + "return std::nullopt;\n"
+                    + "}\n"
+                    + "if (xmlXIncludeProcess(doc.get()) < 0) {\n"
+                    + "return std::nullopt;\n"
                     + "}\n\n"
                     + "if (!xmlStrcmp(child->name, reinterpret_cast<const xmlChar*>"
                     + "(\"%s\"))) {\n",
