@@ -51,6 +51,21 @@ public class XmlParserTest {
         assertThat(orderType.getShipTo().get(0).getStreet(), is("street1"));
         assertThat(orderType.getShipTo().get(1).getZip(),
                 is(new BigInteger("-7922816251426433759")));
+
+        String actualStr, expectedStr;
+        try (InputStream str = this.getClass().getClassLoader().getResourceAsStream(
+            "purchase_simple.xml")) {
+            expectedStr = new String(str.readAllBytes());
+        }
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            try(purchase.simple.XmlWriter writer =
+                    new purchase.simple.XmlWriter(new PrintWriter(baos))) {
+                purchase.simple.XmlWriter.write(writer, orderType);
+            }
+            actualStr = new String(baos.toByteArray());
+        }
+
+        assertThat(new String(actualStr), is(expectedStr));
     }
 
     @Test
@@ -78,6 +93,21 @@ public class XmlParserTest {
         assertThat(person.getUSAddressP().getStreet(), is("street fighter"));
         assertThat(person.getUSAddressP().getZipcode(), is(new BigInteger("323232318329852")));
         assertThat(person.getKRAddress().getStreet(), is("Nokdu Street"));
+
+        String actualStr, expectedStr;
+        try (InputStream str = this.getClass().getClassLoader().getResourceAsStream(
+            "simple_complex_content.xml")) {
+            expectedStr = new String(str.readAllBytes());
+        }
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            try(simple.complex.content.XmlWriter writer =
+                    new simple.complex.content.XmlWriter(new PrintWriter(baos))) {
+                simple.complex.content.XmlWriter.write(writer, person);
+            }
+            actualStr = new String(baos.toByteArray());
+        }
+
+        assertThat(new String(actualStr), is(expectedStr));
     }
 
     @Test
@@ -185,6 +215,20 @@ public class XmlParserTest {
 
         assertThat(simples.getListInt(), is(Arrays.asList(1, 2, 3, 4, 5)));
         assertThat(simples.getUnionTest(), is(Arrays.asList("100")));
+
+        String actualStr, expectedStr;
+        try (InputStream str = this.getClass().getClassLoader().getResourceAsStream(
+            "simple_type.xml")) {
+            expectedStr = new String(str.readAllBytes());
+        }
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            try(simple.type.XmlWriter writer = new simple.type.XmlWriter(new PrintWriter(baos))) {
+                simple.type.XmlWriter.write(writer, simples);
+            }
+            actualStr = new String(baos.toByteArray());
+        }
+
+        assertThat(new String(actualStr), is(expectedStr));
     }
 
     @Test
@@ -196,5 +240,19 @@ public class XmlParserTest {
         }
 
         assertThat(_class.getStudent(), is(Arrays.asList("Sam", "Paul", "Peter")));
+
+        String actualStr, expectedStr;
+        try (InputStream str = this.getClass().getClassLoader().getResourceAsStream(
+            "reference.xml")) {
+            expectedStr = new String(str.readAllBytes());
+        }
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            try(reference.XmlWriter writer = new reference.XmlWriter(new PrintWriter(baos))) {
+                reference.XmlWriter.write(writer, _class);
+            }
+            actualStr = new String(baos.toByteArray());
+        }
+
+        assertThat(new String(actualStr), is(expectedStr));
     }
 }
