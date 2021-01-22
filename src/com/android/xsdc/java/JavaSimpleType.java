@@ -88,7 +88,7 @@ class JavaSimpleType implements JavaType {
             expression.append("if (count != 0) {\n"
                     + "out.print(\" \");\n}\n"
                     + "++count;");
-            expression.append("out.printf(\"%s \", v);\n}\n");
+            expression.append("out.printf(\"%s\", v);\n}\n");
             expression.append("}\n");
         } else {
             expression.append(String.format("out.printf(\"%%s\", %s);\n", getValue));
