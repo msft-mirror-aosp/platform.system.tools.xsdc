@@ -387,7 +387,7 @@ public class JavaCodeGenerator {
                 "throws java.io.IOException {\n", getDefaultNullability(Nullability.NON_NULL),
                 getDefaultNullability(Nullability.NON_NULL));
 
-        out.printf("out.printf(\"<%s\");\n", name);
+        out.print("out.printf(\"<%s\", name);\n");
         for (int i = 0; i < allAttributes.size(); ++i) {
             JavaType type = allAttributeTypes.get(i);
             XsdAttribute attribute = resolveAttribute(allAttributes.get(i));
@@ -436,7 +436,7 @@ public class JavaCodeGenerator {
             }
         }
         out.printf("out.decreaseIndent();\n");
-        out.printf("out.printf(\"</%s>\");\n", name);
+        out.print("out.printf(\"</%s>\\n\", name);\n");
         out.print("}\n");
     }
 
@@ -579,11 +579,10 @@ public class JavaCodeGenerator {
                 + "void print(String code) {\n"
                 + "    String[] lines = code.split(\"\\n\", -1);\n"
                 + "    for (int i = 0; i < lines.length; ++i) {\n"
-                + "        String line = lines[i].replaceAll(\"^\\\\s+\", \"\");\n"
-                + "        if (startLine && !line.isEmpty()) {\n"
+                + "        if (startLine && !lines[i].isEmpty()) {\n"
                 + "            printIndent();\n"
                 + "        }\n"
-                + "        out.print(line);\n"
+                + "        out.print(lines[i]);\n"
                 + "        if (i + 1 < lines.length) {\n"
                 + "            out.println();\n"
                 + "        startLine = true;\n"
