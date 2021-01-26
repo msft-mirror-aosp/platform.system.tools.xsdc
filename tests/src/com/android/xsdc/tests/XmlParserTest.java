@@ -180,7 +180,8 @@ public class XmlParserTest {
             assertThat(miscTypes.getAnyURI(), is("https://www.google.com"));
             assertThat(miscTypes.getBase64Binary(), is(Base64.getDecoder().decode("Z29vZ2xl")));
             assertThat(miscTypes.get_boolean(), is(true));
-            assertThat(miscTypes.getHexBinary(), is(new BigInteger("516a75cb56d7e7", 16)));
+            assertThat(miscTypes.getHexBinary(),
+                    is(predefined.types.HexBinaryHelper.hexStringToByteArray("016a75cb56d7e7")));
             assertThat(miscTypes.getQName(), is("abcd"));
             assertThat(miscTypes.getIDREF(), is("abcd"));
             assertThat(miscTypes.getIDREFS(), is(Arrays.asList("abcd", "abcd")));
@@ -203,6 +204,21 @@ public class XmlParserTest {
             assertThat(listPrimitiveTypes.getListFloat(), is(Arrays.asList(123.4f, 456.1f)));
             assertThat(listPrimitiveTypes.getListBoolean(), is(Arrays.asList(true, false)));
         }
+
+        String actualStr, expectedStr;
+        try (InputStream str = this.getClass().getClassLoader().getResourceAsStream(
+            "predefined_types.xml")) {
+            expectedStr = new String(str.readAllBytes());
+        }
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            try(predefined.types.XmlWriter writer =
+                    new predefined.types.XmlWriter(new PrintWriter(baos))) {
+                predefined.types.XmlWriter.write(writer, type);
+            }
+            actualStr = new String(baos.toByteArray());
+        }
+
+        assertThat(new String(actualStr), is(expectedStr));
     }
 
     @Test

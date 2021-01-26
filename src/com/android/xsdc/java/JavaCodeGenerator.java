@@ -39,6 +39,7 @@ public class JavaCodeGenerator {
     private boolean writer;
     private boolean showNullability;
     private boolean generateHasMethod;
+    private boolean useHexBinary;
 
     public JavaCodeGenerator(XmlSchema xmlSchema, String packageName, boolean writer,
             boolean showNullability, boolean generateHasMethod) throws JavaCodeGeneratorException {
@@ -47,6 +48,7 @@ public class JavaCodeGenerator {
         this.writer = writer;
         this.showNullability = showNullability;
         this.generateHasMethod = generateHasMethod;
+        useHexBinary = false;
 
         // class naming validation
         {
@@ -122,6 +124,11 @@ public class JavaCodeGenerator {
         if (writer) {
             try (CodeWriter out = new CodeWriter(fs.getPrintWriter("XmlWriter.java"))) {
                 printXmlWriter(out);
+            }
+        }
+        if (useHexBinary) {
+            try (CodeWriter out = new CodeWriter(fs.getPrintWriter("HexBinaryHelper.java"))) {
+                printHexBinaryHelper(out);
             }
         }
     }
@@ -621,6 +628,33 @@ public class JavaCodeGenerator {
         out.printf("}\n");
     }
 
+    private void printHexBinaryHelper(CodeWriter out) throws JavaCodeGeneratorException {
+        out.printf("package %s;\n", packageName);
+        out.println();
+        out.println("public class HexBinaryHelper {");
+        out.print("public static byte[] hexStringToByteArray(String hexString) {\n"
+                + "if (hexString.length() % 2 != 0) {\n"
+                + "throw new IllegalArgumentException(\"length must be multiple of 2\");\n"
+                + "}\n"
+                + "byte[] outputBytes = new byte[hexString.length() / 2];\n"
+                + "for (int i = 0; i < hexString.length(); i += 2) {\n"
+                + "char c1 = hexString.charAt(i);\n"
+                + "char c2 = hexString.charAt(i + 1);\n"
+                + "outputBytes[i / 2] = (byte) ((Character.digit(c1, 16) << 4)"
+                + " + Character.digit(c2, 16));\n"
+                + "}\n"
+                + "return outputBytes;"
+                + "}\n\n"
+                + "public static String byteArrayToHexString(byte[] b) {\n"
+                + "StringBuffer s = new StringBuffer();\n"
+                + "for (int i = 0; i < b.length; i++) {\n"
+                + "s.append(Integer.toHexString(0x100 + (b[i] & 0xff)).substring(1));\n"
+                + "}\n"
+                + "return s.toString();\n"
+                + "}\n"
+                + "}\n");
+    }
+
     private String getElementName(XsdElement element) {
         if (element instanceof XsdChoice) {
             return element.getName() + "_optional";
@@ -925,11 +959,16 @@ public class JavaCodeGenerator {
                 return new JavaSimpleType("float", "java.lang.Float", "Float.parseFloat(%s)",
                         false);
             case "base64Binary":
-                return new JavaSimpleType("byte[]", "java.util.Base64.getDecoder().decode(%s)",
+                return new JavaSimpleType("byte[]", "byte[]",
+                        "java.util.Base64.getDecoder().decode(%s)",
+                        "java.util.Base64.getEncoder().encodeToString(%s)",
                         false);
             case "hexBinary":
-                return new JavaSimpleType("java.math.BigInteger",
-                        "new java.math.BigInteger(%s, 16)", false);
+                useHexBinary = true;
+                return new JavaSimpleType("byte[]", "byte[]",
+                        "HexBinaryHelper.hexStringToByteArray(%s)",
+                        "HexBinaryHelper.byteArrayToHexString(%s)",
+                        false);
         }
         throw new JavaCodeGeneratorException("unknown xsd predefined type : " + name);
     }
