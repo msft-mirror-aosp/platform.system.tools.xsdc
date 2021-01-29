@@ -64,6 +64,12 @@ type xsdConfigProperties struct {
 	Package_name *string
 	Api_dir      *string
 	Gen_writer   *bool
+	Nullability  *bool
+
+	// Whether has{element or atrribute} methods are set to public.
+	// It is not applied to C++, because these methods are always
+	// generated to public for C++.
+	Gen_has      *bool
 }
 
 type xsdConfig struct {
@@ -163,6 +169,14 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 	args := ""
 	if proptools.Bool(module.properties.Gen_writer) {
 		args = "-w"
+	}
+
+	if proptools.Bool(module.properties.Nullability) {
+		args = args + " -n "
+	}
+
+	if proptools.Bool(module.properties.Gen_has) {
+		args = args + " -g "
 	}
 
 	module.genOutputs_j = android.PathForModuleGen(ctx, "java", filenameStem+"_xsdcgen.srcjar")

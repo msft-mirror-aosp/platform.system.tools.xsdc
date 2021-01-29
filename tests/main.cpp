@@ -130,7 +130,7 @@ TEST_F(XmlTest, Predefinedtypes) {
   EXPECT_EQ(miscTypes.getAnyURI(), "https://www.google.com");
   EXPECT_EQ(miscTypes.getBase64Binary(), "Z29vZ2xl");
   EXPECT_TRUE(miscTypes.getBoolean());
-  EXPECT_EQ(miscTypes.getHexBinary(), "516a75cb56d7e7");
+  EXPECT_EQ(miscTypes.getHexBinary(), "016a75cb56d7e7");
   EXPECT_EQ(miscTypes.getQName(), "abcd");
   EXPECT_EQ(miscTypes.getIDREF(), "abcd");
   EXPECT_EQ(miscTypes.getIDREFS()[0], "abcd");
@@ -300,6 +300,9 @@ TEST_F(XmlTest, Attrgroupsimple) {
   EXPECT_EQ(student.getCity(), "Mountain View");
   EXPECT_EQ(student.getState(), "CA");
   EXPECT_EQ(student.getRoad(), "Street 101");
+  EXPECT_EQ(student.getList()[0], 1);
+  EXPECT_EQ(student.getList()[1], 2);
+  EXPECT_EQ(student.getList()[2], 3);
 
   ofstream out("old_attr_group_simple.xml");
   write(out, student);

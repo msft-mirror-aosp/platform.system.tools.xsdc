@@ -20,17 +20,24 @@ class JavaSimpleType implements JavaType {
     final private String name;
     final private String nullableName;
     final private String rawParsingExpression;
+    final private String rawWritingExpression;
     final private boolean list;
     final private String fullName;
     final private String nullableFullName;
 
-    JavaSimpleType(String name, String nullableName, String rawParsingExpression, boolean list) {
+    JavaSimpleType(String name, String nullableName, String rawParsingExpression,
+            String rawWritingExpression, boolean list) {
         this.name = name;
         this.nullableName = nullableName;
         this.rawParsingExpression = rawParsingExpression;
+        this.rawWritingExpression = rawWritingExpression;
         this.list = list;
         fullName = list ? String.format("java.util.List<%s>", nullableName) : name;
         nullableFullName = list ? String.format("java.util.List<%s>", nullableName) : nullableName;
+    }
+
+    JavaSimpleType(String name, String nullableName, String rawParsingExpression, boolean list) {
+        this(name, nullableName, rawParsingExpression, "%s", list);
     }
 
     JavaSimpleType(String name, String rawParsingExpression, boolean list) {
@@ -88,10 +95,11 @@ class JavaSimpleType implements JavaType {
             expression.append("if (count != 0) {\n"
                     + "out.print(\" \");\n}\n"
                     + "++count;");
-            expression.append("out.printf(\"%s \", v);\n}\n");
+            expression.append("out.printf(\"%s\", v);\n}\n");
             expression.append("}\n");
         } else {
-            expression.append(String.format("out.printf(\"%%s\", %s);\n", getValue));
+            expression.append(String.format("out.printf(\"%%s\", %s);\n",
+                    String.format(rawWritingExpression, getValue)));
         }
         return expression.toString();
     }

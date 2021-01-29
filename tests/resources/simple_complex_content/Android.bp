@@ -4,5 +4,6 @@ xsd_config {
     srcs: ["simple_complex_content.xsd"],
     package_name: "simple.complex.content",
     gen_writer: true,
+    gen_has: true,
 }
 
