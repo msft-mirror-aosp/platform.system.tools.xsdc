@@ -12,6 +12,9 @@ java_test_host {
         ":xsdc_simple_complex_content_tests",
         ":xsdc_simple_type_tests",
     ],
+    test_options: {
+        unit_test: true,
+    },
     static_libs: [
         "junit",
         "xsdc",
@@ -27,6 +30,9 @@ cc_test_host {
     srcs: [
         "main.cpp",
     ],
+    test_options: {
+        unit_test: true,
+    },
     generated_sources: [
         "xsdc_attr_group_simple_tests",
         "xsdc_attr_enumtype_tests",
