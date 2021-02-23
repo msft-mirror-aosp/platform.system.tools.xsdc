@@ -9,3 +9,19 @@ xsd_config {
     package_name: "simple.type",
     gen_writer: true,
 }
+
+xsd_config {
+    name: "xsdc_simple_type_tests_enums",
+    srcs: ["simple_type.xsd"],
+    package_name: "simple.type",
+    enums_only: true,
+    gen_writer: true,
+}
+
+xsd_config {
+    name: "xsdc_simple_type_tests_parser",
+    srcs: ["simple_type.xsd"],
+    package_name: "simple.type",
+    parser_only: true,
+    gen_writer: true,
+}
