@@ -69,7 +69,14 @@ type xsdConfigProperties struct {
 	// Whether has{element or atrribute} methods are set to public.
 	// It is not applied to C++, because these methods are always
 	// generated to public for C++.
-	Gen_has      *bool
+	Gen_has *bool
+	// Only generate code for enum converters. Applies to C++ only.
+	// This is useful for memory footprint reduction since it avoids
+	// depending on libxml2.
+	Enums_only *bool
+	// Only generate complementary code for XML parser. Applies to C++ only.
+	// The code being generated depends on the enum converters module.
+	Parser_only *bool
 }
 
 type xsdConfig struct {
@@ -79,13 +86,13 @@ type xsdConfig struct {
 
 	genOutputDir android.Path
 	genOutputs_j android.WritablePath
-	genOutputs_c android.WritablePath
-	genOutputs_h android.WritablePath
+	genOutputs_c android.WritablePaths
+	genOutputs_h android.WritablePaths
 
 	docsPath android.Path
 
 	xsdConfigPath android.OptionalPath
-	genOutputs  android.Paths
+	genOutputs    android.Paths
 }
 
 var _ android.SourceFileProducer = (*xsdConfig)(nil)
@@ -112,7 +119,7 @@ type DroidstubsProperties struct {
 }
 
 func (module *xsdConfig) GeneratedSourceFiles() android.Paths {
-	return android.Paths{module.genOutputs_c}
+	return module.genOutputs_c.Paths()
 }
 
 func (module *xsdConfig) Srcs() android.Paths {
@@ -120,7 +127,7 @@ func (module *xsdConfig) Srcs() android.Paths {
 }
 
 func (module *xsdConfig) GeneratedDeps() android.Paths {
-	return android.Paths{module.genOutputs_h}
+	return module.genOutputs_h.Paths()
 }
 
 func (module *xsdConfig) GeneratedHeaderDirs() android.Paths {
@@ -179,6 +186,14 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		args = args + " -g "
 	}
 
+	if proptools.Bool(module.properties.Enums_only) {
+		args = args + " -e "
+	}
+
+	if proptools.Bool(module.properties.Parser_only) {
+		args = args + " -x "
+	}
+
 	module.genOutputs_j = android.PathForModuleGen(ctx, "java", filenameStem+"_xsdcgen.srcjar")
 
 	ctx.Build(pctx, android.BuildParams{
@@ -189,25 +204,41 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		Output:      module.genOutputs_j,
 		Args: map[string]string{
 			"pkgName": pkgName,
-			"args": args,
+			"args":    args,
 		},
 	})
 
-	module.genOutputs_c = android.PathForModuleGen(ctx, "cpp", filenameStem+".cpp")
-	module.genOutputs_h = android.PathForModuleGen(ctx, "cpp", "include/"+filenameStem+".h")
+	if proptools.Bool(module.properties.Enums_only) {
+		module.genOutputs_c = android.WritablePaths{
+			android.PathForModuleGen(ctx, "cpp", filenameStem+"_enums.cpp")}
+		module.genOutputs_h = android.WritablePaths{
+			android.PathForModuleGen(ctx, "cpp", "include/"+filenameStem+"_enums.h")}
+	} else if proptools.Bool(module.properties.Parser_only) {
+		module.genOutputs_c = android.WritablePaths{
+			android.PathForModuleGen(ctx, "cpp", filenameStem+".cpp")}
+		module.genOutputs_h = android.WritablePaths{
+			android.PathForModuleGen(ctx, "cpp", "include/"+filenameStem+".h")}
+	} else {
+		module.genOutputs_c = android.WritablePaths{
+			android.PathForModuleGen(ctx, "cpp", filenameStem+".cpp"),
+			android.PathForModuleGen(ctx, "cpp", filenameStem+"_enums.cpp")}
+		module.genOutputs_h = android.WritablePaths{
+			android.PathForModuleGen(ctx, "cpp", "include/"+filenameStem+".h"),
+			android.PathForModuleGen(ctx, "cpp", "include/"+filenameStem+"_enums.h")}
+	}
 	module.genOutputDir = android.PathForModuleGen(ctx, "cpp", "include")
 
 	ctx.Build(pctx, android.BuildParams{
-		Rule:           xsdcCppRule,
-		Description:    "xsdc " + xsdFile.String(),
-		Input:          xsdFile,
-		Implicit:       module.docsPath,
-		Output:         module.genOutputs_c,
-		ImplicitOutput: module.genOutputs_h,
+		Rule:            xsdcCppRule,
+		Description:     "xsdc " + xsdFile.String(),
+		Input:           xsdFile,
+		Implicit:        module.docsPath,
+		Outputs:         module.genOutputs_c,
+		ImplicitOutputs: module.genOutputs_h,
 		Args: map[string]string{
 			"pkgName": pkgName,
 			"outDir":  android.PathForModuleGen(ctx, "cpp").String(),
-			"args": args,
+			"args":    args,
 		},
 	})
 	module.xsdConfigPath = android.ExistentPathForSource(ctx, xsdFile.String())
