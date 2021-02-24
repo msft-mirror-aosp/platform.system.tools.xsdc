@@ -1,4 +1,8 @@
 
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
 xsd_config {
     name: "xsdc_simple_type_tests",
     srcs: ["simple_type.xsd"],
@@ -6,3 +10,18 @@ xsd_config {
     gen_writer: true,
 }
 
+xsd_config {
+    name: "xsdc_simple_type_tests_enums",
+    srcs: ["simple_type.xsd"],
+    package_name: "simple.type",
+    enums_only: true,
+    gen_writer: true,
+}
+
+xsd_config {
+    name: "xsdc_simple_type_tests_parser",
+    srcs: ["simple_type.xsd"],
+    package_name: "simple.type",
+    parser_only: true,
+    gen_writer: true,
+}
