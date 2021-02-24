@@ -14,9 +14,16 @@
  * limitations under the License.
  */
 
+#pragma once
+
+#include <string>
+
+#include <android-base/file.h>
 #include <gtest/gtest.h>
 
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+class XmlTest : public ::testing::Test {
+public:
+    std::string Resource(const std::string& filename) {
+      return ::android::base::GetExecutableDirectory() + "/resources/" + filename;
+    }
+};
