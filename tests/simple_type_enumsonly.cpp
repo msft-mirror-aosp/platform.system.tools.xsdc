@@ -14,9 +14,15 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include <android-base/macros.h>
 
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+#include "simple_type_enums.h"
+#include "xmltest.h"
+
+TEST_F(XmlTest, SimpletypeEnumsOnly) {
+  using namespace simple::type;
+  for (const auto v : android::xsdc_enum_range<EnumType>()) {
+    EXPECT_NE(v, EnumType::UNKNOWN);
+    EXPECT_EQ(stringToEnumType(toString(v)), v);
+  }
 }
