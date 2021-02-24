@@ -29,7 +29,9 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
@@ -75,6 +77,24 @@ public class Main {
                 .hasArgs(0)
                 .withDescription("Generate public hasX() method")
                 .create("g"));
+        Option genEnumsOnly = OptionBuilder
+                .withLongOpt("genEnumsOnly")
+                .hasArgs(0)
+                .withDescription("Only generate enum converters in Cpp code.")
+                .create("e");
+        options.addOption(genEnumsOnly);
+        Option genParserOnly = OptionBuilder
+                .withLongOpt("genParserOnly")
+                .hasArgs(0)
+                .withDescription("Only generate XML parser in Cpp code.")
+                .create("x");
+        options.addOption(genParserOnly);
+        // "Only generate enums" and "Only generate parser" options are mutually exclusive.
+        OptionGroup genOnlyGroup = new OptionGroup();
+        genOnlyGroup.setRequired(false);
+        genOnlyGroup.addOption(genEnumsOnly);
+        genOnlyGroup.addOption(genParserOnly);
+        options.addOptionGroup(genOnlyGroup);
 
         CommandLineParser CommandParser = new GnuParser();
         CommandLine cmd;
@@ -93,9 +113,11 @@ public class Main {
         boolean writer = cmd.hasOption('w');
         boolean nullability = cmd.hasOption('n');
         boolean genHas = cmd.hasOption('g');
+        boolean enumsOnly = cmd.hasOption('e');
+        boolean parserOnly = cmd.hasOption('x');
 
         if (xsdFile.length != 1 || packageName == null) {
-            System.err.println("Error: no xsd files or pacakge name");
+            System.err.println("Error: no xsd files or package name");
             help(options);
         }
 
@@ -116,8 +138,11 @@ public class Main {
             File includeDir = new File(Paths.get(outDir, "include").toString());
             includeDir.mkdirs();
             FileSystem fs = new FileSystem(new File(outDir));
+            int generators = enumsOnly ? CppCodeGenerator.GENERATE_ENUMS :
+                    (parserOnly ? CppCodeGenerator.GENERATE_PARSER :
+                            CppCodeGenerator.GENERATE_ENUMS | CppCodeGenerator.GENERATE_PARSER);
             CppCodeGenerator cppCodeGenerator =
-                    new CppCodeGenerator(xmlSchema, packageName, writer);
+                    new CppCodeGenerator(xmlSchema, packageName, writer, generators);
             cppCodeGenerator.print(fs);
         }
     }
