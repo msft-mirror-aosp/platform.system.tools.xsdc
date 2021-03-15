@@ -734,7 +734,14 @@ public class CppCodeGenerator {
         if (constructorArgsString.length() > 0) {
             constructorArgsString = constructorArgsString.substring(2);
         }
-        parserHeaderFile.printf("%s(%s);\n", name, constructorArgsString);
+
+        boolean useExplicit =
+                !(constructorArgsString.isEmpty() || constructorArgsString.contains(","));
+        if (useExplicit) {
+            parserHeaderFile.printf("explicit %s(%s);\n", name, constructorArgsString);
+        } else {
+            parserHeaderFile.printf("%s(%s);\n", name, constructorArgsString);
+        }
         parserCppFile.printf("\n%s::%s(%s) : ", fullName, name, constructorArgsString);
 
         String parentArgsString = parentArgs.toString();
