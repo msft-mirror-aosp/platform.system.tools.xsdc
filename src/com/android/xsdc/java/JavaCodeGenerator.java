@@ -40,14 +40,17 @@ public class JavaCodeGenerator {
     private boolean showNullability;
     private boolean generateHasMethod;
     private boolean useHexBinary;
+    private boolean booleanGetter;
 
     public JavaCodeGenerator(XmlSchema xmlSchema, String packageName, boolean writer,
-            boolean showNullability, boolean generateHasMethod) throws JavaCodeGeneratorException {
+            boolean showNullability, boolean generateHasMethod, boolean booleanGetter)
+            throws JavaCodeGeneratorException {
         this.xmlSchema = xmlSchema;
         this.packageName = packageName;
         this.writer = writer;
         this.showNullability = showNullability;
         this.generateHasMethod = generateHasMethod;
+        this.booleanGetter = booleanGetter;
         useHexBinary = false;
 
         // class naming validation
@@ -401,7 +404,7 @@ public class JavaCodeGenerator {
             String variableName = Utils.toVariableName(attribute.getName());
             out.printf("if (has%s()) {\n", Utils.capitalize(variableName));
             out.printf("out.printf(\" %s=\\\"\");\n", attribute.getName());
-            out.print(type.getWritingExpression(String.format("get%s()",
+            out.print(type.getWritingExpression(String.format("%s%s()", getterName(type.getName()),
                     Utils.capitalize(variableName)), attribute.getName()));
             out.printf("out.printf(\"\\\"\");\n}\n");
         }
@@ -432,8 +435,9 @@ public class JavaCodeGenerator {
                     if (type instanceof JavaSimpleType) {
                         out.printf("out.printf(\"<%s>\");\n", elementValue.getName());
                     }
-                    out.print(type.getWritingExpression(String.format("get%s()",
-                              Utils.capitalize(variableName)), elementValue.getName()));
+                    out.print(type.getWritingExpression(String.format("%s%s()",
+                              getterName(type.getName()), Utils.capitalize(variableName)),
+                              elementValue.getName()));
                     if (type instanceof JavaSimpleType) {
                         out.printf("out.printf(\"</%s>\\n\");\n", elementValue.getName());
                     }
@@ -458,8 +462,9 @@ public class JavaCodeGenerator {
         if (deprecated) {
             out.printf("@java.lang.Deprecated\n");
         }
-        out.printf("public%s %s%s get%s() {\n", getFinalString(finalValue),
-                getNullabilityString(nullability), typeName, Utils.capitalize(variableName));
+        out.printf("public%s %s%s %s%s() {\n", getFinalString(finalValue),
+                getNullabilityString(nullability), typeName, getterName(typeName),
+                Utils.capitalize(variableName));
         if ((type instanceof JavaSimpleType && ((JavaSimpleType)type).isList()) || isMultiple) {
             out.printf("if (%s == null) {\n"
                     + "%s = new java.util.ArrayList<>();\n"
@@ -687,6 +692,13 @@ public class JavaCodeGenerator {
             return "@android.annotation.Nullable ";
         }
         return "";
+    }
+
+    private String getterName(String type) {
+        if (type.equals("boolean") && booleanGetter) {
+            return "is";
+        }
+        return "get";
     }
 
     private void stackComponents(XsdComplexType complexType, List<XsdElement> elements,
