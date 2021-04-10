@@ -47,15 +47,17 @@ public class CppCodeGenerator {
     private boolean hasAttr;
     private boolean writer;
     private int generators;
+    private boolean booleanGetter;
 
     private static final String UNKNOWN_ENUM = "UNKNOWN";
 
-    public CppCodeGenerator(XmlSchema xmlSchema, String pkgName, boolean writer, int generators)
-            throws CppCodeGeneratorException {
+    public CppCodeGenerator(XmlSchema xmlSchema, String pkgName, boolean writer, int generators,
+            boolean booleanGetter) throws CppCodeGeneratorException {
         this.xmlSchema = xmlSchema;
         this.pkgName = pkgName;
         this.writer = writer;
         this.generators = generators;
+        this.booleanGetter = booleanGetter;
 
         // class naming validation
         {
@@ -563,8 +565,9 @@ public class CppCodeGenerator {
             String variableName = Utils.toVariableName(attribute.getName());
             parserCppFile.printf("if (has%s()) {\n", Utils.capitalize(variableName));
             parserCppFile.printf("out << \" %s=\\\"\";\n", attribute.getName());
-            parserCppFile.print(type.getWritingExpression(String.format("get%s()",
-                    Utils.capitalize(variableName)), attribute.getName()));
+            parserCppFile.print(type.getWritingExpression(String.format("%s%s()",
+                    getterName(type.getName()), Utils.capitalize(variableName)),
+                    attribute.getName()));
             parserCppFile.printf("out << \"\\\"\";\n}\n");
         }
         parserCppFile.print("out << \">\" << std::endl;\n");
@@ -598,8 +601,9 @@ public class CppCodeGenerator {
                         parserCppFile.printf("out << printIndent() << \"<%s>\";\n",
                                 elementValue.getName());
                     }
-                    parserCppFile.print(type.getWritingExpression(String.format("get%s()",
-                              Utils.capitalize(variableName)), elementValue.getName()));
+                    parserCppFile.print(type.getWritingExpression(String.format("%s%s()",
+                              getterName(type.getName()), Utils.capitalize(variableName)),
+                              elementValue.getName()));
                     if (type instanceof CppSimpleType) {
                         parserCppFile.printf("out << \"</%s>\" << std::endl;\n",
                                 elementValue.getName());
@@ -618,13 +622,14 @@ public class CppCodeGenerator {
         String typeName = isMultiple ? String.format("std::vector<%s>",
                 type.getName()) : type.getName();
 
-        parserHeaderFile.printf("const %s& get%s() const;\n", typeName,
+        parserHeaderFile.printf("const %s& %s%s() const;\n", typeName, getterName(typeName),
                 Utils.capitalize(variableName));
 
         parserCppFile.println();
-        parserCppFile.printf("const %s& %s::get%s() const {\n"
+        parserCppFile.printf("const %s& %s::%s%s() const {\n"
                 + "return %s;\n}\n\n",
-                typeName, name, Utils.capitalize(variableName), isMultiple || isRequired ?
+                typeName, name, getterName(typeName), Utils.capitalize(variableName),
+                isMultiple || isRequired ?
                 variableName + "_" : String.format("%s_.value()", variableName));
 
         parserHeaderFile.printf("bool has%s() const;\n", Utils.capitalize(variableName));
@@ -858,6 +863,13 @@ public class CppCodeGenerator {
             return element.getName() + "_all";
         }
         return element.getName();
+    }
+
+    private String getterName(String type) {
+        if (type.equals("bool") && booleanGetter) {
+            return "is";
+        }
+        return "get";
     }
 
     private void stackComponents(XsdComplexType complexType, List<XsdElement> elements,
