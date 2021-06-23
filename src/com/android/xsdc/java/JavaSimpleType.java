@@ -50,7 +50,8 @@ class JavaSimpleType implements JavaType {
 
     JavaSimpleType newListType() throws JavaCodeGeneratorException {
         if (list) throw new JavaCodeGeneratorException("list of list is not supported");
-        return new JavaSimpleType(name, nullableName, rawParsingExpression, true);
+        return new JavaSimpleType(name, nullableName, rawParsingExpression, rawWritingExpression,
+                true);
     }
 
     @Override
@@ -94,11 +95,12 @@ class JavaSimpleType implements JavaType {
             expression.append(String.format("for (%s v : %s) {\n", this.name, getValue));
             expression.append("if (count != 0) {\n"
                     + "out.print(\" \");\n}\n"
-                    + "++count;");
-            expression.append("out.printf(\"%s\", v);\n}\n");
+                    + "++count;\n");
+            expression.append(String.format("out.print(%s);\n}\n",
+                    String.format(rawWritingExpression, "v")));
             expression.append("}\n");
         } else {
-            expression.append(String.format("out.printf(\"%%s\", %s);\n",
+            expression.append(String.format("out.print(%s);\n",
                     String.format(rawWritingExpression, getValue)));
         }
         return expression.toString();
