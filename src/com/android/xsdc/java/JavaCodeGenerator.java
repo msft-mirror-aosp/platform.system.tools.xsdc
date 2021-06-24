@@ -40,14 +40,17 @@ public class JavaCodeGenerator {
     private boolean showNullability;
     private boolean generateHasMethod;
     private boolean useHexBinary;
+    private boolean booleanGetter;
 
     public JavaCodeGenerator(XmlSchema xmlSchema, String packageName, boolean writer,
-            boolean showNullability, boolean generateHasMethod) throws JavaCodeGeneratorException {
+            boolean showNullability, boolean generateHasMethod, boolean booleanGetter)
+            throws JavaCodeGeneratorException {
         this.xmlSchema = xmlSchema;
         this.packageName = packageName;
         this.writer = writer;
         this.showNullability = showNullability;
         this.generateHasMethod = generateHasMethod;
+        this.booleanGetter = booleanGetter;
         useHexBinary = false;
 
         // class naming validation
@@ -394,21 +397,23 @@ public class JavaCodeGenerator {
                 "throws java.io.IOException {\n", getDefaultNullability(Nullability.NON_NULL),
                 getDefaultNullability(Nullability.NON_NULL));
 
-        out.print("out.printf(\"<%s\", name);\n");
+        out.print("out.print(\"<\" + name);\n");
         for (int i = 0; i < allAttributes.size(); ++i) {
             JavaType type = allAttributeTypes.get(i);
+            boolean isList = allAttributeTypes.get(i).isList();
             XsdAttribute attribute = resolveAttribute(allAttributes.get(i));
             String variableName = Utils.toVariableName(attribute.getName());
             out.printf("if (has%s()) {\n", Utils.capitalize(variableName));
-            out.printf("out.printf(\" %s=\\\"\");\n", attribute.getName());
-            out.print(type.getWritingExpression(String.format("get%s()",
-                    Utils.capitalize(variableName)), attribute.getName()));
-            out.printf("out.printf(\"\\\"\");\n}\n");
+            out.printf("out.print(\" %s=\\\"\");\n", attribute.getName());
+            out.print(type.getWritingExpression(String.format("%s%s()",
+                    getterName(type.getName()), Utils.capitalize(variableName)),
+                    attribute.getName()));
+            out.printf("out.print(\"\\\"\");\n}\n");
         }
-        out.printf("out.printf(\">\\n\");\n");
-        out.printf("out.increaseIndent();\n");
+        out.printf("out.print(\">\\n\");\n");
 
         if (!allElements.isEmpty()) {
+            out.printf("out.increaseIndent();\n");
             for (int i = 0; i < allElements.size(); ++i) {
                 JavaType type = allElementTypes.get(i);
                 XsdElement element = allElements.get(i);
@@ -420,30 +425,31 @@ public class JavaCodeGenerator {
                     out.printf("for (%s value : get%s()) {\n", type.getName(),
                             Utils.capitalize(variableName));
                     if (type instanceof JavaSimpleType) {
-                        out.printf("out.printf(\"<%s>\");\n", elementValue.getName());
+                        out.printf("out.print(\"<%s>\");\n", elementValue.getName());
                     }
                     out.print(type.getWritingExpression("value", elementValue.getName()));
                     if (type instanceof JavaSimpleType) {
-                        out.printf("out.printf(\"</%s>\\n\");\n", elementValue.getName());
+                        out.printf("out.print(\"</%s>\\n\");\n", elementValue.getName());
                     }
                     out.print("}\n");
                 } else {
                     out.printf("if (has%s()) {\n", Utils.capitalize(variableName));
                     if (type instanceof JavaSimpleType) {
-                        out.printf("out.printf(\"<%s>\");\n", elementValue.getName());
+                        out.printf("out.print(\"<%s>\");\n", elementValue.getName());
                     }
-                    out.print(type.getWritingExpression(String.format("get%s()",
-                              Utils.capitalize(variableName)), elementValue.getName()));
+                    out.print(type.getWritingExpression(String.format("%s%s()",
+                              getterName(type.getName()), Utils.capitalize(variableName)),
+                              elementValue.getName()));
                     if (type instanceof JavaSimpleType) {
-                        out.printf("out.printf(\"</%s>\\n\");\n", elementValue.getName());
+                        out.printf("out.print(\"</%s>\\n\");\n", elementValue.getName());
                     }
                     out.printf("}\n");
                 }
 
             }
+            out.printf("out.decreaseIndent();\n");
         }
-        out.printf("out.decreaseIndent();\n");
-        out.print("out.printf(\"</%s>\\n\", name);\n");
+        out.print("out.print(\"</\" + name + \">\\n\");\n");
         out.print("}\n");
     }
 
@@ -458,8 +464,9 @@ public class JavaCodeGenerator {
         if (deprecated) {
             out.printf("@java.lang.Deprecated\n");
         }
-        out.printf("public%s %s%s get%s() {\n", getFinalString(finalValue),
-                getNullabilityString(nullability), typeName, Utils.capitalize(variableName));
+        out.printf("public%s %s%s %s%s() {\n", getFinalString(finalValue),
+                getNullabilityString(nullability), typeName, getterName(typeName),
+                Utils.capitalize(variableName));
         if ((type instanceof JavaSimpleType && ((JavaSimpleType)type).isList()) || isMultiple) {
             out.printf("if (%s == null) {\n"
                     + "%s = new java.util.ArrayList<>();\n"
@@ -569,17 +576,19 @@ public class JavaCodeGenerator {
         out.println("public class XmlWriter implements java.io.Closeable {");
 
         out.printf("private java.io.PrintWriter out;\n"
+                + "private StringBuilder outBuffer;\n"
                 + "private int indent;\n"
                 + "private boolean startLine;\n\n"
                 + "public XmlWriter(%sjava.io.PrintWriter printWriter) {\n"
                 + "    out = printWriter;\n"
+                + "    outBuffer = new StringBuilder();\n"
                 + "    indent = 0;\n"
                 + "    startLine = true;\n"
                 + "}\n\n"
                 + "private void printIndent() {\n"
                 + "    assert startLine;\n"
                 + "    for (int i = 0; i < indent; ++i) {\n"
-                + "        out.print(\"    \");\n"
+                + "        outBuffer.append(\"    \");\n"
                 + "    }\n"
                 + "    startLine = false;\n"
                 + "}\n\n"
@@ -589,20 +598,20 @@ public class JavaCodeGenerator {
                 + "        if (startLine && !lines[i].isEmpty()) {\n"
                 + "            printIndent();\n"
                 + "        }\n"
-                + "        out.print(lines[i]);\n"
+                + "        outBuffer.append(lines[i]);\n"
                 + "        if (i + 1 < lines.length) {\n"
-                + "            out.println();\n"
-                + "        startLine = true;\n"
+                + "            outBuffer.append(\"\\n\");\n"
+                + "            startLine = true;\n"
                 + "        }\n"
                 + "    }\n"
-                + "}\n\n"
-                + "void printf(String code, Object... arguments) {\n"
-                + "    print(String.format(code, arguments));\n"
                 + "}\n\n"
                 + "void increaseIndent() {\n"
                 + "    ++indent;\n}\n\n"
                 + "void decreaseIndent() {\n"
                 + "    --indent;\n"
+                + "}\n\n"
+                + "void printXml() {\n"
+                + "    out.print(outBuffer.toString());\n"
                 + "}\n\n"
                 + "@Override\n"
                 + "public void close() {\n"
@@ -623,7 +632,8 @@ public class JavaCodeGenerator {
                     getDefaultNullability(Nullability.NON_NULL), typeName, VariableName);
             out.print("\nout.print(\"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n\");\n");
             out.printf("if (%s != null) {\n", VariableName);
-            out.printf("%s.write(out, \"%s\");\n}\n}\n\n", VariableName, elementName);
+            out.printf("%s.write(out, \"%s\");\n}\n", VariableName, elementName);
+            out.print("out.printXml();\n}\n\n");
         }
         out.printf("}\n");
     }
@@ -687,6 +697,13 @@ public class JavaCodeGenerator {
             return "@android.annotation.Nullable ";
         }
         return "";
+    }
+
+    private String getterName(String type) {
+        if (type.equals("boolean") && booleanGetter) {
+            return "is";
+        }
+        return "get";
     }
 
     private void stackComponents(XsdComplexType complexType, List<XsdElement> elements,
@@ -823,7 +840,8 @@ public class JavaCodeGenerator {
             XsdRestriction restriction = (XsdRestriction) simpleType;
             if (restriction.getEnums() != null) {
                 String name = Utils.toClassName(restriction.getName());
-                return new JavaSimpleType(name, name + ".fromString(%s)", false);
+                return new JavaSimpleType(name, name, name + ".fromString(%s)", "%s.toString()",
+                        false);
             }
             return parseSimpleType(restriction.getBase(), traverse);
         } else if (simpleType instanceof XsdUnion) {
@@ -919,45 +937,50 @@ public class JavaCodeGenerator {
             case "gMonthDay":
             case "gYearMonth":
                 return new JavaSimpleType("javax.xml.datatype.XMLGregorianCalendar",
+                        "javax.xml.datatype.XMLGregorianCalendar",
                         "javax.xml.datatype.DatatypeFactory.newInstance()"
                                 + ".newXMLGregorianCalendar(%s)",
-                        false);
+                        "%s.toString()", false);
             case "duration":
                 return new JavaSimpleType("javax.xml.datatype.Duration",
-                        "javax.xml.datatype.DatatypeFactory.newInstance().newDuration(%s)", false);
+                        "javax.xml.datatype.Duration",
+                        "javax.xml.datatype.DatatypeFactory.newInstance().newDuration(%s)",
+                        "%s.toString()", false);
             case "decimal":
-                return new JavaSimpleType("java.math.BigDecimal", "new java.math.BigDecimal(%s)",
-                        false);
+                return new JavaSimpleType("java.math.BigDecimal", "java.math.BigDecimal",
+                        "new java.math.BigDecimal(%s)", "%s.toString()", false);
             case "integer":
             case "negativeInteger":
             case "nonNegativeInteger":
             case "positiveInteger":
             case "nonPositiveInteger":
             case "unsignedLong":
-                return new JavaSimpleType("java.math.BigInteger", "new java.math.BigInteger(%s)",
-                        false);
+                return new JavaSimpleType("java.math.BigInteger", "java.math.BigInteger",
+                        "new java.math.BigInteger(%s)", "%s.toString()", false);
             case "long":
             case "unsignedInt":
-                return new JavaSimpleType("long", "java.lang.Long", "Long.parseLong(%s)", false);
+                return new JavaSimpleType("long", "java.lang.Long", "Long.parseLong(%s)",
+                        "Long.toString(%s)", false);
             case "int":
             case "unsignedShort":
                 return new JavaSimpleType("int", "java.lang.Integer", "Integer.parseInt(%s)",
-                        false);
+                        "Integer.toString(%s)", false);
             case "short":
             case "unsignedByte":
                 return new JavaSimpleType("short", "java.lang.Short", "Short.parseShort(%s)",
-                        false);
+                        "Short.toString(%s)", false);
             case "byte":
-                return new JavaSimpleType("byte", "java.lang.Byte", "Byte.parseByte(%s)", false);
+                return new JavaSimpleType("byte", "java.lang.Byte", "Byte.parseByte(%s)",
+                        "Byte.toString(%s)",false);
             case "boolean":
                 return new JavaSimpleType("boolean", "java.lang.Boolean",
-                        "Boolean.parseBoolean(%s)", false);
+                        "Boolean.parseBoolean(%s)", "Boolean.toString(%s)", false);
             case "double":
                 return new JavaSimpleType("double", "java.lang.Double", "Double.parseDouble(%s)",
-                        false);
+                        "Double.toString(%s)", false);
             case "float":
                 return new JavaSimpleType("float", "java.lang.Float", "Float.parseFloat(%s)",
-                        false);
+                        "Float.toString(%s)", false);
             case "base64Binary":
                 return new JavaSimpleType("byte[]", "byte[]",
                         "java.util.Base64.getDecoder().decode(%s)",

@@ -8,6 +8,16 @@ xsd_config {
     srcs: ["simple_type.xsd"],
     package_name: "simple.type",
     gen_writer: true,
+    boolean_getter: true,
+}
+
+xsd_config {
+    name: "xsdc_simple_type_tinyxml_tests",
+    srcs: ["simple_type.xsd"],
+    package_name: "simple.type",
+    gen_writer: true,
+    boolean_getter: true,
+    tinyxml: true,
 }
 
 xsd_config {
@@ -16,6 +26,17 @@ xsd_config {
     package_name: "simple.type",
     enums_only: true,
     gen_writer: true,
+    boolean_getter: true,
+}
+
+xsd_config {
+    name: "xsdc_simple_type_tinyxml_tests_enums",
+    srcs: ["simple_type.xsd"],
+    package_name: "simple.type",
+    enums_only: true,
+    gen_writer: true,
+    boolean_getter: true,
+    tinyxml: true,
 }
 
 xsd_config {
@@ -24,4 +45,15 @@ xsd_config {
     package_name: "simple.type",
     parser_only: true,
     gen_writer: true,
+    boolean_getter: true,
+}
+
+xsd_config {
+    name: "xsdc_simple_type_tinyxml_tests_parser",
+    srcs: ["simple_type.xsd"],
+    package_name: "simple.type",
+    parser_only: true,
+    gen_writer: true,
+    boolean_getter: true,
+    tinyxml: true,
 }

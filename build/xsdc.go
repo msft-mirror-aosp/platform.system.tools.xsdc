@@ -77,6 +77,14 @@ type xsdConfigProperties struct {
 	// Only generate complementary code for XML parser. Applies to C++ only.
 	// The code being generated depends on the enum converters module.
 	Parser_only *bool
+	// Whether getter name of boolean element or attribute is getX or isX.
+	// Default value is false. If the property is true, getter name is isX.
+	Boolean_getter *bool
+	// Generate code that uses libtinyxml2 instead of libxml2. Applies to
+	// C++ only and does not perform the XInclude substitution, or
+	// ENTITY_REFs.
+	// This can improve memory footprint. Default value is false.
+	Tinyxml *bool
 }
 
 type xsdConfig struct {
@@ -192,6 +200,14 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 
 	if proptools.Bool(module.properties.Parser_only) {
 		args = args + " -x "
+	}
+
+	if proptools.Bool(module.properties.Boolean_getter) {
+		args = args + " -b "
+	}
+
+	if proptools.Bool(module.properties.Tinyxml) {
+		args = args + " -t "
 	}
 
 	module.genOutputs_j = android.PathForModuleGen(ctx, "java", filenameStem+"_xsdcgen.srcjar")
