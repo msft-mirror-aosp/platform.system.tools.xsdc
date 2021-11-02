@@ -17,6 +17,7 @@ package xsdc
 import (
 	"android/soong/android"
 	"android/soong/java"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -305,3 +306,24 @@ func xsdConfigFactory() android.Module {
 
 	return module
 }
+
+func (module *xsdConfig) OutputFiles(tag string) (android.Paths, error) {
+	switch tag {
+	case "":
+		var outputs android.WritablePaths
+		outputs = append(outputs, module.genOutputs_j)
+		outputs = append(outputs, module.genOutputs_c...)
+		outputs = append(outputs, module.genOutputs_h...)
+		return outputs.Paths(), nil
+	case "java":
+		return android.Paths{module.genOutputs_j}, nil
+	case "cpp":
+		return module.genOutputs_c.Paths(), nil
+	case "h":
+		return module.genOutputs_h.Paths(), nil
+	default:
+		return nil, fmt.Errorf("unsupported module reference tag %q", tag)
+	}
+}
+
+var _ android.OutputFileProducer = (*xsdConfig)(nil);
