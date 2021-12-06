@@ -17,6 +17,7 @@ package xsdc
 import (
 	"android/soong/android"
 	"android/soong/java"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -100,7 +101,7 @@ type xsdConfig struct {
 	docsPath android.Path
 
 	xsdConfigPath android.OptionalPath
-	genOutputs    android.Paths
+	genOutputs    android.WritablePaths
 }
 
 var _ android.SourceFileProducer = (*xsdConfig)(nil)
@@ -131,7 +132,10 @@ func (module *xsdConfig) GeneratedSourceFiles() android.Paths {
 }
 
 func (module *xsdConfig) Srcs() android.Paths {
-	return append(module.genOutputs, module.genOutputs_j)
+	var srcs android.WritablePaths
+	srcs = append(srcs, module.genOutputs...)
+	srcs = append(srcs, module.genOutputs_j)
+	return srcs.Paths()
 }
 
 func (module *xsdConfig) GeneratedDeps() android.Paths {
@@ -305,3 +309,25 @@ func xsdConfigFactory() android.Module {
 
 	return module
 }
+
+func (module *xsdConfig) OutputFiles(tag string) (android.Paths, error) {
+	switch tag {
+	case "":
+		var outputs android.WritablePaths
+		outputs = append(outputs, module.genOutputs_j)
+		outputs = append(outputs, module.genOutputs_c...)
+		outputs = append(outputs, module.genOutputs_h...)
+		outputs = append(outputs, module.genOutputs...)
+		return outputs.Paths(), nil
+	case "java":
+		return android.Paths{module.genOutputs_j}, nil
+	case "cpp":
+		return module.genOutputs_c.Paths(), nil
+	case "h":
+		return module.genOutputs_h.Paths(), nil
+	default:
+		return nil, fmt.Errorf("unsupported module reference tag %q", tag)
+	}
+}
+
+var _ android.OutputFileProducer = (*xsdConfig)(nil);
