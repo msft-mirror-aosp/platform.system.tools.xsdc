@@ -60,7 +60,6 @@ public class XsdHandler extends DefaultHandler {
     private boolean documentationFlag;
     private boolean enumerationFlag;
     private List<XsdTag> enumTags;
-    private List<String> includeList;
 
     public XsdHandler() {
         stateStack = new Stack<>();
@@ -68,7 +67,6 @@ public class XsdHandler extends DefaultHandler {
         documentationFlag = false;
         enumerationFlag = false;
         enumTags = new ArrayList<>();
-        includeList = new ArrayList<>();
     }
 
     public XmlSchema getSchema() {
@@ -228,9 +226,6 @@ public class XsdHandler extends DefaultHandler {
                     // They are using when validating xml files via xsd file.
                     // So they are ignored.
                     break;
-                case "include":
-                    addInclude(state);
-                    break;
                 default:
                     throw new XsdParserException(String.format("unsupported tag : %s", state.name));
             }
@@ -264,7 +259,7 @@ public class XsdHandler extends DefaultHandler {
             }
         }
 
-        return new XmlSchema(elementMap, typeMap, attrMap, attrGroupMap, groupMap, includeList);
+        return new XmlSchema(elementMap, typeMap, attrMap, attrGroupMap, groupMap);
     }
 
     private XsdElement makeElement(State state) throws XsdParserException {
@@ -316,11 +311,6 @@ public class XsdHandler extends DefaultHandler {
 
         if (use != null && use.equals("prohibited")) return null;
 
-        boolean required = false;
-        if (use != null && use.equals("required")) {
-            required = true;
-        }
-
         XsdType type = null;
         if (typename != null) {
             type = new XsdType(null, typename);
@@ -332,7 +322,7 @@ public class XsdHandler extends DefaultHandler {
             }
         }
 
-        return setDeprecatedAndFinal(new XsdAttribute(name, ref, type, required), state.deprecated,
+        return setDeprecatedAndFinal(new XsdAttribute(name, ref, type), state.deprecated,
                 state.finalValue, state.nullability);
     }
 
@@ -666,11 +656,6 @@ public class XsdHandler extends DefaultHandler {
 
         return setDeprecatedAndFinal(new XsdEnumRestriction(type, enums), state.deprecated,
                 state.finalValue, state.nullability);
-    }
-
-    private void addInclude(State state) throws XsdParserException {
-        String fileName = state.attributeMap.get("schemaLocation");
-        includeList.add(fileName);
     }
 
     private boolean isDeprecated(Map<String, String> attributeMap,List<XsdTag> tags,

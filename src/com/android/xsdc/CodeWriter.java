@@ -24,10 +24,6 @@ public class CodeWriter implements Closeable {
     private int indent;
     private boolean startLine;
 
-    public CodeWriter() {
-        this(null);
-    }
-
     public CodeWriter(PrintWriter printWriter) {
         out = printWriter;
         indent = 0;
@@ -37,15 +33,13 @@ public class CodeWriter implements Closeable {
     private void printIndent() {
         assert startLine;
         for (int i = 0; i < indent; ++i) {
-            printImpl("    ");
+            out.print("    ");
         }
         startLine = false;
     }
 
     public void println() {
-        if (out != null) {
-            out.println();
-        }
+        out.println();
         startLine = true;
     }
 
@@ -64,12 +58,13 @@ public class CodeWriter implements Closeable {
             if (startLine && !line.isEmpty()) {
                 printIndent();
             }
-            printImpl(line);
+            out.print(line);
             if (line.endsWith("{")) {
                 ++indent;
             }
             if (i + 1 < lines.length) {
-                println();
+                out.println();
+                startLine = true;
             }
         }
     }
@@ -82,12 +77,6 @@ public class CodeWriter implements Closeable {
     public void close() {
         if (out != null) {
             out.close();
-        }
-    }
-
-    private void printImpl(String code) {
-        if (out != null) {
-            out.print(code);
         }
     }
 }

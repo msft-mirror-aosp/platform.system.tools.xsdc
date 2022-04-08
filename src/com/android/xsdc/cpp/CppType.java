@@ -20,6 +20,4 @@ interface CppType {
     String getName();
 
     String getParsingExpression();
-
-    public String getWritingExpression(String getValue, String name);
 }
