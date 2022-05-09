@@ -154,6 +154,7 @@ public class CppCodeGenerator {
         parserHeaderFile.printf("#include <optional>\n");
         parserHeaderFile.printf("#include <string>\n");
         parserHeaderFile.printf("#include <vector>\n");
+        parserHeaderFile.printf("#include <sstream>\n");
         if (writer) {
             parserHeaderFile.printf("#include <iostream>\n");
         }
