@@ -17,7 +17,6 @@ package xsdc
 import (
 	"android/soong/android"
 	"android/soong/java"
-	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -81,11 +80,6 @@ type xsdConfigProperties struct {
 	// Whether getter name of boolean element or attribute is getX or isX.
 	// Default value is false. If the property is true, getter name is isX.
 	Boolean_getter *bool
-	// Generate code that uses libtinyxml2 instead of libxml2. Applies to
-	// C++ only and does not perform the XInclude substitution, or
-	// ENTITY_REFs.
-	// This can improve memory footprint. Default value is false.
-	Tinyxml *bool
 }
 
 type xsdConfig struct {
@@ -101,7 +95,7 @@ type xsdConfig struct {
 	docsPath android.Path
 
 	xsdConfigPath android.OptionalPath
-	genOutputs    android.WritablePaths
+	genOutputs    android.Paths
 }
 
 var _ android.SourceFileProducer = (*xsdConfig)(nil)
@@ -132,10 +126,7 @@ func (module *xsdConfig) GeneratedSourceFiles() android.Paths {
 }
 
 func (module *xsdConfig) Srcs() android.Paths {
-	var srcs android.WritablePaths
-	srcs = append(srcs, module.genOutputs...)
-	srcs = append(srcs, module.genOutputs_j)
-	return srcs.Paths()
+	return append(module.genOutputs, module.genOutputs_j)
 }
 
 func (module *xsdConfig) GeneratedDeps() android.Paths {
@@ -208,10 +199,6 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 
 	if proptools.Bool(module.properties.Boolean_getter) {
 		args = args + " -b "
-	}
-
-	if proptools.Bool(module.properties.Tinyxml) {
-		args = args + " -t "
 	}
 
 	module.genOutputs_j = android.PathForModuleGen(ctx, "java", filenameStem+"_xsdcgen.srcjar")
@@ -309,25 +296,3 @@ func xsdConfigFactory() android.Module {
 
 	return module
 }
-
-func (module *xsdConfig) OutputFiles(tag string) (android.Paths, error) {
-	switch tag {
-	case "":
-		var outputs android.WritablePaths
-		outputs = append(outputs, module.genOutputs_j)
-		outputs = append(outputs, module.genOutputs_c...)
-		outputs = append(outputs, module.genOutputs_h...)
-		outputs = append(outputs, module.genOutputs...)
-		return outputs.Paths(), nil
-	case "java":
-		return android.Paths{module.genOutputs_j}, nil
-	case "cpp":
-		return module.genOutputs_c.Paths(), nil
-	case "h":
-		return module.genOutputs_h.Paths(), nil
-	default:
-		return nil, fmt.Errorf("unsupported module reference tag %q", tag)
-	}
-}
-
-var _ android.OutputFileProducer = (*xsdConfig)(nil);
