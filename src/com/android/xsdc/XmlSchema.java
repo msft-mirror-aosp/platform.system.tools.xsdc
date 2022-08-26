@@ -66,10 +66,6 @@ public class XmlSchema {
         return includeList;
     }
 
-    public void addIncludeList(List<String> list) {
-        includeList.addAll(list);
-    }
-
     public void include(XmlSchema schema) {
         elementMap.putAll(schema.getElementMap());
         typeMap.putAll(schema.getTypeMap());
