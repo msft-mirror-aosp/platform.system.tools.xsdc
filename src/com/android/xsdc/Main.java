@@ -18,7 +18,11 @@ package com.android.xsdc;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 import static java.lang.System.exit;
 
@@ -101,6 +105,13 @@ public class Main {
                 .withDescription("Only generate XML parser in Cpp code.")
                 .create("x");
         options.addOption(genParserOnly);
+        Option genDepFile = OptionBuilder
+                .withLongOpt("depfile")
+                .hasArgs(1)
+                .withDescription("Generate depfile for ninja.")
+                .create("d");
+        options.addOption(genDepFile);
+
         // "Only generate enums" and "Only generate parser" options are mutually exclusive.
         OptionGroup genOnlyGroup = new OptionGroup();
         genOnlyGroup.setRequired(false);
@@ -119,7 +130,6 @@ public class Main {
             return;
         }
 
-        String[] xsdFile = cmd.getArgs();
         String packageName = cmd.getOptionValue('p', null);
         String outDir = cmd.getOptionValue('o', null);
         boolean writer = cmd.hasOption('w');
@@ -129,8 +139,9 @@ public class Main {
         boolean parserOnly = cmd.hasOption('x');
         boolean booleanGetter = cmd.hasOption('b');
         boolean useTinyXml = cmd.hasOption('t');
+        String depFile = cmd.getOptionValue('d', null);
 
-        if (xsdFile.length != 1 || packageName == null) {
+        if (cmd.getArgs().length != 1 || packageName == null) {
             System.err.println("Error: no xsd files or package name");
             help(options);
         }
@@ -139,7 +150,10 @@ public class Main {
             outDir = ".";
         }
 
-        XmlSchema xmlSchema = parse(xsdFile[0]);
+        String xsdFile = cmd.getArgs()[0];
+        List<String> included = new ArrayList<>();
+        included.add(xsdFile);
+        XmlSchema xmlSchema = parse(xsdFile, included);
 
         if (cmd.hasOption('j')) {
             File packageDir = new File(Paths.get(outDir, packageName.replace(".", "/")).toString());
@@ -161,9 +175,13 @@ public class Main {
                             booleanGetter, useTinyXml);
             cppCodeGenerator.print(fs);
         }
+
+        if (depFile != null) {
+            writeDepFile(depFile, included);
+        }
     }
 
-    private static XmlSchema parse(String xsdFile) throws Exception {
+    private static XmlSchema parse(String xsdFile, List<String> included) throws Exception {
         XmlSchema xmlSchema;
         try (FileInputStream in = new FileInputStream(xsdFile)) {
             SAXParserFactory factory = SAXParserFactory.newInstance();
@@ -174,10 +192,19 @@ public class Main {
             xmlSchema = xsdHandler.getSchema();
         }
         for (String file : xmlSchema.getIncludeList()) {
-            XmlSchema temp = parse(Paths.get(xsdFile).resolveSibling(file).toString());
+            String filePath = Paths.get(xsdFile).resolveSibling(file).toString();
+            included.add(filePath);
+            XmlSchema temp = parse(filePath, included);
             xmlSchema.include(temp);
         }
         return xmlSchema;
+    }
+
+    private static void writeDepFile(String depFile, List<String> files)
+            throws IOException {
+        try (PrintWriter out = new PrintWriter(new File(depFile))) {
+            out.println(String.format("  %s", String.join(" \\\n  ", files)));
+        }
     }
 
     private static void help(Options options) {
