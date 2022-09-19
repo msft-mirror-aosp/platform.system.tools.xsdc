@@ -74,15 +74,15 @@ class JavaSimpleType implements JavaType {
         StringBuilder expression = new StringBuilder();
         if (list) {
             expression.append(
-                    String.format("%s value = new java.util.ArrayList<>();\n", getName()));
-            expression.append("for (String token : raw.split(\"\\\\s+\")) {\n");
-            expression.append(String.format("value.add(%s);\n",
-                    String.format(rawParsingExpression, "token")));
+                    String.format("%s _value = new java.util.ArrayList<>();\n", getName()));
+            expression.append("for (String _token : _raw.split(\"\\\\s+\")) {\n");
+            expression.append(String.format("_value.add(%s);\n",
+                    String.format(rawParsingExpression, "_token")));
             expression.append("}\n");
         } else {
             expression.append(
-                    String.format("%s value = %s;\n", getName(),
-                            String.format(rawParsingExpression, "raw")));
+                    String.format("%s _value = %s;\n", getName(),
+                            String.format(rawParsingExpression, "_raw")));
         }
         return expression.toString();
     }
@@ -91,16 +91,16 @@ class JavaSimpleType implements JavaType {
     public String getWritingExpression(String getValue, String name) {
         StringBuilder expression = new StringBuilder();
         if (list) {
-            expression.append("{\nint count = 0;\n");
+            expression.append("{\nint _count = 0;\n");
             expression.append(String.format("for (%s v : %s) {\n", this.name, getValue));
-            expression.append("if (count != 0) {\n"
-                    + "out.print(\" \");\n}\n"
-                    + "++count;\n");
-            expression.append(String.format("out.print(%s);\n}\n",
+            expression.append("if (_count != 0) {\n"
+                    + "_out.print(\" \");\n}\n"
+                    + "++_count;\n");
+            expression.append(String.format("_out.print(%s);\n}\n",
                     String.format(rawWritingExpression, "v")));
             expression.append("}\n");
         } else {
-            expression.append(String.format("out.print(%s);\n",
+            expression.append(String.format("_out.print(%s);\n",
                     String.format(rawWritingExpression, getValue)));
         }
         return expression.toString();
