@@ -306,69 +306,69 @@ public class JavaCodeGenerator {
             allAttributeTypes.add(parseSimpleType(type, false));
         }
 
-        out.printf("static %s%s read(%sorg.xmlpull.v1.XmlPullParser parser) " +
+        out.printf("static %s%s read(%sorg.xmlpull.v1.XmlPullParser _parser) " +
                 "throws org.xmlpull.v1.XmlPullParserException, java.io.IOException, " +
                 "javax.xml.datatype.DatatypeConfigurationException {\n",
                 getDefaultNullability(Nullability.NON_NULL), name,
                 getDefaultNullability(Nullability.NON_NULL));
 
-        out.printf("%s instance = new %s();\n"
-                + "String raw = null;\n", name, name);
+        out.printf("%s _instance = new %s();\n"
+                + "String _raw = null;\n", name, name);
         for (int i = 0; i < allAttributes.size(); ++i) {
             JavaType type = allAttributeTypes.get(i);
             XsdAttribute attribute = resolveAttribute(allAttributes.get(i));
             String variableName = Utils.toVariableName(attribute.getName());
-            out.printf("raw = parser.getAttributeValue(null, \"%s\");\n"
-                    + "if (raw != null) {\n", attribute.getName());
+            out.printf("_raw = _parser.getAttributeValue(null, \"%s\");\n"
+                    + "if (_raw != null) {\n", attribute.getName());
             out.print(type.getParsingExpression());
-            out.printf("instance.set%s(value);\n"
+            out.printf("_instance.set%s(_value);\n"
                     + "}\n", Utils.capitalize(variableName));
         }
 
         if (baseValueType != null) {
-            out.print("raw = XmlParser.readText(parser);\n"
-                    + "if (raw != null) {\n");
+            out.print("_raw = XmlParser.readText(_parser);\n"
+                    + "if (_raw != null) {\n");
             out.print(baseValueType.getParsingExpression());
-            out.print("instance.setValue(value);\n"
+            out.print("_instance.setValue(_value);\n"
                     + "}\n");
         } else if (!allElements.isEmpty()) {
-            out.print("int outerDepth = parser.getDepth();\n"
+            out.print("int outerDepth = _parser.getDepth();\n"
                     + "int type;\n"
-                    + "while ((type=parser.next()) != org.xmlpull.v1.XmlPullParser.END_DOCUMENT\n"
+                    + "while ((type=_parser.next()) != org.xmlpull.v1.XmlPullParser.END_DOCUMENT\n"
                     + "        && type != org.xmlpull.v1.XmlPullParser.END_TAG) {\n"
-                    + "if (parser.getEventType() != org.xmlpull.v1.XmlPullParser.START_TAG) "
+                    + "if (_parser.getEventType() != org.xmlpull.v1.XmlPullParser.START_TAG) "
                     + "continue;\n"
-                    + "String tagName = parser.getName();\n");
+                    + "String _tagName = _parser.getName();\n");
             for (int i = 0; i < allElements.size(); ++i) {
                 JavaType type = allElementTypes.get(i);
                 XsdElement element = allElements.get(i);
                 XsdElement elementValue = resolveElement(element);
                 String variableName = Utils.toVariableName(getElementName(elementValue));
-                out.printf("if (tagName.equals(\"%s\")) {\n", elementValue.getName());
+                out.printf("if (_tagName.equals(\"%s\")) {\n", elementValue.getName());
                 if (type instanceof JavaSimpleType) {
-                    out.print("raw = XmlParser.readText(parser);\n");
+                    out.print("_raw = XmlParser.readText(_parser);\n");
                 }
                 out.print(type.getParsingExpression());
                 if (element.isMultiple()) {
-                    out.printf("instance.get%s().add(value);\n",
+                    out.printf("_instance.get%s().add(_value);\n",
                             Utils.capitalize(variableName));
                 } else {
-                    out.printf("instance.set%s(value);\n",
+                    out.printf("_instance.set%s(_value);\n",
                             Utils.capitalize(variableName));
                 }
                 out.printf("} else ");
             }
             out.print("{\n"
-                    + "XmlParser.skip(parser);\n"
+                    + "XmlParser.skip(_parser);\n"
                     + "}\n"
                     + "}\n");
             out.printf("if (type != org.xmlpull.v1.XmlPullParser.END_TAG) {\n"
                     + "throw new javax.xml.datatype.DatatypeConfigurationException(\"%s is not closed\");\n"
                     + "}\n", name);
         } else {
-            out.print("XmlParser.skip(parser);\n");
+            out.print("XmlParser.skip(_parser);\n");
         }
-        out.print("return instance;\n"
+        out.print("return _instance;\n"
                 + "}\n");
     }
 
@@ -393,27 +393,27 @@ public class JavaCodeGenerator {
             allAttributeTypes.add(parseSimpleType(type, false));
         }
 
-        out.printf("\nvoid write(%sXmlWriter out, %sString name) " +
+        out.printf("\nvoid write(%sXmlWriter _out, %sString _name) " +
                 "throws java.io.IOException {\n", getDefaultNullability(Nullability.NON_NULL),
                 getDefaultNullability(Nullability.NON_NULL));
 
-        out.print("out.print(\"<\" + name);\n");
+        out.print("_out.print(\"<\" + _name);\n");
         for (int i = 0; i < allAttributes.size(); ++i) {
             JavaType type = allAttributeTypes.get(i);
             boolean isList = allAttributeTypes.get(i).isList();
             XsdAttribute attribute = resolveAttribute(allAttributes.get(i));
             String variableName = Utils.toVariableName(attribute.getName());
             out.printf("if (has%s()) {\n", Utils.capitalize(variableName));
-            out.printf("out.print(\" %s=\\\"\");\n", attribute.getName());
+            out.printf("_out.print(\" %s=\\\"\");\n", attribute.getName());
             out.print(type.getWritingExpression(String.format("%s%s()",
                     getterName(type.getName()), Utils.capitalize(variableName)),
                     attribute.getName()));
-            out.printf("out.print(\"\\\"\");\n}\n");
+            out.printf("_out.print(\"\\\"\");\n}\n");
         }
-        out.printf("out.print(\">\\n\");\n");
+        out.printf("_out.print(\">\\n\");\n");
 
         if (!allElements.isEmpty()) {
-            out.printf("out.increaseIndent();\n");
+            out.printf("_out.increaseIndent();\n");
             for (int i = 0; i < allElements.size(); ++i) {
                 JavaType type = allElementTypes.get(i);
                 XsdElement element = allElements.get(i);
@@ -425,31 +425,31 @@ public class JavaCodeGenerator {
                     out.printf("for (%s value : get%s()) {\n", type.getName(),
                             Utils.capitalize(variableName));
                     if (type instanceof JavaSimpleType) {
-                        out.printf("out.print(\"<%s>\");\n", elementValue.getName());
+                        out.printf("_out.print(\"<%s>\");\n", elementValue.getName());
                     }
                     out.print(type.getWritingExpression("value", elementValue.getName()));
                     if (type instanceof JavaSimpleType) {
-                        out.printf("out.print(\"</%s>\\n\");\n", elementValue.getName());
+                        out.printf("_out.print(\"</%s>\\n\");\n", elementValue.getName());
                     }
                     out.print("}\n");
                 } else {
                     out.printf("if (has%s()) {\n", Utils.capitalize(variableName));
                     if (type instanceof JavaSimpleType) {
-                        out.printf("out.print(\"<%s>\");\n", elementValue.getName());
+                        out.printf("_out.print(\"<%s>\");\n", elementValue.getName());
                     }
                     out.print(type.getWritingExpression(String.format("%s%s()",
                               getterName(type.getName()), Utils.capitalize(variableName)),
                               elementValue.getName()));
                     if (type instanceof JavaSimpleType) {
-                        out.printf("out.print(\"</%s>\\n\");\n", elementValue.getName());
+                        out.printf("_out.print(\"</%s>\\n\");\n", elementValue.getName());
                     }
                     out.printf("}\n");
                 }
 
             }
-            out.printf("out.decreaseIndent();\n");
+            out.printf("_out.decreaseIndent();\n");
         }
-        out.print("out.print(\"</\" + name + \">\\n\");\n");
+        out.print("_out.print(\"</\" + _name + \">\\n\");\n");
         out.print("}\n");
     }
 
@@ -513,22 +513,22 @@ public class JavaCodeGenerator {
             out.printf("public static %s%s read%s(%sjava.io.InputStream in)"
                 + " throws org.xmlpull.v1.XmlPullParserException, java.io.IOException, "
                 + "javax.xml.datatype.DatatypeConfigurationException {\n"
-                + "org.xmlpull.v1.XmlPullParser parser = org.xmlpull.v1.XmlPullParserFactory"
+                + "org.xmlpull.v1.XmlPullParser _parser = org.xmlpull.v1.XmlPullParserFactory"
                 + ".newInstance().newPullParser();\n"
-                + "parser.setFeature(org.xmlpull.v1.XmlPullParser.FEATURE_PROCESS_NAMESPACES, "
+                + "_parser.setFeature(org.xmlpull.v1.XmlPullParser.FEATURE_PROCESS_NAMESPACES, "
                 + "true);\n"
-                + "parser.setInput(in, null);\n"
-                + "parser.nextTag();\n"
-                + "String tagName = parser.getName();\n"
-                + "String raw = null;\n", getDefaultNullability(Nullability.NULLABLE),
+                + "_parser.setInput(in, null);\n"
+                + "_parser.nextTag();\n"
+                + "String _tagName = _parser.getName();\n"
+                + "String _raw = null;\n", getDefaultNullability(Nullability.NULLABLE),
                 javaType.getName(), isMultiRootElement ? Utils.capitalize(javaType.getName()) : "",
                 getDefaultNullability(Nullability.NON_NULL));
-            out.printf("if (tagName.equals(\"%s\")) {\n", element.getName());
+            out.printf("if (_tagName.equals(\"%s\")) {\n", element.getName());
             if (javaType instanceof JavaSimpleType) {
-                out.print("raw = XmlParser.readText(parser);\n");
+                out.print("_raw = XmlParser.readText(_parser);\n");
             }
             out.print(javaType.getParsingExpression());
-            out.print("return value;\n"
+            out.print("return _value;\n"
                     + "}\n"
                     + "return null;\n"
                     + "}\n");
@@ -536,12 +536,12 @@ public class JavaCodeGenerator {
         }
 
         out.printf(
-                "public static %sjava.lang.String readText(%sorg.xmlpull.v1.XmlPullParser parser)"
+                "public static %sjava.lang.String readText(%sorg.xmlpull.v1.XmlPullParser _parser)"
                         + " throws org.xmlpull.v1.XmlPullParserException, java.io.IOException {\n"
                         + "String result = \"\";\n"
-                        + "if (parser.next() == org.xmlpull.v1.XmlPullParser.TEXT) {\n"
-                        + "    result = parser.getText();\n"
-                        + "    parser.nextTag();\n"
+                        + "if (_parser.next() == org.xmlpull.v1.XmlPullParser.TEXT) {\n"
+                        + "    result = _parser.getText();\n"
+                        + "    _parser.nextTag();\n"
                         + "}\n"
                         + "return result;\n"
                         + "}\n", getDefaultNullability(Nullability.NULLABLE),
@@ -549,14 +549,14 @@ public class JavaCodeGenerator {
         out.println();
 
         out.printf(
-                "public static void skip(%sorg.xmlpull.v1.XmlPullParser parser)"
+                "public static void skip(%sorg.xmlpull.v1.XmlPullParser _parser)"
                         + " throws org.xmlpull.v1.XmlPullParserException, java.io.IOException {\n"
-                        + "if (parser.getEventType() != org.xmlpull.v1.XmlPullParser.START_TAG) {\n"
+                        + "if (_parser.getEventType() != org.xmlpull.v1.XmlPullParser.START_TAG) {\n"
                         + "    throw new IllegalStateException();\n"
                         + "}\n"
                         + "int depth = 1;\n"
                         + "while (depth != 0) {\n"
-                        + "    switch (parser.next()) {\n"
+                        + "    switch (_parser.next()) {\n"
                         + "        case org.xmlpull.v1.XmlPullParser.END_TAG:\n"
                         + "            depth--;\n"
                         + "            break;\n"

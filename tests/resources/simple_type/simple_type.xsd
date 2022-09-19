@@ -35,6 +35,7 @@
                 <xs:element name="example2" type="xs:boolean"/>
             </xs:sequence>
             <xs:attribute name="example3" type="xs:boolean"/>
+            <xs:attribute name="value" type="xs:boolean"/>
         </xs:complexType>
     </xs:element>
     <xs:element name="multi-choice">

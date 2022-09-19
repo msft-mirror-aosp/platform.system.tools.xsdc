@@ -62,19 +62,19 @@ class CppSimpleType implements CppType {
         StringBuilder expression = new StringBuilder();
         if (list) {
             expression.append(
-                    String.format("%s value;\n", getName()));
+                    String.format("%s _value;\n", getName()));
             expression.append(String.format("{\n"
-                    + "std::istringstream stream(raw);\n"
-                    + "for(std::string str; stream >> str; ) {\n"
-                    + "    value.push_back(%s);\n"
+                    + "std::istringstream _stream(_raw);\n"
+                    + "for(std::string str; _stream >> str; ) {\n"
+                    + "    _value.push_back(%s);\n"
                     + "}\n",
                     String.format(rawParsingExpression, "str")));
             expression.append("}\n");
         } else {
             expression.append(
-                    String.format("%s %svalue = %s;\n", getName(),
+                    String.format("%s %s_value = %s;\n", getName(),
                             this.name.equals("std::string") ? "&" : "",
-                            String.format(rawParsingExpression, "raw")));
+                            String.format(rawParsingExpression, "_raw")));
         }
         return expression.toString();
     }
@@ -83,31 +83,31 @@ class CppSimpleType implements CppType {
     public String getWritingExpression(String getValue, String name) {
         StringBuilder expression = new StringBuilder();
         if (list) {
-            expression.append("{\nint count = 0;\n");
-            expression.append(String.format("for (const auto& v : %s) {\n", getValue));
+            expression.append("{\nint _count = 0;\n");
+            expression.append(String.format("for (const auto& _v : %s) {\n", getValue));
             String value;
             if (isEnum) {
-                value = String.format("%sToString(v)", this.name);
+                value = String.format("%sToString(_v)", this.name);
             } else if (this.name.equals("char") || this.name.equals("unsigned char")) {
-                value = "(int)v";
+                value = "(int)_v";
             } else if (this.name.equals("bool")) {
-                value = "(v ? \"true\" : \"false\")";
+                value = "(_v ? \"true\" : \"false\")";
             } else {
-                value = "v";
+                value = "_v";
             }
-            expression.append("if (count != 0) {\n"
-                    + "out << \" \";\n}\n"
-                    + "++count;\n");
-            expression.append(String.format("out << %s;\n}\n}\n", value));
+            expression.append("if (_count != 0) {\n"
+                    + "_out << \" \";\n}\n"
+                    + "++_count;\n");
+            expression.append(String.format("_out << %s;\n}\n}\n", value));
         } else {
             if (isEnum) {
-                expression.append(String.format("out << toString(%s);\n", getValue));
+                expression.append(String.format("_out << toString(%s);\n", getValue));
             } else if (this.name.equals("char") || this.name.equals("unsigned char")) {
-                expression.append(String.format("out << (int)%s;\n", getValue));
+                expression.append(String.format("_out << (int)%s;\n", getValue));
             } else if (this.name.equals("bool")) {
-                expression.append(String.format("out << (%s ? \"true\" : \"false\");\n", getValue));
+                expression.append(String.format("_out << (%s ? \"true\" : \"false\");\n", getValue));
             } else {
-                expression.append(String.format("out << %s;\n", getValue));
+                expression.append(String.format("_out << %s;\n", getValue));
             }
         }
         return expression.toString();
