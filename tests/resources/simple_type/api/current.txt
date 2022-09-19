@@ -23,11 +23,13 @@ package simple.type {
     method public boolean isExample1();
     method public boolean isExample2();
     method public boolean isExample3();
+    method public boolean isValue();
     method public void setExample1(boolean);
     method public void setExample2(boolean);
     method public void setExample3(boolean);
     method public void setListInt(java.util.List<java.lang.Integer>);
     method public void setUnionTest(java.util.List<java.lang.String>);
+    method public void setValue(boolean);
   }
 
   public class SingleChoice {
