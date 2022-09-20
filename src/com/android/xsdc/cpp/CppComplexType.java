@@ -30,11 +30,11 @@ class CppComplexType implements CppType {
 
     @Override
     public String getParsingExpression() {
-        return String.format("%s value = %s::read(child);\n", name, name);
+        return String.format("%s _value = %s::read(_child);\n", name, name);
     }
 
     @Override
     public String getWritingExpression(String getValue, String name) {
-        return String.format("%s.write(out, \"%s\");\n", getValue, name);
+        return String.format("%s.write(_out, \"%s\");\n", getValue, name);
     }
 }
