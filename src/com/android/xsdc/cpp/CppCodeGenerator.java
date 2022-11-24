@@ -914,9 +914,9 @@ public class CppCodeGenerator {
             String VariableName = Utils.toVariableName(elementName);
             String typeName = cppType instanceof CppSimpleType ? cppType.getName() :
                     Utils.toClassName(cppType.getName());
-            parserHeaderFile.printf("void write(std::ostream& _out, %s& %s);\n\n",
+            parserHeaderFile.printf("void write(std::ostream& _out, const %s& %s);\n\n",
                     typeName, VariableName);
-            parserCppFile.printf("void write(std::ostream& _out, %s& %s) {\n",
+            parserCppFile.printf("void write(std::ostream& _out, const %s& %s) {\n",
                     typeName, VariableName);
 
             parserCppFile.print(
