@@ -322,6 +322,14 @@ public class CppCodeGenerator {
         enumsHeaderFile.printf("};\n");
     }
 
+    /**
+     * Prints forward declarations for complex types.
+     *
+     * Foo.h:
+     *
+     *     class Foo;
+     *
+     */
     private void printPrototype() throws CppCodeGeneratorException {
         for (XsdType type : xmlSchema.getTypeMap().values()) {
             if (type instanceof XsdComplexType) {
@@ -338,6 +346,22 @@ public class CppCodeGenerator {
         }
     }
 
+    /**
+     * Prints class definitions for complex types.
+     *
+     * Foo.h:
+     *
+     *     class Foo {
+     *       printClass(<inner types>)
+     *       <members>
+     *       const optional<> value_;
+     *       args = printConstructor()
+     *       printGetter(<members>)
+     *       printParser( args )
+     *       printWriter()
+     *     };
+     *
+     */
     private void printClass(String name, String nameScope, XsdComplexType complexType)
             throws CppCodeGeneratorException {
         assert name != null;
@@ -451,6 +475,27 @@ public class CppCodeGenerator {
         parserHeaderFile.println("};\n");
     }
 
+    /**
+     * Prints read() static member function for complex types.
+     * Note that read() is a non-validating parser.
+     *
+     * Foo.h:
+     *
+     *     static Foo read(XmlNode* root);
+     *
+     * Foo.cpp:
+     *
+     *     Foo Foo::read(XmlNode* root) {
+     *        string _raw;
+     *        for each member m
+     *           _raw = ..
+     *           parsing expressions for each member (read _raw, set _value)
+     *           m = _value;
+     *        Foo instance(args...);
+     *        return instance;
+     *     }
+     *
+     */
     private void printParser(String name, String nameScope, XsdComplexType complexType, String args)
             throws CppCodeGeneratorException {
         CppSimpleType baseValueType = (complexType instanceof XsdSimpleContent) ?
@@ -583,6 +628,22 @@ public class CppCodeGenerator {
         }
     }
 
+    /**
+     * Prints write() member function for complex types.
+     *
+     * Foo.h:
+     *
+     *     void write(ostream& _out, string name) const;
+     *
+     * Foo.cpp:
+     *
+     *     void Foo::write(ostream& _out, string name) const {
+     *        <FooElement attrs....>
+     *          value_
+     *        </Fooelement>
+     *     }
+     *
+     */
     private void printWriter(String name, String nameScope, XsdComplexType complexType)
             throws CppCodeGeneratorException {
         CppSimpleType baseValueType = (complexType instanceof XsdSimpleContent) ?
@@ -669,6 +730,31 @@ public class CppCodeGenerator {
         parserCppFile.printf("}\n");
     }
 
+    /**
+     * Prints hasAttr() and getAttr() member functions for each member field.
+     *
+     * Foo.h:
+     *
+     *     const Attr& getAttr() const;
+     *     bool hasAttr() const;
+     *     const Item* getFirstItem() const; // for multi-value member
+     *
+     * Foo.cpp:
+     *
+     *     const Attr& Foo::getAttr() const {
+     *       return attr_;
+     *     }
+     *     bool Foo::hasAttr() const {
+     *       return true;
+     *     }
+     *     const Item* Foo::getFirstItem() const {
+     *       if (item_.empty()) {
+     *          return nullptr;
+     *       }
+     *       return &item_[0];
+     *     }
+     *
+     */
     private void printGetter(String name, CppType type, String variableName,
             boolean isMultiple, boolean isMultipleType, boolean isRequired) {
         String typeName = isMultiple ? String.format("std::vector<%s>",
@@ -729,6 +815,18 @@ public class CppCodeGenerator {
         }
     }
 
+    /**
+     * Prints constructor for complex types
+     *
+     * Foo.h:
+     *
+     *     Foo(args...);
+     *
+     * Foo.cpp:
+     *
+     *     Foo::Foo(args...): initializer... {}
+     *
+     */
     private String printConstructor(String name, String nameScope, XsdComplexType complexType,
             List<XsdElement> elements, List<XsdAttribute> attributes, String baseName)
             throws CppCodeGeneratorException {
@@ -817,6 +915,22 @@ public class CppCodeGenerator {
         return argsString;
     }
 
+    /**
+     * Prints reader functions for each top-level types.
+     *
+     * Foo.h:
+     *
+     *     optional<Foo> readFoo(const char* filename);
+     *
+     * Foo.cpp:
+     *
+     *     std::optional<Foo> readFoo(const char* filename) {
+     *        ...
+     *        Foo _value = Foo::read(root);
+     *        return _value;
+     *     }
+     *
+     */
     private void printXmlParser() throws CppCodeGeneratorException {
         if (useTinyXml) {
             // Nothing to do for libtinyxml2
@@ -907,6 +1021,21 @@ public class CppCodeGenerator {
         }
     }
 
+    /**
+     * Prints writer functions for each top-level types
+     *
+     * Foo.h:
+     *
+     *     void write(ostream&, const Foo& foo);
+     *
+     * Foo.cpp:
+     *
+     *     void write(ostream& _out, const Foo& foo) {
+     *        ... <?xml ... ?>
+     *        foo.write(_out, "FooElementName");
+     *     }
+     *
+     */
     private void printXmlWriter() throws CppCodeGeneratorException {
         for (XsdElement element : xmlSchema.getElementMap().values()) {
             CppType cppType = parseType(element.getType(), element.getName());
