@@ -18,6 +18,7 @@ package simple.type {
   public class SimpleTypes {
     ctor public SimpleTypes();
     method public java.util.List<java.lang.Integer> getListInt();
+    method public java.util.List<java.lang.Integer> getOptionalIntList();
     method public java.util.List<java.lang.String> getUnionTest();
     method public java.util.List<simple.type.EnumType> getYesOrNo();
     method public boolean isExample1();
@@ -28,6 +29,7 @@ package simple.type {
     method public void setExample2(boolean);
     method public void setExample3(boolean);
     method public void setListInt(java.util.List<java.lang.Integer>);
+    method public void setOptionalIntList(java.util.List<java.lang.Integer>);
     method public void setUnionTest(java.util.List<java.lang.String>);
     method public void setValue(boolean);
   }

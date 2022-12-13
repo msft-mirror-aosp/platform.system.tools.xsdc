@@ -50,3 +50,17 @@ TEST_F(XmlTest, Simpletype) {
   EXPECT_EQ(simple.getYesOrNo()[0], simple2.getYesOrNo()[0]);
   EXPECT_EQ(simple.getYesOrNo()[1], simple2.getYesOrNo()[1]);
 }
+
+TEST_F(XmlTest, Simpletype_AccessingEmptyOptionalAbortsWithMessage) {
+  using namespace simple::type;
+
+  string file_name = Resource("simple_type.xml");
+  SimpleTypes simple = *readSimpleTypes(file_name.c_str());
+
+  // trying to get the value for optional attribute
+  ASSERT_DEATH(simple.isExample3(), "hasExample3()");
+  // trying to get the value for optional element
+  ASSERT_DEATH(simple.getOptionalIntList(), "hasOptionalIntList()");
+  // trying to get the first value from optional element of list of simple values
+  ASSERT_DEATH(simple.getFirstOptionalIntList(), "hasOptionalIntList()");
+}
