@@ -34,11 +34,9 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 public class TestCppCodeGenerator {
-    public static final String SCHEMA =
-            """
-      <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-        <xs:element name="class" type="xs:string" />
-      </xs:schema>""";
+    public static final String SCHEMA = "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n"
+            + "  <xs:element name=\"class\" type=\"xs:string\" />\n"
+            + "</xs:schema>";
 
     @Test
     public void testParseSchema() throws Exception {
