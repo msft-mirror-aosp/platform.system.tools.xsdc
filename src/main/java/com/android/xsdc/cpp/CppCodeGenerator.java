@@ -179,13 +179,13 @@ public class CppCodeGenerator {
         parserCppFile.printf("#define LOG_TAG \"%s\"\n", pkgName);
         parserCppFile.printf("#include \"%s\"\n\n", parserHeaderFileName);
         // define _xsdc_assert to abort with message regardless of NDEBUG
-        parserCppFile.println("""
-                #include <assert.h>
-                #ifndef __BIONIC__
-                #define __assert2(f,n,fun,e) do { fprintf(stderr, "%s:%d: %s: Assertion `%s' failed", (f), (n), (fun), (e)); abort(); } while (false)
-                #endif
-                #define _xsdc_assert(e) do if (!(e)) __assert2(__FILE__, __LINE__, __PRETTY_FUNCTION__, #e); while (false)
-                """);
+        parserCppFile.println("#include <assert.h>\n"
+                + "#ifndef __BIONIC__\n"
+                + "#define __assert2(f,n,fun,e) do { fprintf(stderr, \"%s:%d: %s: Assertion `%s'"
+                + " failed\", (f), (n), (fun), (e)); abort(); } while (false)\n"
+                + "#endif\n"
+                + "#define _xsdc_assert(e) do if (!(e)) __assert2(__FILE__, __LINE__,"
+                + " __PRETTY_FUNCTION__, #e); while (false)\n");
 
         List<String> namespace = new java.util.ArrayList<>();
         for (String token : pkgName.split("\\.")) {
