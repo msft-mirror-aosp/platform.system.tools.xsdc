@@ -10,7 +10,6 @@ java_binary_host {
     static_libs: [
         "commons-cli-1.2",
     ],
-    java_version: "17",
     manifest: "MANIFEST.MF"
 }
 
@@ -24,5 +23,4 @@ java_test_host {
         "junit",
         "xsdc",
     ],
-    java_version: "17",
 }
