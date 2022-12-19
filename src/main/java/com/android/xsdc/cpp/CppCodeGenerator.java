@@ -178,6 +178,14 @@ public class CppCodeGenerator {
         enumsCppFile.printf("#include \"%s\"\n\n", enumsHeaderFileName);
         parserCppFile.printf("#define LOG_TAG \"%s\"\n", pkgName);
         parserCppFile.printf("#include \"%s\"\n\n", parserHeaderFileName);
+        // define _xsdc_assert to abort with message regardless of NDEBUG
+        parserCppFile.println("#include <assert.h>\n"
+                + "#ifndef __BIONIC__\n"
+                + "#define __assert2(f,n,fun,e) do { fprintf(stderr, \"%s:%d: %s: Assertion `%s'"
+                + " failed\", (f), (n), (fun), (e)); abort(); } while (false)\n"
+                + "#endif\n"
+                + "#define _xsdc_assert(e) do if (!(e)) __assert2(__FILE__, __LINE__,"
+                + " __PRETTY_FUNCTION__, #e); while (false)\n");
 
         List<String> namespace = new java.util.ArrayList<>();
         for (String token : pkgName.split("\\.")) {
@@ -759,16 +767,23 @@ public class CppCodeGenerator {
             boolean isMultiple, boolean isMultipleType, boolean isRequired) {
         String typeName = isMultiple ? String.format("std::vector<%s>",
                 type.getName()) : type.getName();
+        String assertHasValue = String.format("_xsdc_assert(has%s());\n",
+                Utils.capitalize(variableName));
 
         parserHeaderFile.printf("const %s& %s%s() const;\n", typeName, getterName(typeName),
                 Utils.capitalize(variableName));
 
         parserCppFile.println();
-        parserCppFile.printf("const %s& %s::%s%s() const {\n"
-                + "return %s;\n}\n\n",
-                typeName, name, getterName(typeName), Utils.capitalize(variableName),
-                isMultiple || isRequired ?
-                variableName + "_" : String.format("%s_.value()", variableName));
+        parserCppFile.printf("const %s& %s::%s%s() const {\n", typeName, name,
+                getterName(typeName), Utils.capitalize(variableName));
+        if (isMultiple || isRequired) {
+            parserCppFile.printf("return %s_;\n", variableName);
+        } else {
+            // Before accessing an optional::value(), we need to ensure that it has a value.
+            parserCppFile.print(assertHasValue);
+            parserCppFile.printf("return %s_.value();\n", variableName);
+        }
+        parserCppFile.printf("}\n\n");
 
         parserHeaderFile.printf("bool has%s() const;\n", Utils.capitalize(variableName));
         parserCppFile.printf("bool %s::has%s() const {\n", name, Utils.capitalize(variableName));
@@ -780,6 +795,7 @@ public class CppCodeGenerator {
             parserCppFile.printf("return %s_.has_value();\n}\n", variableName);
         }
 
+        // For elements that may occur multiple types or have a list of simple types
         if (isMultiple || isMultipleType) {
             String elementTypeName = type instanceof CppComplexType ? type.getName() :
                     ((CppSimpleType)type).getTypeName();
@@ -788,12 +804,15 @@ public class CppCodeGenerator {
                         elementTypeName, Utils.capitalize(variableName));
                 parserCppFile.println();
                 parserCppFile.printf("%s %s::getFirst%s() const {\n"
+                        + "%s"
                         + "if (%s_%sempty()) {\n"
                         + "return false;\n"
                         + "}\n"
                         + "return %s;\n"
                         + "}\n",
-                        elementTypeName, name, Utils.capitalize(variableName), variableName,
+                        elementTypeName, name, Utils.capitalize(variableName),
+                        isMultiple ? "" : assertHasValue,
+                        variableName,
                         isMultiple ? "." : "->",
                         isMultiple ? String.format("%s_[0]", variableName) :
                         String.format("%s_.value()[0]", variableName));
@@ -802,12 +821,15 @@ public class CppCodeGenerator {
                         elementTypeName, Utils.capitalize(variableName));
                 parserCppFile.println();
                 parserCppFile.printf("const %s* %s::getFirst%s() const {\n"
+                        + "%s"
                         + "if (%s_%sempty()) {\n"
                         + "return nullptr;\n"
                         + "}\n"
                         + "return &%s;\n"
                         + "}\n",
-                        elementTypeName, name, Utils.capitalize(variableName), variableName,
+                        elementTypeName, name, Utils.capitalize(variableName),
+                        isMultiple ? "" : assertHasValue,
+                        variableName,
                         isMultiple ? "." : "->",
                         isMultiple ? String.format("%s_[0]", variableName) :
                         String.format("%s_.value()[0]", variableName));
