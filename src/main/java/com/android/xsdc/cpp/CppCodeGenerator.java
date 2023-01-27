@@ -411,7 +411,7 @@ public class CppCodeGenerator {
             elementTypes.add(cppType);
         }
         List<CppSimpleType> attributeTypes = new ArrayList<>();
-        List<XsdAttribute> attributes = new ArrayList();
+        List<XsdAttribute> attributes = new ArrayList<>();
         for (XsdAttributeGroup attributeGroup : complexType.getAttributeGroups()) {
             attributes.addAll(getAllAttributes(resolveAttributeGroup(attributeGroup)));
         }
@@ -654,8 +654,6 @@ public class CppCodeGenerator {
      */
     private void printWriter(String name, String nameScope, XsdComplexType complexType)
             throws CppCodeGeneratorException {
-        CppSimpleType baseValueType = (complexType instanceof XsdSimpleContent) ?
-                getValueType((XsdSimpleContent) complexType, true) : null;
         List<XsdElement> allElements = new ArrayList<>();
         List<XsdAttribute> allAttributes = new ArrayList<>();
         stackComponents(complexType, allElements, allAttributes);
@@ -862,7 +860,6 @@ public class CppCodeGenerator {
         List<XsdAttribute> allAttributes = new ArrayList<>();
         stackComponents(complexType, allElements, allAttributes);
 
-        List<CppType> allElementTypes = new ArrayList<>();
         for (XsdElement element : allElements) {
             XsdElement elementValue = resolveElement(element);
             CppType type = parseType(elementValue.getType(), elementValue.getName());
@@ -886,7 +883,6 @@ public class CppCodeGenerator {
                 parentArgs.append(String.format(", %s", variableName));
             }
         }
-        List<CppSimpleType> allAttributeTypes = new ArrayList<>();
         for (XsdAttribute attribute : allAttributes) {
             CppType type = parseSimpleType(resolveAttribute(attribute).getType(), false);
             String variableName = Utils.toVariableName(resolveAttribute(attribute).getName());
@@ -989,13 +985,10 @@ public class CppCodeGenerator {
             parserCppFile.printf("}\n\n");
         }
 
-        String className = Utils.toClassName(pkgName);
-
         boolean isMultiRootElement = xmlSchema.getElementMap().values().size() > 1;
         for (XsdElement element : xmlSchema.getElementMap().values()) {
             CppType cppType = parseType(element.getType(), element.getName());
             String elementName = element.getName();
-            String VariableName = Utils.toVariableName(elementName);
             String typeName = cppType instanceof CppSimpleType ? cppType.getName() :
                     Utils.toClassName(cppType.getName());
 
@@ -1308,7 +1301,6 @@ public class CppCodeGenerator {
         }
         boolean results = false;
         for (XsdElement element : complexType.getElements()) {
-            XsdElement elementValue = resolveElement(element);
             if (element.getRef() == null && element.getType().getRef() == null
                     && element.getType() instanceof XsdComplexType) {
                 results = hasAttribute((XsdComplexType) element.getType());
