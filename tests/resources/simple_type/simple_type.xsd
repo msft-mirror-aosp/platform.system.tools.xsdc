@@ -57,4 +57,5 @@
             </xs:choice>
         </xs:complexType>
     </xs:element>
+    <xs:element name="percent" type="percent" />
 </xs:schema>
