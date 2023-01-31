@@ -23,6 +23,7 @@ import com.android.xsdc.XsdConstants;
 import com.android.xsdc.tag.*;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,9 +42,11 @@ public class JavaCodeGenerator {
     private boolean generateHasMethod;
     private boolean useHexBinary;
     private boolean booleanGetter;
+    private String[] rootElements;
 
     public JavaCodeGenerator(XmlSchema xmlSchema, String packageName, boolean writer,
-            boolean showNullability, boolean generateHasMethod, boolean booleanGetter)
+            boolean showNullability, boolean generateHasMethod, boolean booleanGetter,
+            String[] rootElements)
             throws JavaCodeGeneratorException {
         this.xmlSchema = xmlSchema;
         this.packageName = packageName;
@@ -51,6 +54,7 @@ public class JavaCodeGenerator {
         this.showNullability = showNullability;
         this.generateHasMethod = generateHasMethod;
         this.booleanGetter = booleanGetter;
+        this.rootElements = rootElements;
         useHexBinary = false;
 
         // class naming validation
@@ -509,6 +513,9 @@ public class JavaCodeGenerator {
 
         boolean isMultiRootElement = xmlSchema.getElementMap().values().size() > 1;
         for (XsdElement element : xmlSchema.getElementMap().values()) {
+            // Skip parser if not specified as root.
+            if (rootElements != null
+                    && Arrays.asList(rootElements).indexOf(element.getName()) == -1) continue;
             JavaType javaType = parseType(element.getType(), element.getName());
             String elementName = element.getName();
             String typeName = javaType.getName();
@@ -626,6 +633,9 @@ public class JavaCodeGenerator {
 
 
         for (XsdElement element : xmlSchema.getElementMap().values()) {
+            // Skip writer if not specified as root.
+            if (rootElements != null
+                    && Arrays.asList(rootElements).indexOf(element.getName()) == -1) continue;
             JavaType javaType = parseType(element.getType(), element.getName());
             String elementName = element.getName();
             String variableName = Utils.toVariableName(elementName);

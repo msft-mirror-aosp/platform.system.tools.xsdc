@@ -51,17 +51,20 @@ public class CppCodeGenerator {
     private int generators;
     private boolean booleanGetter;
     private boolean useTinyXml;
+    private String[] rootElements;
 
     private static final String UNKNOWN_ENUM = "UNKNOWN";
 
     public CppCodeGenerator(XmlSchema xmlSchema, String pkgName, boolean writer, int generators,
-            boolean booleanGetter, boolean useTinyXml) throws CppCodeGeneratorException {
+            boolean booleanGetter, boolean useTinyXml, String[] rootElements)
+            throws CppCodeGeneratorException {
         this.xmlSchema = xmlSchema;
         this.pkgName = pkgName;
         this.writer = writer;
         this.generators = generators;
         this.booleanGetter = booleanGetter;
         this.useTinyXml = useTinyXml;
+        this.rootElements = rootElements;
 
         // class naming validation
         {
@@ -987,6 +990,9 @@ public class CppCodeGenerator {
 
         boolean isMultiRootElement = xmlSchema.getElementMap().values().size() > 1;
         for (XsdElement element : xmlSchema.getElementMap().values()) {
+            // Skip parser if not specified as root.
+            if (rootElements != null
+                    && Arrays.asList(rootElements).indexOf(element.getName()) == -1) continue;
             printXmlParserFor(element, /*loadFile=*/true, isMultiRootElement);
             printXmlParserFor(element, /*loadFile=*/false, isMultiRootElement);
         }
@@ -1076,6 +1082,9 @@ public class CppCodeGenerator {
      */
     private void printXmlWriter() throws CppCodeGeneratorException {
         for (XsdElement element : xmlSchema.getElementMap().values()) {
+            // Skip writer if not specified as root.
+            if (rootElements != null
+                    && Arrays.asList(rootElements).indexOf(element.getName()) == -1) continue;
             CppType cppType = parseType(element.getType(), element.getName());
             String elementName = element.getName();
             String variableName = Utils.toVariableName(elementName);
