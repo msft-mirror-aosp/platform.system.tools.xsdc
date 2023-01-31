@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include <android-base/macros.h>
 
@@ -63,4 +64,15 @@ TEST_F(XmlTest, Simpletype_AccessingEmptyOptionalAbortsWithMessage) {
   ASSERT_DEATH(simple.getOptionalIntList(), "hasOptionalIntList()");
   // trying to get the first value from optional element of list of simple values
   ASSERT_DEATH(simple.getFirstOptionalIntList(), "hasOptionalIntList()");
+}
+
+TEST_F(XmlTest, SimpleTypeRoot) {
+  using namespace simple::type;
+
+  string file_name = Resource("simple_type_root.xml");
+  ASSERT_EQ(*readPercent(file_name.c_str()), 100);
+
+  ostringstream out;
+  writePercent(out, 100);
+  ASSERT_EQ(out.str(), "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<percent>100</percent>\n");
 }

@@ -510,20 +510,24 @@ public class JavaCodeGenerator {
         boolean isMultiRootElement = xmlSchema.getElementMap().values().size() > 1;
         for (XsdElement element : xmlSchema.getElementMap().values()) {
             JavaType javaType = parseType(element.getType(), element.getName());
+            String elementName = element.getName();
+            String typeName = javaType.getName();
+            String readerName =
+                    javaType instanceof JavaSimpleType ? Utils.toClassName(elementName) : typeName;
             out.printf("public static %s%s read%s(%sjava.io.InputStream in)"
-                + " throws org.xmlpull.v1.XmlPullParserException, java.io.IOException, "
-                + "javax.xml.datatype.DatatypeConfigurationException {\n"
-                + "org.xmlpull.v1.XmlPullParser _parser = org.xmlpull.v1.XmlPullParserFactory"
-                + ".newInstance().newPullParser();\n"
-                + "_parser.setFeature(org.xmlpull.v1.XmlPullParser.FEATURE_PROCESS_NAMESPACES, "
-                + "true);\n"
-                + "_parser.setInput(in, null);\n"
-                + "_parser.nextTag();\n"
-                + "String _tagName = _parser.getName();\n"
-                + "String _raw = null;\n", getDefaultNullability(Nullability.NULLABLE),
-                javaType.getName(), isMultiRootElement ? Utils.capitalize(javaType.getName()) : "",
-                getDefaultNullability(Nullability.NON_NULL));
-            out.printf("if (_tagName.equals(\"%s\")) {\n", element.getName());
+                    + " throws org.xmlpull.v1.XmlPullParserException, java.io.IOException, "
+                    + "javax.xml.datatype.DatatypeConfigurationException {\n"
+                    + "org.xmlpull.v1.XmlPullParser _parser = org.xmlpull.v1.XmlPullParserFactory"
+                    + ".newInstance().newPullParser();\n"
+                    + "_parser.setFeature(org.xmlpull.v1.XmlPullParser.FEATURE_PROCESS_NAMESPACES, "
+                    + "true);\n"
+                    + "_parser.setInput(in, null);\n"
+                    + "_parser.nextTag();\n"
+                    + "String _tagName = _parser.getName();\n"
+                    + "String _raw = null;\n", getDefaultNullability(Nullability.NULLABLE),
+                    typeName, isMultiRootElement ? readerName : "",
+                    getDefaultNullability(Nullability.NON_NULL));
+            out.printf("if (_tagName.equals(\"%s\")) {\n", elementName);
             if (javaType instanceof JavaSimpleType) {
                 out.print("_raw = XmlParser.readText(_parser);\n");
             }
@@ -624,16 +628,26 @@ public class JavaCodeGenerator {
         for (XsdElement element : xmlSchema.getElementMap().values()) {
             JavaType javaType = parseType(element.getType(), element.getName());
             String elementName = element.getName();
-            String VariableName = Utils.toVariableName(elementName);
-            String typeName = javaType instanceof JavaSimpleType ? javaType.getName() :
-                    Utils.toClassName(javaType.getName());
-            out.printf("public static void write(%sXmlWriter out, %s%s %s) "
-                    + "throws java.io.IOException {", getDefaultNullability(Nullability.NON_NULL),
-                    getDefaultNullability(Nullability.NON_NULL), typeName, VariableName);
-            out.print("\nout.print(\"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n\");\n");
-            out.printf("if (%s != null) {\n", VariableName);
-            out.printf("%s.write(out, \"%s\");\n}\n", VariableName, elementName);
-            out.print("out.printXml();\n}\n\n");
+            String variableName = Utils.toVariableName(elementName);
+            String typeName = javaType.getName();
+            String writerName
+                    = javaType instanceof JavaSimpleType ? Utils.toClassName(elementName) : "";
+            out.printf("public static void write%s(%sXmlWriter _out, %s%s %s) "
+                    + "throws java.io.IOException {",
+                    writerName,
+                    getDefaultNullability(Nullability.NON_NULL),
+                    getDefaultNullability(Nullability.NON_NULL), typeName, variableName);
+            out.print("\n_out.print(\"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n\");\n");
+            out.printf("if (%s != null) {\n", variableName);
+            if (javaType instanceof JavaSimpleType) {
+                out.printf("_out.print(\"<%s>\");\n", elementName);
+                out.print(javaType.getWritingExpression(variableName, ""));
+                out.printf("_out.print(\"</%s>\\n\");\n", elementName);
+            } else {
+                out.printf("%s.write(_out, \"%s\");\n", variableName, elementName);
+            }
+            out.print("}\n");
+            out.print("_out.printXml();\n}\n\n");
         }
         out.printf("}\n");
     }
