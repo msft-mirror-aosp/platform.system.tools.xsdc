@@ -987,53 +987,76 @@ public class CppCodeGenerator {
 
         boolean isMultiRootElement = xmlSchema.getElementMap().values().size() > 1;
         for (XsdElement element : xmlSchema.getElementMap().values()) {
-            CppType cppType = parseType(element.getType(), element.getName());
-            String elementName = element.getName();
-            String typeName = cppType.getName();
-            String readerName =
-                    cppType instanceof CppSimpleType ? Utils.toClassName(elementName) : typeName;
-
-            parserHeaderFile.printf("std::optional<%s> read%s(const char* configFile);\n\n",
-                    typeName, isMultiRootElement ? readerName : "");
-            parserCppFile.printf("std::optional<%s> read%s(const char* configFile) {\n",
-                    typeName, isMultiRootElement ? readerName : "");
-            if (useTinyXml) {
-                parserCppFile.printf("tinyxml2::XMLDocument doc;\n"
-                        + "if (doc.LoadFile(configFile) != tinyxml2::XML_SUCCESS) {\n"
-                        + "return std::nullopt;\n"
-                        + "}\n"
-                        + "auto _child = doc.FirstChildElement();\n"
-                        + "if (_child == nullptr) {\n"
-                        + "return std::nullopt;\n"
-                        + "}\n\n"
-                        + "if (strcmp(_child->Name(), \"%s\") == 0) {\n",
-                        elementName);
-            } else {
-                parserCppFile.printf("auto doc = make_xmlUnique(xmlParseFile(configFile));\n"
-                        + "if (doc == nullptr) {\n"
-                        + "return std::nullopt;\n"
-                        + "}\n"
-                        + "xmlNodePtr _child = xmlDocGetRootElement(doc.get());\n"
-                        + "if (_child == nullptr) {\n"
-                        + "return std::nullopt;\n"
-                        + "}\n"
-                        + "if (xmlXIncludeProcess(doc.get()) < 0) {\n"
-                        + "return std::nullopt;\n"
-                        + "}\n\n"
-                        + "if (!xmlStrcmp(_child->name, reinterpret_cast<const xmlChar*>"
-                        + "(\"%s\"))) {\n",
-                        elementName);
-            }
-
-            if (cppType instanceof CppSimpleType) {
-                parserCppFile.print("std::string _raw;\n");
-                printSetRawWithElementText("_child");
-            }
-            parserCppFile.printf(cppType.getParsingExpression());
-            parserCppFile.printf("return _value;\n}\n");
-            parserCppFile.printf("return std::nullopt;\n");
-            parserCppFile.printf("}\n\n");
+            printXmlParserFor(element, /*loadFile=*/true, isMultiRootElement);
+            printXmlParserFor(element, /*loadFile=*/false, isMultiRootElement);
         }
+    }
+
+    /**
+     * Prints readType(const char* configFile) if loadFile is true.
+     * Otherwise, prints parseType(const char* xml).
+     */
+    private void printXmlParserFor(XsdElement element, boolean loadFile, boolean isMultiRootElement)
+            throws CppCodeGeneratorException {
+        CppType cppType = parseType(element.getType(), element.getName());
+        String elementName = element.getName();
+        String typeName = cppType.getName();
+        String readerName =
+                cppType instanceof CppSimpleType ? Utils.toClassName(elementName) : typeName;
+        String methodName = loadFile ? "read" : "parse";
+        String argName = loadFile ? "configFile" : "xml";
+        parserHeaderFile.printf("std::optional<%s> %s%s(const char* %s);\n\n",
+                typeName,
+                methodName,
+                isMultiRootElement ? readerName : "",
+                argName);
+        parserCppFile.printf("std::optional<%s> %s%s(const char* %s) {\n",
+                typeName,
+                methodName,
+                isMultiRootElement ? readerName : "",
+                argName);
+        if (useTinyXml) {
+            String innerParser = loadFile ? "LoadFile(configFile)" : "Parse(xml)";
+            parserCppFile.printf("tinyxml2::XMLDocument doc;\n"
+                    + "if (doc.%s != tinyxml2::XML_SUCCESS) {\n"
+                    + "return std::nullopt;\n"
+                    + "}\n"
+                    + "auto _child = doc.FirstChildElement();\n"
+                    + "if (_child == nullptr) {\n"
+                    + "return std::nullopt;\n"
+                    + "}\n\n"
+                    + "if (strcmp(_child->Name(), \"%s\") == 0) {\n",
+                    innerParser,
+                    elementName);
+        } else {
+            String innerParser = loadFile
+                    ? "xmlParseFile(configFile)"
+                    : "xmlParseDoc(reinterpret_cast<const xmlChar*>(xml))";
+            parserCppFile.printf("auto doc = make_xmlUnique(%s);\n"
+                    + "if (doc == nullptr) {\n"
+                    + "return std::nullopt;\n"
+                    + "}\n"
+                    + "xmlNodePtr _child = xmlDocGetRootElement(doc.get());\n"
+                    + "if (_child == nullptr) {\n"
+                    + "return std::nullopt;\n"
+                    + "}\n"
+                    + "if (xmlXIncludeProcess(doc.get()) < 0) {\n"
+                    + "return std::nullopt;\n"
+                    + "}\n\n"
+                    + "if (!xmlStrcmp(_child->name, reinterpret_cast<const xmlChar*>"
+                    + "(\"%s\"))) {\n",
+                    innerParser,
+                    elementName);
+        }
+
+        if (cppType instanceof CppSimpleType) {
+            parserCppFile.print("std::string _raw;\n");
+            printSetRawWithElementText("_child");
+        }
+        parserCppFile.printf(cppType.getParsingExpression());
+        parserCppFile.printf("return _value;\n}\n");
+        parserCppFile.printf("return std::nullopt;\n");
+        parserCppFile.printf("}\n\n");
     }
 
     /**
