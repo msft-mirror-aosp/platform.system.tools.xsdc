@@ -990,12 +990,13 @@ public class CppCodeGenerator {
             CppType cppType = parseType(element.getType(), element.getName());
             String elementName = element.getName();
             String typeName = cppType.getName();
-            String readerName = cppType instanceof CppSimpleType ? elementName : typeName;
+            String readerName =
+                    cppType instanceof CppSimpleType ? Utils.toClassName(elementName) : typeName;
 
             parserHeaderFile.printf("std::optional<%s> read%s(const char* configFile);\n\n",
-                    typeName, isMultiRootElement ? Utils.capitalize(readerName) : "");
+                    typeName, isMultiRootElement ? readerName : "");
             parserCppFile.printf("std::optional<%s> read%s(const char* configFile) {\n",
-                    typeName, isMultiRootElement ? Utils.capitalize(readerName) : "");
+                    typeName, isMultiRootElement ? readerName : "");
             if (useTinyXml) {
                 parserCppFile.printf("tinyxml2::XMLDocument doc;\n"
                         + "if (doc.LoadFile(configFile) != tinyxml2::XML_SUCCESS) {\n"
