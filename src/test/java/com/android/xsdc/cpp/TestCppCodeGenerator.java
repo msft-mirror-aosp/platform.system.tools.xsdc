@@ -17,6 +17,7 @@
 package com.android.xsdc.cpp;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.xsdc.FileSystem;
 import com.android.xsdc.XmlSchema;
@@ -42,6 +43,29 @@ public class TestCppCodeGenerator {
     public void testParseSchema() throws Exception {
         XmlSchema schema = parseSchema(SCHEMA);
         assertEquals(schema.getElementMap().keySet(), Set.of("class"));
+    }
+
+    @Test
+    public void testSimpleTypeRootParser() throws Exception {
+        // We need two root elements to generate reader with element name.
+        String schema = "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n"
+                + "  <xs:element name=\"simple-type-element\" type=\"xs:string\" />\n"
+                + "  <xs:element name=\"another-root\" type=\"xs:string\" />\n"
+                + "</xs:schema>";
+        Map<String, StringBuffer> files = new TreeMap<>();
+        CppCodeGenerator gen =
+                new CppCodeGenerator(
+                        parseSchema(schema),
+                        "com.abc",
+                        /*writer=*/ true,
+                        CppCodeGenerator.GENERATE_PARSER,
+                        false,
+                        false);
+
+        FileSystem fs = new FileSystem(files);
+        gen.print(fs);
+        assertTrue(files.get("com_abc.cpp").toString().contains("readSimpleTypeElement"));
+        assertTrue(files.get("com_abc.cpp").toString().contains("writeSimpleTypeElement"));
     }
 
     @Test
