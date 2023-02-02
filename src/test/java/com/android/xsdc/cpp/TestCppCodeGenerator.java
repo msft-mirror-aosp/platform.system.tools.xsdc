@@ -17,6 +17,8 @@
 package com.android.xsdc.cpp;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.xsdc.FileSystem;
 import com.android.xsdc.XmlSchema;
@@ -45,6 +47,30 @@ public class TestCppCodeGenerator {
     }
 
     @Test
+    public void testSimpleTypeRootParser() throws Exception {
+        // We need two root elements to generate reader with element name.
+        String schema = "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n"
+                + "  <xs:element name=\"simple-type-element\" type=\"xs:string\" />\n"
+                + "  <xs:element name=\"another-root\" type=\"xs:string\" />\n"
+                + "</xs:schema>";
+        Map<String, StringBuffer> files = new TreeMap<>();
+        CppCodeGenerator gen =
+                new CppCodeGenerator(
+                        parseSchema(schema),
+                        "com.abc",
+                        /*writer=*/ true,
+                        CppCodeGenerator.GENERATE_PARSER,
+                        false,
+                        false,
+                        null);
+
+        FileSystem fs = new FileSystem(files);
+        gen.print(fs);
+        assertTrue(files.get("com_abc.cpp").toString().contains("readSimpleTypeElement"));
+        assertTrue(files.get("com_abc.cpp").toString().contains("writeSimpleTypeElement"));
+    }
+
+    @Test
     public void testPrintWithoutEnumOutput() throws Exception {
         Map<String, StringBuffer> files = new TreeMap<>();
         CppCodeGenerator gen =
@@ -54,7 +80,8 @@ public class TestCppCodeGenerator {
                         false,
                         CppCodeGenerator.GENERATE_PARSER,
                         false,
-                        false);
+                        false,
+                        null);
 
         FileSystem fs = new FileSystem(files);
         gen.print(fs);
@@ -73,7 +100,8 @@ public class TestCppCodeGenerator {
                         false,
                         CppCodeGenerator.GENERATE_PARSER | CppCodeGenerator.GENERATE_ENUMS,
                         false,
-                        false);
+                        false,
+                        null);
 
         FileSystem fs = new FileSystem(files);
         gen.print(fs);
@@ -95,5 +123,28 @@ public class TestCppCodeGenerator {
         XsdHandler xsdHandler = new XsdHandler();
         parser.parse(new ByteArrayInputStream(bytes), xsdHandler);
         return xsdHandler.getSchema();
+    }
+
+    @Test
+    public void generateParsersForSpecifiedRoot() throws Exception {
+        Map<String, StringBuffer> files = new TreeMap<>();
+        String schema = "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n"
+                + "  <xs:element name=\"root1\" type=\"xs:string\" />\n"
+                + "  <xs:element name=\"root2\" type=\"xs:string\" />\n"
+                + "</xs:schema>";
+        CppCodeGenerator gen =
+                new CppCodeGenerator(
+                        parseSchema(schema),
+                        "com.abc",
+                        false,
+                        CppCodeGenerator.GENERATE_PARSER | CppCodeGenerator.GENERATE_ENUMS,
+                        false,
+                        false,
+                        new String[]{"root1"});
+
+        FileSystem fs = new FileSystem(files);
+        gen.print(fs);
+        assertTrue(files.get("com_abc.cpp").toString().contains("readRoot1"));
+        assertFalse(files.get("com_abc.cpp").toString().contains("readRoot2"));
     }
 }
