@@ -93,6 +93,11 @@ type xsdConfigProperties struct {
 	// ENTITY_REFs.
 	// This can improve memory footprint. Default value is false.
 	Tinyxml *bool
+	// Specify root elements explicitly. If not set, XSDC generates parsers and
+	// writers for all elements which can be root element. When set, XSDC
+	// generates parsers and writers for specified root elements. This can be
+	// used to avoid unnecessary code.
+	Root_elements []string
 }
 
 type xsdConfig struct {
@@ -221,6 +226,10 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		args = args + " -t "
 	}
 
+	for _, elem := range module.properties.Root_elements {
+		args = args + " -r " + elem
+	}
+
 	module.genOutputs_j = android.PathForModuleGen(ctx, "java", filenameStem+"_xsdcgen.srcjar")
 
 	ctx.Build(pctx, android.BuildParams{
@@ -346,4 +355,4 @@ func (module *xsdConfig) OutputFiles(tag string) (android.Paths, error) {
 	}
 }
 
-var _ android.OutputFileProducer = (*xsdConfig)(nil);
+var _ android.OutputFileProducer = (*xsdConfig)(nil)
