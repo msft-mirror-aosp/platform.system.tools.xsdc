@@ -17,11 +17,9 @@ java_test_host {
     name: "xsdc-unittest",
     srcs: [
         "src/test/java/**/*.java",
-        "src/test/kotlin/**/*.kt",
     ],
     static_libs: [
         "commons-cli-1.2",
-        "kotlin-test",
         "junit",
         "xsdc",
     ],

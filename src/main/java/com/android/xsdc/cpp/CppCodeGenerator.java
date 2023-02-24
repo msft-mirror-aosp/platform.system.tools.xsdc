@@ -51,17 +51,20 @@ public class CppCodeGenerator {
     private int generators;
     private boolean booleanGetter;
     private boolean useTinyXml;
+    private String[] rootElements;
 
     private static final String UNKNOWN_ENUM = "UNKNOWN";
 
     public CppCodeGenerator(XmlSchema xmlSchema, String pkgName, boolean writer, int generators,
-            boolean booleanGetter, boolean useTinyXml) throws CppCodeGeneratorException {
+            boolean booleanGetter, boolean useTinyXml, String[] rootElements)
+            throws CppCodeGeneratorException {
         this.xmlSchema = xmlSchema;
         this.pkgName = pkgName;
         this.writer = writer;
         this.generators = generators;
         this.booleanGetter = booleanGetter;
         this.useTinyXml = useTinyXml;
+        this.rootElements = rootElements;
 
         // class naming validation
         {
@@ -178,6 +181,14 @@ public class CppCodeGenerator {
         enumsCppFile.printf("#include \"%s\"\n\n", enumsHeaderFileName);
         parserCppFile.printf("#define LOG_TAG \"%s\"\n", pkgName);
         parserCppFile.printf("#include \"%s\"\n\n", parserHeaderFileName);
+        // define _xsdc_assert to abort with message regardless of NDEBUG
+        parserCppFile.println("#include <assert.h>\n"
+                + "#ifndef __BIONIC__\n"
+                + "#define __assert2(f,n,fun,e) do { fprintf(stderr, \"%s:%d: %s: Assertion `%s'"
+                + " failed\", (f), (n), (fun), (e)); abort(); } while (false)\n"
+                + "#endif\n"
+                + "#define _xsdc_assert(e) do if (!(e)) __assert2(__FILE__, __LINE__,"
+                + " __PRETTY_FUNCTION__, #e); while (false)\n");
 
         List<String> namespace = new java.util.ArrayList<>();
         for (String token : pkgName.split("\\.")) {
@@ -403,7 +414,7 @@ public class CppCodeGenerator {
             elementTypes.add(cppType);
         }
         List<CppSimpleType> attributeTypes = new ArrayList<>();
-        List<XsdAttribute> attributes = new ArrayList();
+        List<XsdAttribute> attributes = new ArrayList<>();
         for (XsdAttributeGroup attributeGroup : complexType.getAttributeGroups()) {
             attributes.addAll(getAllAttributes(resolveAttributeGroup(attributeGroup)));
         }
@@ -546,7 +557,7 @@ public class CppCodeGenerator {
         }
 
         if (baseValueType != null) {
-            printNodeListGetString("root");
+            printSetRawWithElementText("root");
             parserCppFile.print(baseValueType.getParsingExpression());
             parserCppFile.printf("instance.setValue(_value);\n");
             parserCppFile.printf("}\n");
@@ -585,7 +596,7 @@ public class CppCodeGenerator {
                 }
 
                 if (type instanceof CppSimpleType) {
-                    printNodeListGetString("_child");
+                    printSetRawWithElementText("_child");
                 }
 
                 parserCppFile.print(type.getParsingExpression());
@@ -607,7 +618,7 @@ public class CppCodeGenerator {
         return (useTinyXml ? "tinyxml2::XMLElement" : "xmlNode");
     }
 
-    private void printNodeListGetString(String varName) {
+    private void printSetRawWithElementText(String varName) {
         if (useTinyXml) {
             // The tinyxml version, in contrast to xmlNodeListGetString does not deal
             // with ENTITY_REF nodes
@@ -646,8 +657,6 @@ public class CppCodeGenerator {
      */
     private void printWriter(String name, String nameScope, XsdComplexType complexType)
             throws CppCodeGeneratorException {
-        CppSimpleType baseValueType = (complexType instanceof XsdSimpleContent) ?
-                getValueType((XsdSimpleContent) complexType, true) : null;
         List<XsdElement> allElements = new ArrayList<>();
         List<XsdAttribute> allAttributes = new ArrayList<>();
         stackComponents(complexType, allElements, allAttributes);
@@ -759,16 +768,23 @@ public class CppCodeGenerator {
             boolean isMultiple, boolean isMultipleType, boolean isRequired) {
         String typeName = isMultiple ? String.format("std::vector<%s>",
                 type.getName()) : type.getName();
+        String assertHasValue = String.format("_xsdc_assert(has%s());\n",
+                Utils.capitalize(variableName));
 
         parserHeaderFile.printf("const %s& %s%s() const;\n", typeName, getterName(typeName),
                 Utils.capitalize(variableName));
 
         parserCppFile.println();
-        parserCppFile.printf("const %s& %s::%s%s() const {\n"
-                + "return %s;\n}\n\n",
-                typeName, name, getterName(typeName), Utils.capitalize(variableName),
-                isMultiple || isRequired ?
-                variableName + "_" : String.format("%s_.value()", variableName));
+        parserCppFile.printf("const %s& %s::%s%s() const {\n", typeName, name,
+                getterName(typeName), Utils.capitalize(variableName));
+        if (isMultiple || isRequired) {
+            parserCppFile.printf("return %s_;\n", variableName);
+        } else {
+            // Before accessing an optional::value(), we need to ensure that it has a value.
+            parserCppFile.print(assertHasValue);
+            parserCppFile.printf("return %s_.value();\n", variableName);
+        }
+        parserCppFile.printf("}\n\n");
 
         parserHeaderFile.printf("bool has%s() const;\n", Utils.capitalize(variableName));
         parserCppFile.printf("bool %s::has%s() const {\n", name, Utils.capitalize(variableName));
@@ -780,6 +796,7 @@ public class CppCodeGenerator {
             parserCppFile.printf("return %s_.has_value();\n}\n", variableName);
         }
 
+        // For elements that may occur multiple types or have a list of simple types
         if (isMultiple || isMultipleType) {
             String elementTypeName = type instanceof CppComplexType ? type.getName() :
                     ((CppSimpleType)type).getTypeName();
@@ -788,12 +805,15 @@ public class CppCodeGenerator {
                         elementTypeName, Utils.capitalize(variableName));
                 parserCppFile.println();
                 parserCppFile.printf("%s %s::getFirst%s() const {\n"
+                        + "%s"
                         + "if (%s_%sempty()) {\n"
                         + "return false;\n"
                         + "}\n"
                         + "return %s;\n"
                         + "}\n",
-                        elementTypeName, name, Utils.capitalize(variableName), variableName,
+                        elementTypeName, name, Utils.capitalize(variableName),
+                        isMultiple ? "" : assertHasValue,
+                        variableName,
                         isMultiple ? "." : "->",
                         isMultiple ? String.format("%s_[0]", variableName) :
                         String.format("%s_.value()[0]", variableName));
@@ -802,12 +822,15 @@ public class CppCodeGenerator {
                         elementTypeName, Utils.capitalize(variableName));
                 parserCppFile.println();
                 parserCppFile.printf("const %s* %s::getFirst%s() const {\n"
+                        + "%s"
                         + "if (%s_%sempty()) {\n"
                         + "return nullptr;\n"
                         + "}\n"
                         + "return &%s;\n"
                         + "}\n",
-                        elementTypeName, name, Utils.capitalize(variableName), variableName,
+                        elementTypeName, name, Utils.capitalize(variableName),
+                        isMultiple ? "" : assertHasValue,
+                        variableName,
                         isMultiple ? "." : "->",
                         isMultiple ? String.format("%s_[0]", variableName) :
                         String.format("%s_.value()[0]", variableName));
@@ -840,7 +863,6 @@ public class CppCodeGenerator {
         List<XsdAttribute> allAttributes = new ArrayList<>();
         stackComponents(complexType, allElements, allAttributes);
 
-        List<CppType> allElementTypes = new ArrayList<>();
         for (XsdElement element : allElements) {
             XsdElement elementValue = resolveElement(element);
             CppType type = parseType(elementValue.getType(), elementValue.getName());
@@ -864,7 +886,6 @@ public class CppCodeGenerator {
                 parentArgs.append(String.format(", %s", variableName));
             }
         }
-        List<CppSimpleType> allAttributeTypes = new ArrayList<>();
         for (XsdAttribute attribute : allAttributes) {
             CppType type = parseSimpleType(resolveAttribute(attribute).getType(), false);
             String variableName = Utils.toVariableName(resolveAttribute(attribute).getName());
@@ -967,58 +988,81 @@ public class CppCodeGenerator {
             parserCppFile.printf("}\n\n");
         }
 
-        String className = Utils.toClassName(pkgName);
-
         boolean isMultiRootElement = xmlSchema.getElementMap().values().size() > 1;
         for (XsdElement element : xmlSchema.getElementMap().values()) {
-            CppType cppType = parseType(element.getType(), element.getName());
-            String elementName = element.getName();
-            String VariableName = Utils.toVariableName(elementName);
-            String typeName = cppType instanceof CppSimpleType ? cppType.getName() :
-                    Utils.toClassName(cppType.getName());
-
-            parserHeaderFile.printf("std::optional<%s> read%s(const char* configFile);\n\n",
-                    typeName, isMultiRootElement ? Utils.capitalize(typeName) : "");
-            parserCppFile.printf("std::optional<%s> read%s(const char* configFile) {\n",
-                    typeName, isMultiRootElement ? Utils.capitalize(typeName) : "");
-            if (useTinyXml) {
-                parserCppFile.printf("tinyxml2::XMLDocument doc;\n"
-                        + "if (doc.LoadFile(configFile) != tinyxml2::XML_SUCCESS) {\n"
-                        + "return std::nullopt;\n"
-                        + "}\n"
-                        + "auto _child = doc.FirstChildElement();\n"
-                        + "if (_child == nullptr) {\n"
-                        + "return std::nullopt;\n"
-                        + "}\n\n"
-                        + "if (strcmp(_child->Name(), \"%s\") == 0) {\n",
-                        elementName);
-            } else {
-                parserCppFile.printf("auto doc = make_xmlUnique(xmlParseFile(configFile));\n"
-                        + "if (doc == nullptr) {\n"
-                        + "return std::nullopt;\n"
-                        + "}\n"
-                        + "xmlNodePtr _child = xmlDocGetRootElement(doc.get());\n"
-                        + "if (_child == nullptr) {\n"
-                        + "return std::nullopt;\n"
-                        + "}\n"
-                        + "if (xmlXIncludeProcess(doc.get()) < 0) {\n"
-                        + "return std::nullopt;\n"
-                        + "}\n\n"
-                        + "if (!xmlStrcmp(_child->name, reinterpret_cast<const xmlChar*>"
-                        + "(\"%s\"))) {\n",
-                        elementName);
-            }
-
-            if (cppType instanceof CppSimpleType) {
-                parserCppFile.printf("%s value = getXmlAttribute(_child, \"%s\");\n",
-                        elementName, elementName);
-            } else {
-                parserCppFile.printf(cppType.getParsingExpression());
-            }
-            parserCppFile.printf("return _value;\n}\n");
-            parserCppFile.printf("return std::nullopt;\n");
-            parserCppFile.printf("}\n\n");
+            // Skip parser if not specified as root.
+            if (rootElements != null
+                    && Arrays.asList(rootElements).indexOf(element.getName()) == -1) continue;
+            printXmlParserFor(element, /*loadFile=*/true, isMultiRootElement);
+            printXmlParserFor(element, /*loadFile=*/false, isMultiRootElement);
         }
+    }
+
+    /**
+     * Prints readType(const char* configFile) if loadFile is true.
+     * Otherwise, prints parseType(const char* xml).
+     */
+    private void printXmlParserFor(XsdElement element, boolean loadFile, boolean isMultiRootElement)
+            throws CppCodeGeneratorException {
+        CppType cppType = parseType(element.getType(), element.getName());
+        String elementName = element.getName();
+        String typeName = cppType.getName();
+        String readerName =
+                cppType instanceof CppSimpleType ? Utils.toClassName(elementName) : typeName;
+        String methodName = loadFile ? "read" : "parse";
+        String argName = loadFile ? "configFile" : "xml";
+        parserHeaderFile.printf("std::optional<%s> %s%s(const char* %s);\n\n",
+                typeName,
+                methodName,
+                isMultiRootElement ? readerName : "",
+                argName);
+        parserCppFile.printf("std::optional<%s> %s%s(const char* %s) {\n",
+                typeName,
+                methodName,
+                isMultiRootElement ? readerName : "",
+                argName);
+        if (useTinyXml) {
+            String innerParser = loadFile ? "LoadFile(configFile)" : "Parse(xml)";
+            parserCppFile.printf("tinyxml2::XMLDocument doc;\n"
+                    + "if (doc.%s != tinyxml2::XML_SUCCESS) {\n"
+                    + "return std::nullopt;\n"
+                    + "}\n"
+                    + "auto _child = doc.FirstChildElement();\n"
+                    + "if (_child == nullptr) {\n"
+                    + "return std::nullopt;\n"
+                    + "}\n\n"
+                    + "if (strcmp(_child->Name(), \"%s\") == 0) {\n",
+                    innerParser,
+                    elementName);
+        } else {
+            String innerParser = loadFile
+                    ? "xmlParseFile(configFile)"
+                    : "xmlParseDoc(reinterpret_cast<const xmlChar*>(xml))";
+            parserCppFile.printf("auto doc = make_xmlUnique(%s);\n"
+                    + "if (doc == nullptr) {\n"
+                    + "return std::nullopt;\n"
+                    + "}\n"
+                    + "xmlNodePtr _child = xmlDocGetRootElement(doc.get());\n"
+                    + "if (_child == nullptr) {\n"
+                    + "return std::nullopt;\n"
+                    + "}\n"
+                    + "if (xmlXIncludeProcess(doc.get()) < 0) {\n"
+                    + "return std::nullopt;\n"
+                    + "}\n\n"
+                    + "if (!xmlStrcmp(_child->name, reinterpret_cast<const xmlChar*>"
+                    + "(\"%s\"))) {\n",
+                    innerParser,
+                    elementName);
+        }
+
+        if (cppType instanceof CppSimpleType) {
+            parserCppFile.print("std::string _raw;\n");
+            printSetRawWithElementText("_child");
+        }
+        parserCppFile.printf(cppType.getParsingExpression());
+        parserCppFile.printf("return _value;\n}\n");
+        parserCppFile.printf("return std::nullopt;\n");
+        parserCppFile.printf("}\n\n");
     }
 
     /**
@@ -1038,19 +1082,28 @@ public class CppCodeGenerator {
      */
     private void printXmlWriter() throws CppCodeGeneratorException {
         for (XsdElement element : xmlSchema.getElementMap().values()) {
+            // Skip writer if not specified as root.
+            if (rootElements != null
+                    && Arrays.asList(rootElements).indexOf(element.getName()) == -1) continue;
             CppType cppType = parseType(element.getType(), element.getName());
             String elementName = element.getName();
-            String VariableName = Utils.toVariableName(elementName);
-            String typeName = cppType instanceof CppSimpleType ? cppType.getName() :
-                    Utils.toClassName(cppType.getName());
-            parserHeaderFile.printf("void write(std::ostream& _out, const %s& %s);\n\n",
-                    typeName, VariableName);
-            parserCppFile.printf("void write(std::ostream& _out, const %s& %s) {\n",
-                    typeName, VariableName);
-
+            String variableName = Utils.toVariableName(elementName);
+            String typeName = cppType.getName();
+            String writerName =
+                    cppType instanceof CppSimpleType ? Utils.toClassName(elementName) : "";
+            parserHeaderFile.printf("void write%s(std::ostream& _out, const %s& %s);\n\n",
+                    writerName, typeName, variableName);
+            parserCppFile.printf("void write%s(std::ostream& _out, const %s& %s) {\n",
+                    writerName, typeName, variableName);
             parserCppFile.print(
                     "_out << \"<?xml version=\\\"1.0\\\" encoding=\\\"utf-8\\\"?>\\n\";\n");
-            parserCppFile.printf("%s.write(_out, \"%s\");\n", VariableName, elementName);
+            if (cppType instanceof CppSimpleType) {
+                parserCppFile.printf("_out << \"<%s>\";\n", elementName);
+                parserCppFile.print(cppType.getWritingExpression(variableName, ""));
+                parserCppFile.printf("_out << \"</%s>\" << std::endl;\n", elementName);
+            } else {
+                parserCppFile.printf("%s.write(_out, \"%s\");\n", variableName, elementName);
+            }
             parserCppFile.printf("}\n\n");
         }
 
@@ -1286,7 +1339,6 @@ public class CppCodeGenerator {
         }
         boolean results = false;
         for (XsdElement element : complexType.getElements()) {
-            XsdElement elementValue = resolveElement(element);
             if (element.getRef() == null && element.getType().getRef() == null
                     && element.getType() instanceof XsdComplexType) {
                 results = hasAttribute((XsdComplexType) element.getType());
