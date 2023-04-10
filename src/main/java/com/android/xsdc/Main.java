@@ -111,6 +111,11 @@ public class Main {
                 .withDescription("Generate depfile for ninja.")
                 .create("d");
         options.addOption(genDepFile);
+        options.addOption(OptionBuilder
+                .withLongOpt("root")
+                .hasArgs(1)
+                .withDescription("Root element.")
+                .create("r"));
 
         // "Only generate enums" and "Only generate parser" options are mutually exclusive.
         OptionGroup genOnlyGroup = new OptionGroup();
@@ -140,6 +145,7 @@ public class Main {
         boolean booleanGetter = cmd.hasOption('b');
         boolean useTinyXml = cmd.hasOption('t');
         String depFile = cmd.getOptionValue('d', null);
+        String[] rootElements = cmd.getOptionValues('r');
 
         if (cmd.getArgs().length != 1 || packageName == null) {
             System.err.println("Error: no xsd files or package name");
@@ -155,13 +161,23 @@ public class Main {
         included.add(xsdFile);
         XmlSchema xmlSchema = parse(xsdFile, included);
 
+        // When -r (root element) is specified, then validate if it's defined in schema.
+        if (rootElements != null) {
+            for (String rootElement : rootElements) {
+                if (!xmlSchema.getElementMap().containsKey(rootElement)) {
+                    System.err.println("Invalid root element(-r): " + rootElement);
+                    System.exit(1);
+                }
+            }
+        }
+
         if (cmd.hasOption('j')) {
             File packageDir = new File(Paths.get(outDir, packageName.replace(".", "/")).toString());
             packageDir.mkdirs();
             FileSystem fs = new FileSystem(packageDir);
             JavaCodeGenerator javaCodeGenerator =
                     new JavaCodeGenerator(xmlSchema, packageName, writer, nullability, genHas,
-                                          booleanGetter);
+                                          booleanGetter, rootElements);
             javaCodeGenerator.print(fs);
         } else if (cmd.hasOption('c')) {
             File includeDir = new File(Paths.get(outDir, "include").toString());
@@ -172,7 +188,7 @@ public class Main {
                             CppCodeGenerator.GENERATE_ENUMS | CppCodeGenerator.GENERATE_PARSER);
             CppCodeGenerator cppCodeGenerator =
                     new CppCodeGenerator(xmlSchema, packageName, writer, generators,
-                            booleanGetter, useTinyXml);
+                            booleanGetter, useTinyXml, rootElements);
             cppCodeGenerator.print(fs);
         }
 
