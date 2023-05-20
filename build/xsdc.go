@@ -98,6 +98,9 @@ type xsdConfigProperties struct {
 	// generates parsers and writers for specified root elements. This can be
 	// used to avoid unnecessary code.
 	Root_elements []string
+	// Additional xsd files included by the main xsd file using xs:include
+	// The paths are relative to the module directory.
+	Include_files []string
 }
 
 type xsdConfig struct {
@@ -112,8 +115,9 @@ type xsdConfig struct {
 
 	docsPath android.Path
 
-	xsdConfigPath android.OptionalPath
-	genOutputs    android.WritablePaths
+	xsdConfigPath         android.OptionalPath
+	xsdIncludeConfigPaths android.Paths
+	genOutputs            android.WritablePaths
 }
 
 var _ android.SourceFileProducer = (*xsdConfig)(nil)
@@ -231,12 +235,14 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 	}
 
 	module.genOutputs_j = android.PathForModuleGen(ctx, "java", filenameStem+"_xsdcgen.srcjar")
+	module.xsdIncludeConfigPaths = android.PathsForModuleSrc(ctx, module.properties.Include_files)
 
 	ctx.Build(pctx, android.BuildParams{
 		Rule:        xsdcJavaRule,
 		Description: "xsdc " + xsdFile.String(),
 		Input:       xsdFile,
 		Implicit:    module.docsPath,
+		Implicits:   module.xsdIncludeConfigPaths,
 		Output:      module.genOutputs_j,
 		Args: map[string]string{
 			"pkgName": pkgName,
@@ -278,6 +284,7 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		Description:     "xsdc " + xsdFile.String(),
 		Input:           xsdFile,
 		Implicit:        module.docsPath,
+		Implicits:       module.xsdIncludeConfigPaths,
 		Output:          output,
 		ImplicitOutputs: implicitOutputs,
 		Args: map[string]string{
