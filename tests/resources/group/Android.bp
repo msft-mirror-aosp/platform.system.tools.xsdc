@@ -6,6 +6,7 @@ package {
 xsd_config {
     name: "xsdc_group_tests",
     srcs: ["group.xsd"],
+    include_files: ["address.xsd"],
     package_name: "group",
     gen_writer: true,
 }
@@ -13,6 +14,7 @@ xsd_config {
 xsd_config {
     name: "xsdc_group_tinyxml_tests",
     srcs: ["group.xsd"],
+    include_files: ["address.xsd"],
     package_name: "group",
     gen_writer: true,
     tinyxml: true,
