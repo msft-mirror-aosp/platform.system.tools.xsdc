@@ -39,17 +39,6 @@ var (
 
 	xsdc         = pctx.HostBinToolVariable("xsdcCmd", "xsdc")
 
-	xsdcCppRule = pctx.StaticRule("xsdcCppRule", blueprint.RuleParams{
-		Command: `rm -rf "${outDir}" && ` +
-			`${xsdcCmd} $in -p $pkgName -o ${outDir} -c $args -d ${out}.dep && ` +
-			`echo "${out} : \\" > ${out}.d && cat ${out}.dep >> ${out}.d && ` +
-			`rm -rf ${out}.dep`,
-		Depfile:     "${out}.d",
-		Deps:        blueprint.DepsGCC,
-		CommandDeps: []string{"${xsdcCmd}", "${config.SoongZipCmd}"},
-		Description: "xsdc C++ ${in} => ${out}",
-	}, "pkgName", "outDir", "args")
-
 	xsdConfigRule = pctx.StaticRule("xsdConfigRule", blueprint.RuleParams{
 		Command:     "cp -f ${in} ${output}",
 		Description: "copy the xsd file: ${in} => ${output}",
@@ -203,6 +192,33 @@ func (module *xsdConfig) generateJavaSrcInSbox(ctx android.ModuleContext, args s
 	rule.Build("xsdc_java_" + module.xsdConfigPath.String(), "xsdc java")
 }
 
+// This creates a ninja rule to convert xsd file to cpp sources
+// The ninja rule runs in a sandbox
+func (module *xsdConfig) generateCppSrcInSbox(ctx android.ModuleContext, args string) {
+	outDir := android.PathForModuleGen(ctx, "cpp")
+	rule := android.NewRuleBuilder(pctx, ctx).
+		Sbox(outDir,
+			android.PathForModuleGen(ctx, "cpp.sbox.textproto")).
+		SandboxInputs()
+	// Run xsdc tool to generate sources
+	genCmd := rule.Command()
+	genCmd.
+	BuiltTool("xsdc").
+	ImplicitTool(ctx.Config().HostJavaToolPath(ctx, "xsdc.jar")).
+	Input(module.xsdConfigPath).
+	FlagWithArg("-p ", *module.properties.Package_name).
+	// Soong will change execution root to sandbox root. Generate srcs relative to that.
+	Flag("-o ").OutputDir().
+	FlagWithArg("-c ", args).
+	ImplicitOutputs(module.genOutputs_c).
+	ImplicitOutputs(module.genOutputs_h)
+	if module.xsdIncludeConfigPaths != nil {
+		genCmd.Implicits(module.xsdIncludeConfigPaths)
+	}
+
+	rule.Build("xsdc_cpp_" + module.xsdConfigPath.String(), "xsdc cpp")
+}
+
 func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) {
 	if len(module.properties.Srcs) != 1 {
 		ctx.PropertyErrorf("srcs", "xsd_config must be one src")
@@ -277,30 +293,10 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 			android.PathForModuleGen(ctx, "cpp", "include/"+filenameStem+"_enums.h")}
 	}
 
-	output := module.genOutputs_c[0]
-	// Multiple outputs aren't supported by depslog.
-	// So ImplicitOutputs is used for additional generated code.
-	implicitOutputs := module.genOutputs_h
-	if len(module.genOutputs_c) > 1 {
-		implicitOutputs = append(implicitOutputs, module.genOutputs_c[1:]...)
-	}
-
 	module.genOutputDir = android.PathForModuleGen(ctx, "cpp", "include")
 
-	ctx.Build(pctx, android.BuildParams{
-		Rule:            xsdcCppRule,
-		Description:     "xsdc " + module.xsdConfigPath.String(),
-		Input:           module.xsdConfigPath,
-		Implicit:        module.docsPath,
-		Implicits:       module.xsdIncludeConfigPaths,
-		Output:          output,
-		ImplicitOutputs: implicitOutputs,
-		Args: map[string]string{
-			"pkgName": pkgName,
-			"outDir":  android.PathForModuleGen(ctx, "cpp").String(),
-			"args":    args,
-		},
-	})
+	module.generateCppSrcInSbox(ctx, args)
+
 	module.generateXsdConfig(ctx)
 }
 
