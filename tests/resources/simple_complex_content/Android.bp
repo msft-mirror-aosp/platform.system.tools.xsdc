@@ -9,6 +9,7 @@ xsd_config {
     package_name: "simple.complex.content",
     gen_writer: true,
     gen_has: true,
+    root_elements: ["person", "person2"],
 }
 
 xsd_config {
@@ -18,4 +19,5 @@ xsd_config {
     gen_writer: true,
     gen_has: true,
     tinyxml: true,
+    root_elements: ["person", "person2"],
 }
