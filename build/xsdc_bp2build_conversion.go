@@ -55,7 +55,22 @@ func (xsd *xsdConfig) bp2buildFilegroupTarget(ctx android.TopDownMutatorContext)
 	)
 }
 
+var (
+	ccXsdConfigLibraryDenylist = map[string]bool{
+		"hal_manifest": true,
+		"compatibility_matrix": true,
+		"media_profiles": true,
+		"platform-compat-config": true,
+	}
+)
+
 func (xsd *xsdConfig) bp2buildCcTarget(ctx android.TopDownMutatorContext) {
+	// Every xsd_config generates .cpp files in Soong, but not all of them are compile-able
+	// One such category is .xsd file that contain xs:element not nested under xs:complexType
+	// Use a denylist to skip generating cc_xsd_config_library for these Soong modules.
+	if _, exists := ccXsdConfigLibraryDenylist[xsd.Name()]; exists {
+		return
+	}
 	if len(xsd.properties.Srcs) != 1 {
 		ctx.PropertyErrorf("srcs", "xsd_config must a single src. Got %v", xsd.properties.Srcs)
 	}
@@ -128,7 +143,19 @@ type xsdJavaAttributes struct {
 	Deps           bazel.LabelListAttribute
 }
 
+var (
+	javaXsdConfigLibraryDenylist = map[string]bool{
+		"media_profiles": true,
+	}
+)
+
 func (xsd *xsdConfig) bp2buildJavaTarget(ctx android.TopDownMutatorContext) {
+	// Every xsd_config generates .srcjar in Soong, but not all of them are compile-able
+	// One such category is .xsd file that contain xs:complexType nested under xs:elementType nested under xs:complexType
+	// Use a denylist to skip generating java_xsd_config_library for these Soong modules.
+	if _, exists := javaXsdConfigLibraryDenylist[xsd.Name()]; exists {
+		return
+	}
 	if len(xsd.properties.Srcs) != 1 {
 		ctx.PropertyErrorf("srcs", "xsd_config must a single src. Got %v", xsd.properties.Srcs)
 	}
