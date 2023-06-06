@@ -144,3 +144,32 @@ func TestXsdConfig(t *testing.T) {
 		},
 	})
 }
+
+func TestJavaLibrariesUseXsdConfigGenSrcs(t *testing.T) {
+	runXsdConfigTest(t, bp2build.Bp2buildTestCase{
+		Description:                "java_library use srcs generated from xsd_config",
+		ModuleTypeUnderTest:        "xsd_config",
+		ModuleTypeUnderTestFactory: xsdConfigFactory,
+		Blueprint: cc_preamble + java_preamble + `
+xsd_config {
+	name: "foo",
+	srcs: ["foo.xsd"],
+	bazel_module: {bp2build_available: false}
+}
+java_library {
+	name: "javalib",
+	srcs: [
+		"A.java",
+		":foo"
+	],
+}`,
+		ExpectedBazelTargets: []string{
+			bp2build.MakeBazelTarget("java_library", "javalib", bp2build.AttrNameToString{
+				"srcs": `["A.java"]`,
+				"deps": `[":foo-java"]`,
+				"exports": `[":foo-java"]`,
+			}),
+			bp2build.MakeNeverlinkDuplicateTargetWithAttrs("java_library", "javalib", bp2build.AttrNameToString{}),
+		},
+	})
+}
