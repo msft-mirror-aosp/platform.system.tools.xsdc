@@ -145,9 +145,9 @@ func TestXsdConfig(t *testing.T) {
 	})
 }
 
-func TestJavaLibrariesUseXsdConfigGenSrcs(t *testing.T) {
+func TestCcAndJavaLibrariesUseXsdConfigGenSrcs(t *testing.T) {
 	runXsdConfigTest(t, bp2build.Bp2buildTestCase{
-		Description:                "java_library use srcs generated from xsd_config",
+		Description:                "cc_library and java_library use srcs generated from xsd_config",
 		ModuleTypeUnderTest:        "xsd_config",
 		ModuleTypeUnderTestFactory: xsdConfigFactory,
 		Blueprint: cc_preamble + java_preamble + `
@@ -155,6 +155,11 @@ xsd_config {
 	name: "foo",
 	srcs: ["foo.xsd"],
 	bazel_module: {bp2build_available: false}
+}
+cc_library {
+	name: "cclib",
+	generated_sources: ["foo"],
+	generated_headers: ["foo"],
 }
 java_library {
 	name: "javalib",
@@ -164,6 +169,14 @@ java_library {
 	],
 }`,
 		ExpectedBazelTargets: []string{
+			bp2build.MakeBazelTarget("cc_library_static", "cclib_bp2build_cc_library_static", bp2build.AttrNameToString{
+				"local_includes": `["."]`,
+				"implementation_whole_archive_deps": `[":foo-cpp"]`,
+			}),
+			bp2build.MakeBazelTarget("cc_library_shared", "cclib", bp2build.AttrNameToString{
+				"local_includes": `["."]`,
+				"implementation_whole_archive_deps": `[":foo-cpp"]`,
+			}),
 			bp2build.MakeBazelTarget("java_library", "javalib", bp2build.AttrNameToString{
 				"srcs": `["A.java"]`,
 				"deps": `[":foo-java"]`,
