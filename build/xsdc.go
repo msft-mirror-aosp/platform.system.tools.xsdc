@@ -38,28 +38,6 @@ var (
 	pctx = android.NewPackageContext("android/xsdc")
 
 	xsdc         = pctx.HostBinToolVariable("xsdcCmd", "xsdc")
-	xsdcJavaRule = pctx.StaticRule("xsdcJavaRule", blueprint.RuleParams{
-		Command: `rm -rf "${out}.temp" && mkdir -p "${out}.temp" && ` +
-			`${xsdcCmd} $in -p $pkgName -o ${out}.temp -j $args -d ${out}.dep && ` +
-			`echo "${out} : \\" > ${out}.d && cat ${out}.dep >> ${out}.d && ` +
-			`${config.SoongZipCmd} -jar -o ${out} -C ${out}.temp -D ${out}.temp && ` +
-			`rm -rf ${out}.temp && rm -rf ${out}.dep`,
-		Depfile:     "${out}.d",
-		Deps:        blueprint.DepsGCC,
-		CommandDeps: []string{"${xsdcCmd}", "${config.SoongZipCmd}"},
-		Description: "xsdc Java ${in} => ${out}",
-	}, "pkgName", "args")
-
-	xsdcCppRule = pctx.StaticRule("xsdcCppRule", blueprint.RuleParams{
-		Command: `rm -rf "${outDir}" && ` +
-			`${xsdcCmd} $in -p $pkgName -o ${outDir} -c $args -d ${out}.dep && ` +
-			`echo "${out} : \\" > ${out}.d && cat ${out}.dep >> ${out}.d && ` +
-			`rm -rf ${out}.dep`,
-		Depfile:     "${out}.d",
-		Deps:        blueprint.DepsGCC,
-		CommandDeps: []string{"${xsdcCmd}", "${config.SoongZipCmd}"},
-		Description: "xsdc C++ ${in} => ${out}",
-	}, "pkgName", "outDir", "args")
 
 	xsdConfigRule = pctx.StaticRule("xsdConfigRule", blueprint.RuleParams{
 		Command:     "cp -f ${in} ${output}",
@@ -105,6 +83,7 @@ type xsdConfigProperties struct {
 
 type xsdConfig struct {
 	android.ModuleBase
+	android.BazelModuleBase
 
 	properties xsdConfigProperties
 
@@ -115,7 +94,7 @@ type xsdConfig struct {
 
 	docsPath android.Path
 
-	xsdConfigPath         android.OptionalPath
+	xsdConfigPath         android.Path
 	xsdIncludeConfigPaths android.Paths
 	genOutputs            android.WritablePaths
 }
@@ -167,21 +146,78 @@ func (module *xsdConfig) DepsMutator(ctx android.BottomUpMutatorContext) {
 }
 
 func (module *xsdConfig) generateXsdConfig(ctx android.ModuleContext) {
-	if !module.xsdConfigPath.Valid() {
-		return
-	}
-
 	output := android.PathForModuleGen(ctx, module.Name()+".xsd")
 	module.genOutputs = append(module.genOutputs, output)
 
 	ctx.ModuleBuild(pctx, android.ModuleBuildParams{
 		Rule:   xsdConfigRule,
-		Input:  module.xsdConfigPath.Path(),
+		Input:  module.xsdConfigPath,
 		Output: output,
 		Args: map[string]string{
 			"output": output.String(),
 		},
 	})
+}
+
+// This creates a ninja rule to convert xsd file to java sources
+// The ninja rule runs in a sandbox
+func (module *xsdConfig) generateJavaSrcInSbox(ctx android.ModuleContext, args string) {
+	rule := android.NewRuleBuilder(pctx, ctx).
+		Sbox(android.PathForModuleGen(ctx, "java"),
+			android.PathForModuleGen(ctx, "java.sbox.textproto")).
+		SandboxInputs()
+	// Run xsdc tool to generate sources
+	genCmd := rule.Command()
+	genCmd.
+	BuiltTool("xsdc").
+	ImplicitTool(ctx.Config().HostJavaToolPath(ctx, "xsdc.jar")).
+	Input(module.xsdConfigPath).
+	FlagWithArg("-p ", *module.properties.Package_name).
+	// Soong will change execution root to sandbox root. Generate srcs relative to that.
+	Flag("-o ").OutputDir().
+	FlagWithArg("-j ", args)
+	if module.xsdIncludeConfigPaths != nil {
+		genCmd.Implicits(module.xsdIncludeConfigPaths)
+	}
+	if module.docsPath != nil {
+		genCmd.Implicit(module.docsPath)
+	}
+	// Zip the source file to a srcjar
+	rule.Command().
+	BuiltTool("soong_zip").
+	Flag("-jar").
+	FlagWithOutput("-o ", module.genOutputs_j).
+	Flag("-C ").OutputDir().
+	Flag("-D ").OutputDir()
+
+	rule.Build("xsdc_java_" + module.xsdConfigPath.String(), "xsdc java")
+}
+
+// This creates a ninja rule to convert xsd file to cpp sources
+// The ninja rule runs in a sandbox
+func (module *xsdConfig) generateCppSrcInSbox(ctx android.ModuleContext, args string) {
+	outDir := android.PathForModuleGen(ctx, "cpp")
+	rule := android.NewRuleBuilder(pctx, ctx).
+		Sbox(outDir,
+			android.PathForModuleGen(ctx, "cpp.sbox.textproto")).
+		SandboxInputs()
+	// Run xsdc tool to generate sources
+	genCmd := rule.Command()
+	genCmd.
+	BuiltTool("xsdc").
+	ImplicitTool(ctx.Config().HostJavaToolPath(ctx, "xsdc.jar")).
+	Input(module.xsdConfigPath).
+	FlagWithArg("-p ", *module.properties.Package_name).
+	// Soong will change execution root to sandbox root. Generate srcs relative to that.
+	Flag("-o ").OutputDir().
+	FlagWithArg("-c ", args).
+	ImplicitOutputs(module.genOutputs_c).
+	ImplicitOutputs(module.genOutputs_h)
+	if module.xsdIncludeConfigPaths != nil {
+		genCmd.Implicits(module.xsdIncludeConfigPaths)
+	}
+
+	rule.Build("xsdc_cpp_" + module.xsdConfigPath.String(), "xsdc cpp")
 }
 
 func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) {
@@ -196,7 +232,8 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 	})
 
 	srcFiles := ctx.ExpandSources(module.properties.Srcs, nil)
-	xsdFile := srcFiles[0]
+	module.xsdConfigPath = srcFiles[0]
+	module.xsdIncludeConfigPaths = android.PathsForModuleSrc(ctx, module.properties.Include_files)
 
 	pkgName := *module.properties.Package_name
 	filenameStem := strings.Replace(pkgName, ".", "_", -1)
@@ -235,20 +272,8 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 	}
 
 	module.genOutputs_j = android.PathForModuleGen(ctx, "java", filenameStem+"_xsdcgen.srcjar")
-	module.xsdIncludeConfigPaths = android.PathsForModuleSrc(ctx, module.properties.Include_files)
 
-	ctx.Build(pctx, android.BuildParams{
-		Rule:        xsdcJavaRule,
-		Description: "xsdc " + xsdFile.String(),
-		Input:       xsdFile,
-		Implicit:    module.docsPath,
-		Implicits:   module.xsdIncludeConfigPaths,
-		Output:      module.genOutputs_j,
-		Args: map[string]string{
-			"pkgName": pkgName,
-			"args":    args,
-		},
-	})
+	module.generateJavaSrcInSbox(ctx, args)
 
 	if proptools.Bool(module.properties.Enums_only) {
 		module.genOutputs_c = android.WritablePaths{
@@ -269,31 +294,10 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 			android.PathForModuleGen(ctx, "cpp", "include/"+filenameStem+"_enums.h")}
 	}
 
-	output := module.genOutputs_c[0]
-	// Multiple outputs aren't supported by depslog.
-	// So ImplicitOutputs is used for additional generated code.
-	implicitOutputs := module.genOutputs_h
-	if len(module.genOutputs_c) > 1 {
-		implicitOutputs = append(implicitOutputs, module.genOutputs_c[1:]...)
-	}
-
 	module.genOutputDir = android.PathForModuleGen(ctx, "cpp", "include")
 
-	ctx.Build(pctx, android.BuildParams{
-		Rule:            xsdcCppRule,
-		Description:     "xsdc " + xsdFile.String(),
-		Input:           xsdFile,
-		Implicit:        module.docsPath,
-		Implicits:       module.xsdIncludeConfigPaths,
-		Output:          output,
-		ImplicitOutputs: implicitOutputs,
-		Args: map[string]string{
-			"pkgName": pkgName,
-			"outDir":  android.PathForModuleGen(ctx, "cpp").String(),
-			"args":    args,
-		},
-	})
-	module.xsdConfigPath = android.ExistentPathForSource(ctx, xsdFile.String())
+	module.generateCppSrcInSbox(ctx, args)
+
 	module.generateXsdConfig(ctx)
 }
 
@@ -338,6 +342,7 @@ func xsdConfigFactory() android.Module {
 	module := &xsdConfig{}
 	module.AddProperties(&module.properties)
 	android.InitAndroidModule(module)
+	android.InitBazelModule(module)
 
 	return module
 }
