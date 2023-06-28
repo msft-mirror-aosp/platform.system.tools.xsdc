@@ -170,19 +170,77 @@ java_library {
 }`,
 		ExpectedBazelTargets: []string{
 			bp2build.MakeBazelTarget("cc_library_static", "cclib_bp2build_cc_library_static", bp2build.AttrNameToString{
-				"local_includes": `["."]`,
+				"local_includes":                    `["."]`,
 				"implementation_whole_archive_deps": `[":foo-cpp"]`,
 			}),
 			bp2build.MakeBazelTarget("cc_library_shared", "cclib", bp2build.AttrNameToString{
-				"local_includes": `["."]`,
+				"local_includes":                    `["."]`,
 				"implementation_whole_archive_deps": `[":foo-cpp"]`,
 			}),
 			bp2build.MakeBazelTarget("java_library", "javalib", bp2build.AttrNameToString{
-				"srcs": `["A.java"]`,
-				"deps": `[":foo-java"]`,
+				"srcs":    `["A.java"]`,
+				"deps":    `[":foo-java"]`,
 				"exports": `[":foo-java"]`,
 			}),
 			bp2build.MakeNeverlinkDuplicateTargetWithAttrs("java_library", "javalib", bp2build.AttrNameToString{}),
+		},
+	})
+}
+
+func TestCcAndJavaLibrariesUseXsdConfigGenSrcsNoHdrs(t *testing.T) {
+	runXsdConfigTest(t, bp2build.Bp2buildTestCase{
+		Description:                "cc_library and java_library use srcs generated from xsd_config",
+		ModuleTypeUnderTest:        "xsd_config",
+		ModuleTypeUnderTestFactory: xsdConfigFactory,
+		Blueprint: cc_preamble + java_preamble + `
+xsd_config {
+	name: "foo",
+	srcs: ["foo.xsd"],
+	bazel_module: {bp2build_available: false}
+}
+cc_library {
+	name: "cclib",
+	generated_sources: ["foo"],
+}`,
+		ExpectedBazelTargets: []string{
+			bp2build.MakeBazelTarget("cc_library_static", "cclib_bp2build_cc_library_static", bp2build.AttrNameToString{
+				"local_includes":                    `["."]`,
+				"implementation_whole_archive_deps": `[":foo-cpp"]`,
+			}),
+			bp2build.MakeBazelTarget("cc_library_shared", "cclib", bp2build.AttrNameToString{
+				"local_includes":                    `["."]`,
+				"implementation_whole_archive_deps": `[":foo-cpp"]`,
+			}),
+		},
+	})
+}
+
+func TestCcAndJavaLibrariesUseXsdConfigGenSrcsExportHeaders(t *testing.T) {
+	runXsdConfigTest(t, bp2build.Bp2buildTestCase{
+		Description:                "cc_library export headers from xsd_config",
+		ModuleTypeUnderTest:        "xsd_config",
+		ModuleTypeUnderTestFactory: xsdConfigFactory,
+		Blueprint: cc_preamble + java_preamble + `
+xsd_config {
+	name: "foo",
+	srcs: ["foo.xsd"],
+	bazel_module: {bp2build_available: false}
+}
+cc_library {
+	name: "cclib",
+	generated_sources: ["foo"],
+	generated_headers: ["foo"],
+	export_generated_headers: ["foo"],
+}`,
+		ExpectedBazelTargets: []string{
+			bp2build.MakeBazelTarget("cc_library_static", "cclib_bp2build_cc_library_static", bp2build.AttrNameToString{
+				"local_includes":     `["."]`,
+				"whole_archive_deps": `[":foo-cpp"]`,
+			}),
+			bp2build.MakeBazelTarget("cc_library_shared", "cclib", bp2build.AttrNameToString{
+				"local_includes":     `["."]`,
+				"whole_archive_deps": `[":foo-cpp"]`,
+			}),
 		},
 	})
 }
