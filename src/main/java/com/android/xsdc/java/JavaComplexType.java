@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 
-package com.android.xsdc.cpp;
+package com.android.xsdc.java;
 
-class CppComplexType implements CppType {
+class JavaComplexType implements JavaType {
     final private String name;
 
-    CppComplexType(String name) {
+    JavaComplexType(String name) {
         this.name = name;
+    }
+
+    @Override
+    public boolean isPrimitiveType() {
+        return false;
     }
 
     @Override
@@ -29,12 +34,17 @@ class CppComplexType implements CppType {
     }
 
     @Override
+    public String getNullableName() {
+        return name;
+    }
+
+    @Override
     public String getParsingExpression() {
-        return String.format("%s value = %s::read(child);\n", name, name);
+        return String.format("%s _value = %s.read(_parser);\n", name, name);
     }
 
     @Override
     public String getWritingExpression(String getValue, String name) {
-        return String.format("%s.write(out, \"%s\");\n", getValue, name);
+        return String.format("%s.write(_out, \"%s\");\n", getValue, name);
     }
 }
