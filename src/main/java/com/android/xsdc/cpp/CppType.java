@@ -19,6 +19,13 @@ package com.android.xsdc.cpp;
 interface CppType {
     String getName();
 
+    /**
+     * Statements to parse the input to this type. For simple types,
+     * `_raw(std::string)` should be available. For complex types,
+     * `_child(T)` should be available.
+     *
+     * @return statements declaring `_value` for this type from input
+     */
     String getParsingExpression();
 
     public String getWritingExpression(String getValue, String name);
