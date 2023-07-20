@@ -37,7 +37,7 @@ func init() {
 var (
 	pctx = android.NewPackageContext("android/xsdc")
 
-	xsdc         = pctx.HostBinToolVariable("xsdcCmd", "xsdc")
+	xsdc = pctx.HostBinToolVariable("xsdcCmd", "xsdc")
 
 	xsdConfigRule = pctx.StaticRule("xsdConfigRule", blueprint.RuleParams{
 		Command:     "cp -f ${in} ${output}",
@@ -169,13 +169,13 @@ func (module *xsdConfig) generateJavaSrcInSbox(ctx android.ModuleContext, args s
 	// Run xsdc tool to generate sources
 	genCmd := rule.Command()
 	genCmd.
-	BuiltTool("xsdc").
-	ImplicitTool(ctx.Config().HostJavaToolPath(ctx, "xsdc.jar")).
-	Input(module.xsdConfigPath).
-	FlagWithArg("-p ", *module.properties.Package_name).
-	// Soong will change execution root to sandbox root. Generate srcs relative to that.
-	Flag("-o ").OutputDir().
-	FlagWithArg("-j ", args)
+		BuiltTool("xsdc").
+		ImplicitTool(ctx.Config().HostJavaToolPath(ctx, "xsdc.jar")).
+		Input(module.xsdConfigPath).
+		FlagWithArg("-p ", *module.properties.Package_name).
+		// Soong will change execution root to sandbox root. Generate srcs relative to that.
+		Flag("-o ").OutputDir().
+		FlagWithArg("-j ", args)
 	if module.xsdIncludeConfigPaths != nil {
 		genCmd.Implicits(module.xsdIncludeConfigPaths)
 	}
@@ -184,13 +184,13 @@ func (module *xsdConfig) generateJavaSrcInSbox(ctx android.ModuleContext, args s
 	}
 	// Zip the source file to a srcjar
 	rule.Command().
-	BuiltTool("soong_zip").
-	Flag("-jar").
-	FlagWithOutput("-o ", module.genOutputs_j).
-	Flag("-C ").OutputDir().
-	Flag("-D ").OutputDir()
+		BuiltTool("soong_zip").
+		Flag("-jar").
+		FlagWithOutput("-o ", module.genOutputs_j).
+		Flag("-C ").OutputDir().
+		Flag("-D ").OutputDir()
 
-	rule.Build("xsdc_java_" + module.xsdConfigPath.String(), "xsdc java")
+	rule.Build("xsdc_java_"+module.xsdConfigPath.String(), "xsdc java")
 }
 
 // This creates a ninja rule to convert xsd file to cpp sources
@@ -204,20 +204,20 @@ func (module *xsdConfig) generateCppSrcInSbox(ctx android.ModuleContext, args st
 	// Run xsdc tool to generate sources
 	genCmd := rule.Command()
 	genCmd.
-	BuiltTool("xsdc").
-	ImplicitTool(ctx.Config().HostJavaToolPath(ctx, "xsdc.jar")).
-	Input(module.xsdConfigPath).
-	FlagWithArg("-p ", *module.properties.Package_name).
-	// Soong will change execution root to sandbox root. Generate srcs relative to that.
-	Flag("-o ").OutputDir().
-	FlagWithArg("-c ", args).
-	ImplicitOutputs(module.genOutputs_c).
-	ImplicitOutputs(module.genOutputs_h)
+		BuiltTool("xsdc").
+		ImplicitTool(ctx.Config().HostJavaToolPath(ctx, "xsdc.jar")).
+		Input(module.xsdConfigPath).
+		FlagWithArg("-p ", *module.properties.Package_name).
+		// Soong will change execution root to sandbox root. Generate srcs relative to that.
+		Flag("-o ").OutputDir().
+		FlagWithArg("-c ", args).
+		ImplicitOutputs(module.genOutputs_c).
+		ImplicitOutputs(module.genOutputs_h)
 	if module.xsdIncludeConfigPaths != nil {
 		genCmd.Implicits(module.xsdIncludeConfigPaths)
 	}
 
-	rule.Build("xsdc_cpp_" + module.xsdConfigPath.String(), "xsdc cpp")
+	rule.Build("xsdc_cpp_"+module.xsdConfigPath.String(), "xsdc cpp")
 }
 
 func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) {
@@ -308,7 +308,7 @@ func xsdConfigMutator(mctx android.TopDownMutatorContext) {
 		args := " --stub-packages " + *module.properties.Package_name +
 			" --hide MissingPermission --hide BroadcastBehavior" +
 			" --hide HiddenSuperclass --hide DeprecationMismatch --hide UnavailableSymbol" +
-			" --hide SdkConstant --hide HiddenTypeParameter --hide Todo --hide Typo"
+			" --hide SdkConstant --hide HiddenTypeParameter --hide Todo"
 
 		api_dir := proptools.StringDefault(module.properties.Api_dir, "api")
 
