@@ -37,7 +37,7 @@ func init() {
 var (
 	pctx = android.NewPackageContext("android/xsdc")
 
-	xsdc         = pctx.HostBinToolVariable("xsdcCmd", "xsdc")
+	xsdc = pctx.HostBinToolVariable("xsdcCmd", "xsdc")
 	xsdcJavaRule = pctx.StaticRule("xsdcJavaRule", blueprint.RuleParams{
 		Command: `rm -rf "${out}.temp" && mkdir -p "${out}.temp" && ` +
 			`${xsdcCmd} $in -p $pkgName -o ${out}.temp -j $args -d ${out}.dep && ` +
@@ -297,7 +297,7 @@ func xsdConfigMutator(mctx android.TopDownMutatorContext) {
 		args := " --stub-packages " + *module.properties.Package_name +
 			" --hide MissingPermission --hide BroadcastBehavior" +
 			" --hide HiddenSuperclass --hide DeprecationMismatch --hide UnavailableSymbol" +
-			" --hide SdkConstant --hide HiddenTypeParameter --hide Todo --hide Typo"
+			" --hide SdkConstant --hide HiddenTypeParameter --hide Todo"
 
 		api_dir := proptools.StringDefault(module.properties.Api_dir, "api")
 
