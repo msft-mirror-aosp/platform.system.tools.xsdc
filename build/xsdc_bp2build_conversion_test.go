@@ -41,10 +41,12 @@ const (
 	java_preamble = `
 	java_library {
 		name: "stub-annotations",
+		sdk_version: "current",
 		bazel_module: {bp2build_available: false},
 	}
 	java_library {
 		name: "kxml2-2.3.0",
+		sdk_version: "current",
 		host_supported: true,
 		bazel_module: {bp2build_available: false},
 	}
@@ -167,6 +169,7 @@ java_library {
 		"A.java",
 		":foo"
 	],
+		sdk_version: "current",
 }`,
 		ExpectedBazelTargets: []string{
 			bp2build.MakeBazelTarget("cc_library_static", "cclib_bp2build_cc_library_static", bp2build.AttrNameToString{
@@ -178,11 +181,12 @@ java_library {
 				"implementation_whole_archive_deps": `[":foo-cpp"]`,
 			}),
 			bp2build.MakeBazelTarget("java_library", "javalib", bp2build.AttrNameToString{
-				"srcs":    `["A.java"]`,
-				"deps":    `[":foo-java"]`,
-				"exports": `[":foo-java"]`,
+				"srcs":        `["A.java"]`,
+				"deps":        `[":foo-java"]`,
+				"exports":     `[":foo-java"]`,
+				"sdk_version": `"current"`,
 			}),
-			bp2build.MakeNeverlinkDuplicateTargetWithAttrs("java_library", "javalib", bp2build.AttrNameToString{}),
+			bp2build.MakeNeverlinkDuplicateTarget("java_library", "javalib"),
 		},
 	})
 }
