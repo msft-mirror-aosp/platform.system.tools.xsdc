@@ -57,10 +57,11 @@ func (xsd *xsdConfig) bp2buildFilegroupTarget(ctx android.TopDownMutatorContext)
 
 var (
 	ccXsdConfigLibraryDenylist = map[string]bool{
-		"hal_manifest": true,
-		"compatibility_matrix": true,
-		"media_profiles": true,
-		"platform-compat-config": true,
+		"audio_policy_engine_configurable_configuration_V1_0": true,
+		"compatibility_matrix":                                true,
+		"hal_manifest":                                        true,
+		"media_profiles":                                      true,
+		"platform-compat-config":                              true,
 	}
 )
 
