@@ -39,7 +39,7 @@ type xsdCcAttributes struct {
 	Implementation_dynamic_deps bazel.LabelListAttribute
 }
 
-func (xsd *xsdConfig) bp2buildFilegroupTarget(ctx android.TopDownMutatorContext) {
+func (xsd *xsdConfig) bp2buildFilegroupTarget(ctx android.Bp2buildMutatorContext) {
 	ctx.CreateBazelTargetModule(
 		bazel.BazelTargetModuleProperties{
 			Rule_class: "filegroup",
@@ -57,14 +57,15 @@ func (xsd *xsdConfig) bp2buildFilegroupTarget(ctx android.TopDownMutatorContext)
 
 var (
 	ccXsdConfigLibraryDenylist = map[string]bool{
-		"hal_manifest": true,
-		"compatibility_matrix": true,
-		"media_profiles": true,
-		"platform-compat-config": true,
+		"audio_policy_engine_configurable_configuration_V1_0": true,
+		"compatibility_matrix":                                true,
+		"hal_manifest":                                        true,
+		"media_profiles":                                      true,
+		"platform-compat-config":                              true,
 	}
 )
 
-func (xsd *xsdConfig) bp2buildCcTarget(ctx android.TopDownMutatorContext) {
+func (xsd *xsdConfig) bp2buildCcTarget(ctx android.Bp2buildMutatorContext) {
 	// Every xsd_config generates .cpp files in Soong, but not all of them are compile-able
 	// One such category is .xsd file that contain xs:element not nested under xs:complexType
 	// Use a denylist to skip generating cc_xsd_config_library for these Soong modules.
@@ -149,7 +150,7 @@ var (
 	}
 )
 
-func (xsd *xsdConfig) bp2buildJavaTarget(ctx android.TopDownMutatorContext) {
+func (xsd *xsdConfig) bp2buildJavaTarget(ctx android.Bp2buildMutatorContext) {
 	// Every xsd_config generates .srcjar in Soong, but not all of them are compile-able
 	// One such category is .xsd file that contain xs:complexType nested under xs:elementType nested under xs:complexType
 	// Use a denylist to skip generating java_xsd_config_library for these Soong modules.
@@ -232,7 +233,7 @@ func (xsd *xsdConfig) bp2buildJavaTarget(ctx android.TopDownMutatorContext) {
 	)
 }
 
-func (xsd *xsdConfig) ConvertWithBp2build(ctx android.TopDownMutatorContext) {
+func (xsd *xsdConfig) ConvertWithBp2build(ctx android.Bp2buildMutatorContext) {
 	xsd.bp2buildFilegroupTarget(ctx)
 	xsd.bp2buildCcTarget(ctx)
 	xsd.bp2buildJavaTarget(ctx)
