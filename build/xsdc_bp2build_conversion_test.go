@@ -27,34 +27,31 @@ const (
 	cc_preamble = `
 	cc_library {
 		name: "libxml2",
-		bazel_module: {bp2build_available: false},
 	}
 	cc_library {
 		name: "libtinyxml2",
-		bazel_module: {bp2build_available: false},
 	}
 	cc_library {
 		name: "libxsdc-utils",
-		bazel_module: {bp2build_available: false},
 	}
 	`
 	java_preamble = `
 	java_library {
 		name: "stub-annotations",
 		sdk_version: "current",
-		bazel_module: {bp2build_available: false},
 	}
 	java_library {
 		name: "kxml2-2.3.0",
 		sdk_version: "current",
 		host_supported: true,
-		bazel_module: {bp2build_available: false},
 	}
 	`
 )
 
 func runXsdConfigTest(t *testing.T, tc bp2build.Bp2buildTestCase) {
 	t.Parallel()
+	tc.StubbedBuildDefinitions = append(tc.StubbedBuildDefinitions,
+		"libxml2", "libtinyxml2", "libxsdc-utils", "stub-annotations", "kxml2-2.3.0")
 	bp2build.RunBp2BuildTestCase(
 		t,
 		func(ctx android.RegistrationContext) {
@@ -152,11 +149,11 @@ func TestCcAndJavaLibrariesUseXsdConfigGenSrcs(t *testing.T) {
 		Description:                "cc_library and java_library use srcs generated from xsd_config",
 		ModuleTypeUnderTest:        "xsd_config",
 		ModuleTypeUnderTestFactory: xsdConfigFactory,
+		StubbedBuildDefinitions:    []string{"foo"},
 		Blueprint: cc_preamble + java_preamble + `
 xsd_config {
 	name: "foo",
 	srcs: ["foo.xsd"],
-	bazel_module: {bp2build_available: false}
 }
 cc_library {
 	name: "cclib",
@@ -196,11 +193,11 @@ func TestCcAndJavaLibrariesUseXsdConfigGenSrcsNoHdrs(t *testing.T) {
 		Description:                "cc_library and java_library use srcs generated from xsd_config",
 		ModuleTypeUnderTest:        "xsd_config",
 		ModuleTypeUnderTestFactory: xsdConfigFactory,
+		StubbedBuildDefinitions:    []string{"foo"},
 		Blueprint: cc_preamble + java_preamble + `
 xsd_config {
 	name: "foo",
 	srcs: ["foo.xsd"],
-	bazel_module: {bp2build_available: false}
 }
 cc_library {
 	name: "cclib",
@@ -224,11 +221,11 @@ func TestCcAndJavaLibrariesUseXsdConfigGenSrcsExportHeaders(t *testing.T) {
 		Description:                "cc_library export headers from xsd_config",
 		ModuleTypeUnderTest:        "xsd_config",
 		ModuleTypeUnderTestFactory: xsdConfigFactory,
+		StubbedBuildDefinitions:    []string{"foo"},
 		Blueprint: cc_preamble + java_preamble + `
 xsd_config {
 	name: "foo",
 	srcs: ["foo.xsd"],
-	bazel_module: {bp2build_available: false}
 }
 cc_library {
 	name: "cclib",
