@@ -83,7 +83,7 @@ func TestXsdConfigSimple(t *testing.T) {
 			bp2build.MakeBazelTargetNoRestrictions("java_xsd_config_library", "foo-java", bp2build.AttrNameToString{
 				"src": `"foo.xsd"`,
 				"deps": `[":stub-annotations"] + select({
-        "//build/bazel/platforms/os:android": [],
+        "//build/bazel_common_rules/platforms/os:android": [],
         "//conditions:default": [":kxml2-2.3.0"],
     })`,
 				"sdk_version": `"core_current"`,
@@ -135,7 +135,7 @@ func TestXsdConfig(t *testing.T) {
 				"boolean_getter": `True`,
 				"root_elements":  `["root_element"]`,
 				"deps": `[":stub-annotations"] + select({
-        "//build/bazel/platforms/os:android": [],
+        "//build/bazel_common_rules/platforms/os:android": [],
         "//conditions:default": [":kxml2-2.3.0"],
     })`,
 				"sdk_version": `"core_current"`,
