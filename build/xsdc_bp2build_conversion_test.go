@@ -27,32 +27,31 @@ const (
 	cc_preamble = `
 	cc_library {
 		name: "libxml2",
-		bazel_module: {bp2build_available: false},
 	}
 	cc_library {
 		name: "libtinyxml2",
-		bazel_module: {bp2build_available: false},
 	}
 	cc_library {
 		name: "libxsdc-utils",
-		bazel_module: {bp2build_available: false},
 	}
 	`
 	java_preamble = `
 	java_library {
 		name: "stub-annotations",
-		bazel_module: {bp2build_available: false},
+		sdk_version: "current",
 	}
 	java_library {
 		name: "kxml2-2.3.0",
+		sdk_version: "current",
 		host_supported: true,
-		bazel_module: {bp2build_available: false},
 	}
 	`
 )
 
 func runXsdConfigTest(t *testing.T, tc bp2build.Bp2buildTestCase) {
 	t.Parallel()
+	tc.StubbedBuildDefinitions = append(tc.StubbedBuildDefinitions,
+		"libxml2", "libtinyxml2", "libxsdc-utils", "stub-annotations", "kxml2-2.3.0")
 	bp2build.RunBp2BuildTestCase(
 		t,
 		func(ctx android.RegistrationContext) {
@@ -84,7 +83,7 @@ func TestXsdConfigSimple(t *testing.T) {
 			bp2build.MakeBazelTargetNoRestrictions("java_xsd_config_library", "foo-java", bp2build.AttrNameToString{
 				"src": `"foo.xsd"`,
 				"deps": `[":stub-annotations"] + select({
-        "//build/bazel/platforms/os:android": [],
+        "//build/bazel_common_rules/platforms/os:android": [],
         "//conditions:default": [":kxml2-2.3.0"],
     })`,
 				"sdk_version": `"core_current"`,
@@ -136,7 +135,7 @@ func TestXsdConfig(t *testing.T) {
 				"boolean_getter": `True`,
 				"root_elements":  `["root_element"]`,
 				"deps": `[":stub-annotations"] + select({
-        "//build/bazel/platforms/os:android": [],
+        "//build/bazel_common_rules/platforms/os:android": [],
         "//conditions:default": [":kxml2-2.3.0"],
     })`,
 				"sdk_version": `"core_current"`,
@@ -150,11 +149,11 @@ func TestCcAndJavaLibrariesUseXsdConfigGenSrcs(t *testing.T) {
 		Description:                "cc_library and java_library use srcs generated from xsd_config",
 		ModuleTypeUnderTest:        "xsd_config",
 		ModuleTypeUnderTestFactory: xsdConfigFactory,
+		StubbedBuildDefinitions:    []string{"foo"},
 		Blueprint: cc_preamble + java_preamble + `
 xsd_config {
 	name: "foo",
 	srcs: ["foo.xsd"],
-	bazel_module: {bp2build_available: false}
 }
 cc_library {
 	name: "cclib",
@@ -167,6 +166,7 @@ java_library {
 		"A.java",
 		":foo"
 	],
+		sdk_version: "current",
 }`,
 		ExpectedBazelTargets: []string{
 			bp2build.MakeBazelTarget("cc_library_static", "cclib_bp2build_cc_library_static", bp2build.AttrNameToString{
@@ -178,11 +178,12 @@ java_library {
 				"implementation_whole_archive_deps": `[":foo-cpp"]`,
 			}),
 			bp2build.MakeBazelTarget("java_library", "javalib", bp2build.AttrNameToString{
-				"srcs":    `["A.java"]`,
-				"deps":    `[":foo-java"]`,
-				"exports": `[":foo-java"]`,
+				"srcs":        `["A.java"]`,
+				"deps":        `[":foo-java"]`,
+				"exports":     `[":foo-java"]`,
+				"sdk_version": `"current"`,
 			}),
-			bp2build.MakeNeverlinkDuplicateTargetWithAttrs("java_library", "javalib", bp2build.AttrNameToString{}),
+			bp2build.MakeNeverlinkDuplicateTarget("java_library", "javalib"),
 		},
 	})
 }
@@ -192,11 +193,11 @@ func TestCcAndJavaLibrariesUseXsdConfigGenSrcsNoHdrs(t *testing.T) {
 		Description:                "cc_library and java_library use srcs generated from xsd_config",
 		ModuleTypeUnderTest:        "xsd_config",
 		ModuleTypeUnderTestFactory: xsdConfigFactory,
+		StubbedBuildDefinitions:    []string{"foo"},
 		Blueprint: cc_preamble + java_preamble + `
 xsd_config {
 	name: "foo",
 	srcs: ["foo.xsd"],
-	bazel_module: {bp2build_available: false}
 }
 cc_library {
 	name: "cclib",
@@ -220,11 +221,11 @@ func TestCcAndJavaLibrariesUseXsdConfigGenSrcsExportHeaders(t *testing.T) {
 		Description:                "cc_library export headers from xsd_config",
 		ModuleTypeUnderTest:        "xsd_config",
 		ModuleTypeUnderTestFactory: xsdConfigFactory,
+		StubbedBuildDefinitions:    []string{"foo"},
 		Blueprint: cc_preamble + java_preamble + `
 xsd_config {
 	name: "foo",
 	srcs: ["foo.xsd"],
-	bazel_module: {bp2build_available: false}
 }
 cc_library {
 	name: "cclib",
