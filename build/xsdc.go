@@ -83,7 +83,6 @@ type xsdConfigProperties struct {
 
 type xsdConfig struct {
 	android.ModuleBase
-	android.BazelModuleBase
 
 	properties xsdConfigProperties
 
@@ -342,7 +341,6 @@ func xsdConfigFactory() android.Module {
 	module := &xsdConfig{}
 	module.AddProperties(&module.properties)
 	android.InitAndroidModule(module)
-	android.InitBazelModule(module)
 
 	return module
 }

@@ -23,15 +23,10 @@ bootstrap_go_package {
         "blueprint",
         "soong",
         "soong-android",
-        "soong-bp2build",
         "soong-java",
     ],
     srcs: [
         "xsdc.go",
-        "xsdc_bp2build_conversion.go",
-    ],
-    testSrcs: [
-        "xsdc_bp2build_conversion_test.go",
     ],
     pluginFor: ["soong_build"],
 }
