@@ -226,7 +226,12 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 
 	ctx.VisitDirectDeps(func(to android.Module) {
 		if doc, ok := to.(java.ApiFilePath); ok {
-			module.docsPath = doc.ApiFilePath()
+			docsPath, err := doc.ApiFilePath(java.Everything)
+			if err != nil {
+				ctx.ModuleErrorf(err.Error())
+			} else {
+				module.docsPath = docsPath
+			}
 		}
 	})
 
