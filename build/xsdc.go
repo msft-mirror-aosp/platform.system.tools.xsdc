@@ -83,7 +83,6 @@ type xsdConfigProperties struct {
 
 type xsdConfig struct {
 	android.ModuleBase
-	android.BazelModuleBase
 
 	properties xsdConfigProperties
 
@@ -227,7 +226,12 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 
 	ctx.VisitDirectDeps(func(to android.Module) {
 		if doc, ok := to.(java.ApiFilePath); ok {
-			module.docsPath = doc.ApiFilePath()
+			docsPath, err := doc.ApiFilePath(java.Everything)
+			if err != nil {
+				ctx.ModuleErrorf(err.Error())
+			} else {
+				module.docsPath = docsPath
+			}
 		}
 	})
 
@@ -342,7 +346,6 @@ func xsdConfigFactory() android.Module {
 	module := &xsdConfig{}
 	module.AddProperties(&module.properties)
 	android.InitAndroidModule(module)
-	android.InitBazelModule(module)
 
 	return module
 }
