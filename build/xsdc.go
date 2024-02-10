@@ -173,7 +173,7 @@ func (module *xsdConfig) generateJavaSrcInSbox(ctx android.ModuleContext, args s
 		Input(module.xsdConfigPath).
 		FlagWithArg("-p ", *module.properties.Package_name).
 		// Soong will change execution root to sandbox root. Generate srcs relative to that.
-		Flag("-o ").OutputDir().
+		Flag("-o ").OutputDir("xsdc").
 		FlagWithArg("-j ", args)
 	if module.xsdIncludeConfigPaths != nil {
 		genCmd.Implicits(module.xsdIncludeConfigPaths)
@@ -186,8 +186,8 @@ func (module *xsdConfig) generateJavaSrcInSbox(ctx android.ModuleContext, args s
 		BuiltTool("soong_zip").
 		Flag("-jar").
 		FlagWithOutput("-o ", module.genOutputs_j).
-		Flag("-C ").OutputDir().
-		Flag("-D ").OutputDir()
+		Flag("-C ").OutputDir("xsdc").
+		Flag("-D ").OutputDir("xsdc")
 
 	rule.Build("xsdc_java_"+module.xsdConfigPath.String(), "xsdc java")
 }
