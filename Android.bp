@@ -1,4 +1,5 @@
 package {
+    default_team: "trendy_team_android_kernel",
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
@@ -10,7 +11,7 @@ java_binary_host {
     static_libs: [
         "commons-cli-1.2",
     ],
-    manifest: "MANIFEST.MF"
+    manifest: "MANIFEST.MF",
 }
 
 java_test_host {
