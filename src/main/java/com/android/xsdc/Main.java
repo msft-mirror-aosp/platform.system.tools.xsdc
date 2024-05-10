@@ -23,6 +23,7 @@ import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.lang.System.exit;
 
@@ -168,6 +169,17 @@ public class Main {
                     System.err.println("Invalid root element(-r): " + rootElement);
                     System.exit(1);
                 }
+            }
+        } else {
+            // Raise an error when -r/--root is not specified but there's more than one
+            // candidate root elements (top-level elements).
+            if (xmlSchema.getElementMap().size() > 1) {
+                System.err.println("Missing -r/--root option: please specify the names of root "
+                        + "elements. In Android.bp, use 'root_elements' property to set root "
+                        + "elements. Possible root elements are: "
+                        + xmlSchema.getElementMap().keySet().stream().map(s -> "\"" + s + "\"")
+                          .collect(Collectors.joining(", ")));
+                System.exit(1);
             }
         }
 
