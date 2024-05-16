@@ -449,7 +449,7 @@ public class CppCodeGenerator {
             }
         }
         if (valueType != null) {
-            parserHeaderFile.printf("const std::optional<%s> _value;\n", valueType.getName());
+            parserHeaderFile.printf("const std::optional<%s> value_;\n", valueType.getName());
         }
 
         parserHeaderFile.printf("public:\n");
@@ -556,12 +556,7 @@ public class CppCodeGenerator {
             parserCppFile.printf("%s = _value;\n}\n", variableName);
         }
 
-        if (baseValueType != null) {
-            printSetRawWithElementText("root");
-            parserCppFile.print(baseValueType.getParsingExpression());
-            parserCppFile.printf("instance.setValue(_value);\n");
-            parserCppFile.printf("}\n");
-        } else if (!allElements.isEmpty()) {
+        if (!allElements.isEmpty()) {
             for (int i = 0; i < allElements.size(); ++i) {
                 CppType type = allElementTypes.get(i);
                 XsdElement element = allElements.get(i);
@@ -608,6 +603,10 @@ public class CppCodeGenerator {
                 }
             }
             parserCppFile.printf("}\n}\n");
+        }
+        if (baseValueType != null) {
+            printSetRawWithElementText("root");
+            parserCppFile.print(baseValueType.getParsingExpression());
         }
         parserCppFile.printf("%s instance%s;\n",
                 fullName, args.length() > 0 ? "(" + args + ")" : "");
@@ -903,6 +902,16 @@ public class CppCodeGenerator {
             } else {
                 parentArgs.append(String.format(", %s", variableName));
             }
+        }
+
+        CppSimpleType valueType = (complexType instanceof XsdSimpleContent) ?
+                getValueType((XsdSimpleContent) complexType, false) : null;
+        if (valueType != null) {
+            constructorArgs.append(String.format(", %s %s", valueType.getName(), "value"));
+            boolean isMultipleType = (valueType.isList() ? true : false);
+            constructor.append(String.format(", %s_(%s)", "value", "value"));
+            // getParsingExpression prepends with underscore, so set args for instantiation
+            args.append(String.format(", %s", "_value"));
         }
 
         String constructorArgsString = constructorArgs.toString();
