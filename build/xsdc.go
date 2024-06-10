@@ -15,11 +15,11 @@
 package xsdc
 
 import (
-	"android/soong/android"
-	"android/soong/java"
-	"fmt"
 	"path/filepath"
 	"strings"
+
+	"android/soong/android"
+	"android/soong/java"
 
 	"github.com/google/blueprint"
 	"github.com/google/blueprint/proptools"
@@ -303,6 +303,20 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 	module.generateCppSrcInSbox(ctx, args)
 
 	module.generateXsdConfig(ctx)
+
+	module.setOutputFiles(ctx)
+}
+
+func (module *xsdConfig) setOutputFiles(ctx android.ModuleContext) {
+	var defaultOutputFiles android.WritablePaths
+	defaultOutputFiles = append(defaultOutputFiles, module.genOutputs_j)
+	defaultOutputFiles = append(defaultOutputFiles, module.genOutputs_c...)
+	defaultOutputFiles = append(defaultOutputFiles, module.genOutputs_h...)
+	defaultOutputFiles = append(defaultOutputFiles, module.genOutputs...)
+	ctx.SetOutputFiles(defaultOutputFiles.Paths(), "")
+	ctx.SetOutputFiles(android.Paths{module.genOutputs_j}, "java")
+	ctx.SetOutputFiles(module.genOutputs_c.Paths(), "cpp")
+	ctx.SetOutputFiles(module.genOutputs_h.Paths(), "h")
 }
 
 func xsdConfigMutator(mctx android.TopDownMutatorContext) {
@@ -349,25 +363,3 @@ func xsdConfigFactory() android.Module {
 
 	return module
 }
-
-func (module *xsdConfig) OutputFiles(tag string) (android.Paths, error) {
-	switch tag {
-	case "":
-		var outputs android.WritablePaths
-		outputs = append(outputs, module.genOutputs_j)
-		outputs = append(outputs, module.genOutputs_c...)
-		outputs = append(outputs, module.genOutputs_h...)
-		outputs = append(outputs, module.genOutputs...)
-		return outputs.Paths(), nil
-	case "java":
-		return android.Paths{module.genOutputs_j}, nil
-	case "cpp":
-		return module.genOutputs_c.Paths(), nil
-	case "h":
-		return module.genOutputs_h.Paths(), nil
-	default:
-		return nil, fmt.Errorf("unsupported module reference tag %q", tag)
-	}
-}
-
-var _ android.OutputFileProducer = (*xsdConfig)(nil)
