@@ -28,10 +28,6 @@ import (
 func init() {
 	pctx.Import("android/soong/java/config")
 	android.RegisterModuleType("xsd_config", xsdConfigFactory)
-
-	android.PreArchMutators(func(ctx android.RegisterMutatorsContext) {
-		ctx.BottomUp("xsd_config", xsdConfigMutator).Parallel()
-	})
 }
 
 var (
@@ -319,47 +315,47 @@ func (module *xsdConfig) setOutputFiles(ctx android.ModuleContext) {
 	ctx.SetOutputFiles(module.genOutputs_h.Paths(), "h")
 }
 
-func xsdConfigMutator(mctx android.BottomUpMutatorContext) {
-	if module, ok := mctx.Module().(*xsdConfig); ok {
-		name := module.BaseModuleName()
+func xsdConfigLoadHook(mctx android.LoadHookContext) {
+	module := mctx.Module().(*xsdConfig)
+	name := module.BaseModuleName()
 
-		args := " --stub-packages " + *module.properties.Package_name +
-			" --hide MissingPermission --hide BroadcastBehavior" +
-			" --hide HiddenSuperclass --hide DeprecationMismatch --hide UnavailableSymbol" +
-			" --hide SdkConstant --hide HiddenTypeParameter --hide Todo"
+	args := " --stub-packages " + *module.properties.Package_name +
+		" --hide MissingPermission --hide BroadcastBehavior" +
+		" --hide HiddenSuperclass --hide DeprecationMismatch --hide UnavailableSymbol" +
+		" --hide SdkConstant --hide HiddenTypeParameter --hide Todo"
 
-		api_dir := proptools.StringDefault(module.properties.Api_dir, "api")
+	api_dir := proptools.StringDefault(module.properties.Api_dir, "api")
 
-		currentApiFileName := filepath.Join(api_dir, "current.txt")
-		removedApiFileName := filepath.Join(api_dir, "removed.txt")
+	currentApiFileName := filepath.Join(api_dir, "current.txt")
+	removedApiFileName := filepath.Join(api_dir, "removed.txt")
 
-		check_api := CheckApi{}
+	check_api := CheckApi{}
 
-		check_api.Current.Api_file = proptools.StringPtr(currentApiFileName)
-		check_api.Current.Removed_api_file = proptools.StringPtr(removedApiFileName)
+	check_api.Current.Api_file = proptools.StringPtr(currentApiFileName)
+	check_api.Current.Removed_api_file = proptools.StringPtr(removedApiFileName)
 
-		check_api.Last_released.Api_file = proptools.StringPtr(
-			filepath.Join(api_dir, "last_current.txt"))
-		check_api.Last_released.Removed_api_file = proptools.StringPtr(
-			filepath.Join(api_dir, "last_removed.txt"))
+	check_api.Last_released.Api_file = proptools.StringPtr(
+		filepath.Join(api_dir, "last_current.txt"))
+	check_api.Last_released.Removed_api_file = proptools.StringPtr(
+		filepath.Join(api_dir, "last_removed.txt"))
 
-		mctx.CreateModule(java.DroidstubsFactory, &DroidstubsProperties{
-			Name:                 proptools.StringPtr(name + ".docs"),
-			Srcs:                 []string{":" + name},
-			Args:                 proptools.StringPtr(args),
-			Api_filename:         proptools.StringPtr(currentApiFileName),
-			Removed_api_filename: proptools.StringPtr(removedApiFileName),
-			Check_api:            check_api,
-			Installable:          proptools.BoolPtr(false),
-			Sdk_version:          proptools.StringPtr("core_platform"),
-		})
-	}
+	mctx.CreateModule(java.DroidstubsFactory, &DroidstubsProperties{
+		Name:                 proptools.StringPtr(name + ".docs"),
+		Srcs:                 []string{":" + name},
+		Args:                 proptools.StringPtr(args),
+		Api_filename:         proptools.StringPtr(currentApiFileName),
+		Removed_api_filename: proptools.StringPtr(removedApiFileName),
+		Check_api:            check_api,
+		Installable:          proptools.BoolPtr(false),
+		Sdk_version:          proptools.StringPtr("core_platform"),
+	})
 }
 
 func xsdConfigFactory() android.Module {
 	module := &xsdConfig{}
 	module.AddProperties(&module.properties)
 	android.InitAndroidModule(module)
+	android.AddLoadHook(module, xsdConfigLoadHook)
 
 	return module
 }
