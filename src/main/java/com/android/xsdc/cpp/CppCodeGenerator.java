@@ -163,9 +163,9 @@ public class CppCodeGenerator {
         }
         parserHeaderFile.printf("\n");
         if (useTinyXml) {
-            printGuardedIncludes(parserHeaderFile, "libtinyxml2", "tinyxml2.h");
+            printGuardedIncludes("libtinyxml2", "tinyxml2.h");
         } else {
-            printGuardedIncludes(parserHeaderFile, "libxml2", "libxml/parser.h",
+            printGuardedIncludes("libxml2", "libxml/parser.h",
                     Arrays.asList("libxml/xinclude.h"));
         }
         if (hasEnums) {
@@ -266,11 +266,11 @@ public class CppCodeGenerator {
         enumsHeaderFile.close();
     }
 
-    private void printGuardedIncludes(CodeWriter file, String libName, String mainHeader) {
-        printGuardedIncludes(file, libName, mainHeader, Collections.emptyList());
+    private void printGuardedIncludes(String libName, String mainHeader) {
+        printGuardedIncludes(libName, mainHeader, Collections.emptyList());
     }
 
-    private void printGuardedIncludes(CodeWriter file, String libName, String mainHeader,
+    private void printGuardedIncludes(String libName, String mainHeader,
             Collection<String> additionalHeaders) {
         parserHeaderFile.printf("#if __has_include(<%s>)\n", mainHeader);
         parserHeaderFile.printf("#include <%s>\n", mainHeader);
@@ -908,7 +908,6 @@ public class CppCodeGenerator {
                 getValueType((XsdSimpleContent) complexType, false) : null;
         if (valueType != null) {
             constructorArgs.append(String.format(", %s %s", valueType.getName(), "value"));
-            boolean isMultipleType = (valueType.isList() ? true : false);
             constructor.append(String.format(", %s_(%s)", "value", "value"));
             // getParsingExpression prepends with underscore, so set args for instantiation
             args.append(String.format(", %s", "_value"));
