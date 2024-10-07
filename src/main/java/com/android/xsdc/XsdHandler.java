@@ -206,11 +206,11 @@ public class XsdHandler extends DefaultHandler {
                     // Tags under simpleType <restriction>. They are ignored.
                     break;
                 case "annotation":
-                    stateStack.peek().deprecated = isDeprecated(state.attributeMap, state.tags,
+                    stateStack.peek().deprecated = isDeprecated(state.attributeMap,
                             stateStack.peek().deprecated);
-                    stateStack.peek().finalValue = isFinalValue(state.attributeMap, state.tags,
+                    stateStack.peek().finalValue = isFinalValue(state.attributeMap,
                             stateStack.peek().finalValue);
-                    stateStack.peek().nullability = getNullability(state.attributeMap, state.tags,
+                    stateStack.peek().nullability = getNullability(state.attributeMap,
                             stateStack.peek().nullability);
                     break;
                 case "appinfo":
@@ -311,7 +311,6 @@ public class XsdHandler extends DefaultHandler {
         String name = state.attributeMap.get("name");
         QName typename = parseQName(state.attributeMap.get("type"));
         QName ref = parseQName(state.attributeMap.get("ref"));
-        String defVal = state.attributeMap.get("default");
         String use = state.attributeMap.get("use");
 
         if (use != null && use.equals("prohibited")) return null;
@@ -673,8 +672,7 @@ public class XsdHandler extends DefaultHandler {
         includeList.add(fileName);
     }
 
-    private boolean isDeprecated(Map<String, String> attributeMap,List<XsdTag> tags,
-            boolean deprecated) throws XsdParserException {
+    private boolean isDeprecated(Map<String, String> attributeMap, boolean deprecated) throws XsdParserException {
         String name = attributeMap.get("name");
         if ("Deprecated".equals(name)) {
             return true;
@@ -682,8 +680,7 @@ public class XsdHandler extends DefaultHandler {
         return deprecated;
     }
 
-    private boolean isFinalValue(Map<String, String> attributeMap,List<XsdTag> tags,
-            boolean finalValue) throws XsdParserException {
+    private boolean isFinalValue(Map<String, String> attributeMap, boolean finalValue) throws XsdParserException {
         String name = attributeMap.get("name");
         if ("final".equals(name)) {
             return true;
@@ -691,8 +688,7 @@ public class XsdHandler extends DefaultHandler {
         return finalValue;
     }
 
-    private Nullability getNullability(Map<String, String> attributeMap,List<XsdTag> tags,
-            Nullability nullability) throws XsdParserException {
+    private Nullability getNullability(Map<String, String> attributeMap, Nullability nullability) throws XsdParserException {
         String name = attributeMap.get("name");
         if ("nullable".equals(name)) {
             return Nullability.NULLABLE;
