@@ -283,7 +283,7 @@ public class JavaCodeGenerator {
         out.println();
         printParser(out, nameScope + name, complexType);
         if (writer) {
-            printWriter(out, name, complexType);
+            printWriter(out, complexType);
         }
 
         out.println("}");
@@ -376,10 +376,8 @@ public class JavaCodeGenerator {
                 + "}\n");
     }
 
-    private void printWriter(CodeWriter out, String name, XsdComplexType complexType)
+    private void printWriter(CodeWriter out, XsdComplexType complexType)
             throws JavaCodeGeneratorException {
-        JavaSimpleType baseValueType = (complexType instanceof XsdSimpleContent) ?
-                getValueType((XsdSimpleContent) complexType, true) : null;
         List<XsdElement> allElements = new ArrayList<>();
         List<XsdAttribute> allAttributes = new ArrayList<>();
         stackComponents(complexType, allElements, allAttributes);
@@ -404,7 +402,6 @@ public class JavaCodeGenerator {
         out.print("_out.print(\"<\" + _name);\n");
         for (int i = 0; i < allAttributes.size(); ++i) {
             JavaType type = allAttributeTypes.get(i);
-            boolean isList = allAttributeTypes.get(i).isList();
             XsdAttribute attribute = resolveAttribute(allAttributes.get(i));
             String variableName = Utils.toVariableName(attribute.getName());
             out.printf("if (has%s()) {\n", Utils.capitalize(variableName));
