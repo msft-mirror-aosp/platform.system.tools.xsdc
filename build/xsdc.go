@@ -220,14 +220,9 @@ func (module *xsdConfig) GenerateAndroidBuildActions(ctx android.ModuleContext) 
 		ctx.PropertyErrorf("srcs", "xsd_config must be one src")
 	}
 
-	ctx.VisitDirectDeps(func(to android.Module) {
-		if doc, ok := to.(java.ApiFilePath); ok {
-			docsPath, err := doc.ApiFilePath(java.Everything)
-			if err != nil {
-				ctx.ModuleErrorf(err.Error())
-			} else {
-				module.docsPath = docsPath
-			}
+	ctx.VisitDirectDepsProxy(func(to android.ModuleProxy) {
+		if doc, ok := android.OtherModuleProvider(ctx, to, java.DroidStubsInfoProvider); ok {
+			module.docsPath = doc.EverythingStubsInfo.ApiFile
 		}
 	})
 
