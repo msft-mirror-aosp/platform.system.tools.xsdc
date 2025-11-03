@@ -36,8 +36,9 @@ var (
 	xsdc = pctx.HostBinToolVariable("xsdcCmd", "xsdc")
 
 	xsdConfigRule = pctx.StaticRule("xsdConfigRule", blueprint.RuleParams{
-		Command:     "cp -f ${in} ${output}",
-		Description: "copy the xsd file: ${in} => ${output}",
+		Command:         "cp -f ${in} ${output}",
+		Description:     "copy the xsd file: ${in} => ${output}",
+		SandboxDisabled: true,
 	}, "output")
 )
 
@@ -161,6 +162,7 @@ func (module *xsdConfig) generateJavaSrcInSbox(ctx android.ModuleContext, args s
 		Sbox(android.PathForModuleGen(ctx, "java"),
 			android.PathForModuleGen(ctx, "java.sbox.textproto")).
 		SandboxInputs()
+	rule.SandboxDisabled()
 	// Run xsdc tool to generate sources
 	genCmd := rule.Command()
 	genCmd.
@@ -196,6 +198,7 @@ func (module *xsdConfig) generateCppSrcInSbox(ctx android.ModuleContext, args st
 		Sbox(outDir,
 			android.PathForModuleGen(ctx, "cpp.sbox.textproto")).
 		SandboxInputs()
+	rule.SandboxDisabled()
 	// Run xsdc tool to generate sources
 	genCmd := rule.Command()
 	genCmd.
