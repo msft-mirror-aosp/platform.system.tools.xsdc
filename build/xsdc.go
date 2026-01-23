@@ -195,8 +195,7 @@ func (module *xsdConfig) generateCppSrcInSbox(ctx android.ModuleContext, args st
 	outDir := android.PathForModuleGen(ctx, "cpp")
 	rule := android.NewRuleBuilder(pctx, ctx).
 		Sbox(outDir,
-			android.PathForModuleGen(ctx, "cpp.sbox.textproto")).
-		SandboxInputs()
+			android.PathForModuleGen(ctx, "cpp.sbox.textproto"))
 	rule.SandboxDisabled()
 	// Run xsdc tool to generate sources
 	genCmd := rule.Command()
