@@ -160,8 +160,7 @@ func (module *xsdConfig) generateXsdConfig(ctx android.ModuleContext) {
 func (module *xsdConfig) generateJavaSrcInSbox(ctx android.ModuleContext, args string) {
 	rule := android.NewRuleBuilder(pctx, ctx).
 		Sbox(android.PathForModuleGen(ctx, "java"),
-			android.PathForModuleGen(ctx, "java.sbox.textproto")).
-		SandboxInputs()
+			android.PathForModuleGen(ctx, "java.sbox.textproto"))
 	rule.SandboxDisabled()
 	// Run xsdc tool to generate sources
 	genCmd := rule.Command()
